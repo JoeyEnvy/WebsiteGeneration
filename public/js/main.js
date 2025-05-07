@@ -1,51 +1,42 @@
-// WebsiteGenerator class handles all the main functionality of the website generator using Google Apps Script as backend
+// WebsiteGenerator class handles all the main functionality of the website generator using a secure backend API
 class WebsiteGenerator {
     constructor() {
-        // Grab important DOM elements
         this.form = document.getElementById('websiteGeneratorForm');
         this.previewFrame = document.getElementById('previewFrame');
         this.currentPage = 0;
         this.generatedPages = [];
 
-        // Set up all event listeners
         this.initializeEventListeners();
     }
 
-    // Set up user interaction event listeners
     initializeEventListeners() {
-        // Prevent default form submission and handle custom logic
         this.form.addEventListener('submit', this.handleSubmit.bind(this));
-
-        // Real-time preview update after user input (debounced)
         this.form.addEventListener('input', debounce(() => {
             this.updatePreview();
         }, 1000));
 
-        // Handle device preview buttons
         document.querySelectorAll('.preview-controls button').forEach(button => {
             button.addEventListener('click', () => {
                 this.changePreviewDevice(button.id.replace('Preview', ''));
             });
         });
 
-        // Handle manual page navigation
         document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
         document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
     }
 
-    // Handle form submission, send data to Google Apps Script backend
     async handleSubmit(event) {
-        event.preventDefault(); // Prevent page reload
+        event.preventDefault();
 
-        if (!this.validateForm()) return; // Check form is filled
+        if (!this.validateForm()) return;
 
-        this.showLoading(); // Show loader
+        this.showLoading();
 
         try {
             const formData = new FormData(this.form);
             const aiQuery = this.generateAIQuery(formData);
 
-            const response = await fetch('https://script.google.com/macros/s/AKfycbyLl-daaimhjv05m5zCiLZJ4K9Uv3vvMPa-4LVsjhxTw2Sn6lkKk3P8fGMfj-XN7XVj/exec', {
+            const response = await fetch('https://websitegeneration.onrender.com/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: aiQuery })
@@ -67,7 +58,6 @@ class WebsiteGenerator {
         }
     }
 
-    // Convert form data into a full OpenAI prompt
     generateAIQuery(formData) {
         const websiteType = formData.get('websiteType');
         const pageCount = formData.get('pageCount');
@@ -106,12 +96,11 @@ Additional Instructions:
         `.trim();
     }
 
-    // Show live preview of the generated content
     updatePreview() {
         if (this.generatedPages.length === 0) return;
 
         const currentPageContent = this.generatedPages[this.currentPage];
-        const scrollY = window.scrollY; // Save scroll position
+        const scrollY = window.scrollY;
 
         const iframe = document.createElement('iframe');
         iframe.style.width = '100%';
@@ -129,7 +118,6 @@ Additional Instructions:
         this.updatePageNavigation();
     }
 
-    // Handle next/previous buttons and update UI
     updatePageNavigation() {
         const prevButton = document.getElementById('prevPage');
         const nextButton = document.getElementById('nextPage');
@@ -140,14 +128,12 @@ Additional Instructions:
         pageIndicator.textContent = `Page ${this.currentPage + 1} of ${this.generatedPages.length}`;
     }
 
-    // Change preview page by offset
     changePage(direction) {
         this.currentPage += direction;
         this.currentPage = Math.max(0, Math.min(this.currentPage, this.generatedPages.length - 1));
         this.updatePreview();
     }
 
-    // Change the size of the preview iframe
     changePreviewDevice(device) {
         const sizes = {
             mobile: '375px',
@@ -165,7 +151,6 @@ Additional Instructions:
         });
     }
 
-    // Show a loading indicator and disable submit button
     showLoading() {
         const loader = document.createElement('div');
         loader.className = 'loader';
@@ -174,14 +159,12 @@ Additional Instructions:
         this.form.querySelector('button[type="submit"]').disabled = true;
     }
 
-    // Hide loader and re-enable submit
     hideLoading() {
         const loader = this.form.querySelector('.loader');
         if (loader) loader.remove();
         this.form.querySelector('button[type="submit"]').disabled = false;
     }
 
-    // Show success alert
     showSuccess(message) {
         const alert = document.createElement('div');
         alert.className = 'alert alert-success';
@@ -190,7 +173,6 @@ Additional Instructions:
         setTimeout(() => alert.remove(), 5000);
     }
 
-    // Show error alert
     showError(message) {
         const alert = document.createElement('div');
         alert.className = 'alert alert-error';
@@ -199,7 +181,6 @@ Additional Instructions:
         setTimeout(() => alert.remove(), 5000);
     }
 
-    // Check that all required fields are filled
     validateForm() {
         const requiredFields = this.form.querySelectorAll('[required]');
         let isValid = true;
@@ -216,7 +197,6 @@ Additional Instructions:
         return isValid;
     }
 
-    // Display error below a field
     showFieldError(field, message) {
         const errorDiv = document.createElement('div');
         errorDiv.className = 'field-error';
@@ -225,7 +205,6 @@ Additional Instructions:
         field.classList.add('error');
     }
 
-    // Remove any previous field error
     clearFieldError(field) {
         const errorDiv = field.parentNode.querySelector('.field-error');
         if (errorDiv) errorDiv.remove();
@@ -233,7 +212,6 @@ Additional Instructions:
     }
 }
 
-// Debounce function to limit how often preview updates
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -242,7 +220,7 @@ function debounce(func, wait) {
     };
 }
 
-// Initialize when page is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });
+
