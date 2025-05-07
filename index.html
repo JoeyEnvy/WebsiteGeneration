@@ -263,75 +263,54 @@
     <!-- Scripts -->
 
 
-    <script src="/js/utils/cache.js"></script>
-    <script src="/js/utils/rateLimit.js"></script>
-    <script src="/js/features/preview/previewManager.js"></script>
-<script src="/js/features/preview/previewManager.js"></script>
+<!-- <script src="/js/utils/cache.js"></script> -->
+<!-- <script src="/js/utils/rateLimit.js"></script> -->
+<!-- <script src="/js/features/preview/previewManager.js"></script> -->
+<!-- <script src="/js/features/preview/previewManager.js"></script> -->
 
+<script src="public/js/main.js"></script>
 
-
-
-<script src="public/js/main.js">    </script>
-
-
-
-<script src="/public/js/auth.js"></script>
-<script src="/public/js/dashboard.js"></script>
-<script src="/public/js/documentation.js"></script>
-<script src="/public/js/generator.js"></script>
-<script src="/public/js/init.js"></script>
-<script src="/public/js/utils.js"></script>
+<!-- <script src="/public/js/auth.js"></script> -->
+<!-- <script src="/public/js/dashboard.js"></script> -->
+<!-- <script src="/public/js/documentation.js"></script> -->
+<!-- <script src="/public/js/generator.js"></script> -->
+<!-- <script src="/public/js/init.js"></script> -->
+<!-- <script src="/public/js/utils.js"></script> -->
 
 
 <h1>OpenAI API Test</h1>
 <button id="testButton">Test API Connection</button>
 <div id="testResult"></div>
 
-<<<<<<< HEAD
-    <script>
-       async function testAPIConnection() {
-            console.log('Testing API connection...');
-            const apiKey = 'sk-svcacct-MQx7BXXxDb1JM_RlyXQ6r6PBRI1uzy_gqNQkQ90T7lbAQEUG2Un-gnNp6gyELT3BlbkFJ_JhHHk3kdRprgqSH7zb7I06VMgcwrV-5gjKhvuceyxs4bkRUFKnAZQasoSPTgA';
-            const testResult = document.getElementById('testResult');
-            testResult.innerHTML = 'Testing API connection...';
-=======
 <script>
   async function testAPIConnection() {
     console.log('Testing API connection...');
-
-    // 🔐 Replace this with a secure server-side call instead
-    const apiKey = ''; // ❌ REMOVED: API key should never be in client-side code
->>>>>>> a97286f (api remove)
 
     const testResult = document.getElementById('testResult');
     testResult.innerHTML = 'Testing API connection...';
 
     try {
-      console.log('Preparing request...');
       const url = 'https://api.openai.com/v1/chat/completions';
+
+      // 🚫 DO NOT hardcode secret API keys client-side in production
+      const apiKey = ''; // Leave empty or call via backend securely
+
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       };
+
       const body = {
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: 'Say this is a test' }],
         temperature: 0.7
       };
 
-      console.log('Request URL:', url);
-      console.log('Request Headers:', JSON.stringify(headers, null, 2));
-      console.log('Request Body:', JSON.stringify(body, null, 2));
-
-      console.log('Sending request to API...');
       const response = await fetch(url, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(body)
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers), null, 2));
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -339,19 +318,14 @@
       }
 
       const data = await response.json();
-      console.log('API Response:', JSON.stringify(data, null, 2));
-      testResult.innerHTML = `API connection successful! Response: ${data.choices[0].message.content}`;
+      testResult.innerHTML = `✅ Success: ${data.choices[0].message.content}`;
     } catch (error) {
-      console.error('API connection failed:', error);
-      console.error('Error stack:', error.stack);
-      testResult.innerHTML = `API connection failed: ${error.message}`;
+      console.error('❌ API connection failed:', error);
+      testResult.innerHTML = `❌ API connection failed: ${error.message}`;
     }
   }
 
-  document.getElementById('testButton').addEventListener('click', () => {
-    console.log('Button clicked');
-    testAPIConnection();
-  });
+  document.getElementById('testButton').addEventListener('click', testAPIConnection);
 </script>
 
 
