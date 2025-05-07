@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Website Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-body">
+    <header class="dashboard-header">
+        <nav class="container">
+            <div class="logo">
+                <h1>AI Website Generator</h1>
+            </div>
+            <div class="user-menu">
+                <span class="notifications">
+                    <i class="fas fa-bell"></i>
+                </span>
+                <div class="user-profile">
+                    <img src="avatar.jpg" alt="User Avatar">
+                    <span class="username">John Doe</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="dashboard-container">
+        <aside class="dashboard-sidebar">
+            <nav class="dashboard-nav">
+                <ul>
+                    <li class="active">
+                        <a href="#overview"><i class="fas fa-home"></i> Overview</a>
+                    </li>
+                    <li>
+                        <a href="#websites"><i class="fas fa-globe"></i> My Websites</a>
+                    </li>
+                    <li>
+                        <a href="#analytics"><i class="fas fa-chart-bar"></i> Analytics</a>
+                    </li>
+                    <li>
+                        <a href="#billing"><i class="fas fa-credit-card"></i> Billing</a>
+                    </li>
+                    <li>
+                        <a href="#settings"><i class="fas fa-cog"></i> Settings</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="dashboard-main">
+            <section class="dashboard-overview">
+                <h2>Dashboard Overview</h2>
+                
+                <div class="stats-grid grid-4">
+                    <div class="stat-card">
+                        <h3>Active Websites</h3>
+                        <p class="stat-number">3</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Visitors</h3>
+                        <p class="stat-number">1,234</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Generated Pages</h3>
+                        <p class="stat-number">12</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Storage Used</h3>
+                        <p class="stat-number">45%</p>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list">
+                        <!-- Activity items -->
+                    </div>
+                </div>
+            </section>
+
+            <section class="website-management">
+                <h3>Your Websites</h3>
+                <div class="websites-grid grid-3">
+                    <!-- Website cards -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+<!-- Add these before the closing </body> tag -->
+<script src="js/init.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+
+<!-- Add page-specific scripts as needed -->
+<!-- For index.html -->
+<script src="js/generator.js"></script>
+
+<!-- For dashboard.html -->
+<script src="js/dashboard.js"></script>
+
+<!-- For documentation.html -->
+<script src="js/documentation.js"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+Website Generation Explanation for AI Question 
+
+i need some help with my website generation project. basically i have the following index template where the user enters into a form their website name specifications and business type etc like the following Website Type & Structure
+Type of Website
+
+Select website type
+How many pages do you need?
+
+Single Page
+Which pages do you need?
+ Home
+ About
+ Services
+ Contact
+Business Details
+Business Name
+Business Type
+
+Select business type
+Brief Description
+Extra Features
+What features do you need?
+ Online Booking
+ Newsletter
+ Social Media
+ Live Chat
+Test Generation                                    then the website will automatically turn that into a question to run through an AI such as Perplexity and error check it and then automatically add it into .html .css .javascript documents if required or just a html for the preview and then you press generate and on the right it will show the preview of the pages... with an arrow to change page... then you'll have an option to purchase the website and have it automatically added to a github repository and have the url to and repository sent over to the user for ownership with an option for their own domain name or not. Do you understand? 
+
+
+------------------------------------------------------------------------
+
+Form Inputs For the User 
+
+Website Type & Structure
+Type of Website
+
+Select website type
+How many pages do you need?
+
+Single Page
+Which pages do you need?
+ Home
+ About
+ Services
+ Contact
+Business Details
+Business Name
+Business Type
+
+Select business type
+Brief Description
+Extra Features
+What features do you need?
+ Online Booking
+ Newsletter
+ Social Media
+ Live Chat
+Test Generation
+
+
+---------------------------------------------------------------------
+
+General Question 
+
+I have a website project I need help with front and backend basically the service is the user enters into a form on my website titled websitegeneration.co.uk their website name specifications and business type etc like the following Website Type & Structure
+Type of Website
+
+Select website type
+How many pages do you need?
+
+Single Page
+Which pages do you need?
+ Home
+ About
+ Services
+ Contact
+Business Details
+Business Name
+Business Type
+
+Select business type
+Brief Description
+Extra Features
+What features do you need?
+ Online Booking
+ Newsletter
+ Social Media
+ Live Chat
+Test Generation                                    then the website will automatically turn that into a question to run through an AI such as Perplexity and error check it and then automatically add it into .html .css .javascript documents if required or just a html for the preview and then you press generate and on the right it will show the preview of the pages... with an arrow to change page... then you'll have an option to purchase the website and have it automatically added to a github repository and have the url to and repository sent over to the user for ownership with an option for their own domain name or not. Do you understand? 
+
+
+--------------------------------------------------------------------------------------
+
+The General Questions to parse through AI when the user enters the form details in ------
+--------
+
+For example if the user enters in on the form a you'll have a template where you ask the question ... <website type> first then <number of pages> then <pages required>, home , about, services, contact, then <'business name'> then <'description'> so the question would me placed in into AI with this wording around whatever the user picks for those form inputs... 
+
+
+(Placeholders)  MORE UPDATED THAN THE BOTTOM ONE ... doesn't have color scheme layout or font ...
+
+I would like you to print me the html, css and javascript all in html document and print multiple pages if I say I need them, listen to the following, take multiple inputs if need be. I would like a ${websiteType} website with ${pageCount} pages which will be a ${pages} page(s) and my business needs to be called '${businessName}' and some information to bear in mind and include would be '${businessDescription}' and if possible please include these extra features ${features}. For the design, please use a ${colorScheme} color scheme, a ${fontStyle} font style, and a ${layoutPreference} layout. Please be as detailed as possible and ensure to include images collected from the internet and a professional sleek look and as aesthetic as you can.`;
+
+The second way of typing  it to an AI would be 
+
+
+
+(With Information Ticked)
+
+'I would like you to print me the html, css and javascript all in html document and print multiple pages if I say I need them, listen to the following, take multiple inputs if need be. I would like a 'Plumbing' website with '5 pages' which will be a 'Home, About, Services, FAQ, Contact',  page(s) and my business needs to be called 'Plumbing Aesthetics' and some information to bear in mind and include would be 'That we operate in the Neath Port Talbot area and our services include Bathrooms, Sinks, Gas Engineering, Callouts, General Fixing, Low Prices' and if possible please include these extra features 'FAQ, Knewsletter, Chat Option' please be as detailed as possible and ensure to include images collected from the internet and a professional sleek look and as aesthetic as you can.

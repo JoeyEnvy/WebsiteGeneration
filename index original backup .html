@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Website Generation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0;
+        }
+        nav {
+            display: flex;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .form-container {
+            flex: 1;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-right: 20px;
+        }
+        .form-container h2 {
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .preview-container {
+            flex: 2;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .preview-container h2 {
+            margin-top: 0;
+        }
+        .cta-button {
+            background-color: #28A745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        footer {
+            background-color: #007BFF;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Website Generator</h1>
+        <nav>
+            <a href="#">How It Works</a>
+            <a href="#">Pricing</a>
+            <a href="#">Templates</a>
+            <a href="#">FAQ</a>
+            <a href="#">Contact Us</a>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="form-container">
+            <h2>Create Your Website</h2>
+            <div class="form-group">
+                <label for="website-type">What is your website about?</label>
+                <input type="text" id="website-type" placeholder="e.g., Plumbing, Electrician">
+            </div>
+            <div class="form-group">
+                <label for="page-count">How many pages do you need?</label>
+                <select id="page-count">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="company-name">What's your company name?</label>
+                <input type="text" id="company-name" placeholder="Your Company Name">
+            </div>
+            <div class="form-group">
+                <label for="image-upload">Can you provide some images? (JPEG only)</label>
+                <input type="file" id="image-upload" accept="image/jpeg">
+            </div>
+            <button class="cta-button">Generate My Website</button>
+        </div>
+        
+        <div class="preview-container">
+            <h2>Live Preview</h2>
+            <div id="preview-content">
+                <p>Your website preview will appear here based on your inputs.</p>
+                <p>This area can be dynamically updated with JavaScript.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Website Generator. All rights reserved.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - AI Website Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-body">
+    <header>
+        <!-- Same as dashboard header -->
+    </header>
+
+    <div class="dashboard-container">
+        <aside class="dashboard-sidebar">
+            <!-- Same as dashboard sidebar -->
+        </aside>
+
+        <main class="settings-main">
+            <h2>Account Settings</h2>
+
+            <div class="settings-grid">
+                <section class="settings-section">
+                    <h3>Profile Information</h3>
+                    <form class="settings-form">
+                        <div class="form-group">
+                            <label for="profileImage">Profile Image</label>
+                            <div class="profile-image-upload">
+                                <img src="avatar.jpg" alt="Profile Image">
+                                <button type="button" class="btn btn-secondary">Change</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" value="John Doe">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" value="john@example.com">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </section>
+
+                <section class="settings-section">
+                    <h3>Password</h3>
+                    <form class="settings-form">
+                        <div class="form-group">
+                            <label for="currentPassword">Current Password</label>
+                            <input type="password" id="currentPassword">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" id="newPassword">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmNewPassword">Confirm New Password</label>
+                            <input type="password" id="confirmNewPassword">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </form>
+                </section>
+
+                <section class="settings-section">
+                    <h3>Billing Information</h3>
+                    <div class="billing-info">
+                        <!-- Billing information content -->
+                    </div>
+                </section>
+
+                <section class="settings-section danger-zone">
+                    <h3>Danger Zone</h3>
+                    <div class="danger-zone-actions">
+                        <button class="btn btn-danger">Delete Account</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+<!-- Add these before the closing </body> tag -->
+<script src="js/init.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+
+<!-- Add page-specific scripts as needed -->
+<!-- For index.html -->
+<script src="js/generator.js"></script>
+
+<!-- For dashboard.html -->
+<script src="js/dashboard.js"></script>
+
+<!-- For documentation.html -->
+<script src="js/documentation.js"></script>
+
+
+</body>
+</html>

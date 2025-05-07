@@ -1,0 +1,21 @@
+{
+  "name": "website-generation",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "set NODE_NO_WARNINGS=1 && node server/server.js",
+    "dev": "set NODE_NO_WARNINGS=1 && nodemon server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "openai": "^4.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  },
+  "overrides": {
+    "punycode": "^2.3.1"
+  }
+}

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Website Generator</title>
+    <link rel="stylesheet" href="public/css/styles.css">
+</head>
+<body>
+
+
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <div class="logo">
+                    <h1>AI Website Generator</h1>
+                </div>
+                <div class="nav-links">
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="templates.html">Templates</a>
+                    <a href="pricing.html">Pricing</a>
+                    <a href="documentation.html">Docs</a>
+                    <button id="loginBtn" class="btn btn-outline">Login</button>
+                    <button id="signupBtn" class="btn btn-primary">Get Started</button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+
+    <main>
+
+<section class="service-overview">
+    <div class="container">
+        <h2><i class="fas fa-cogs"></i> AI-Powered Web Solutions</h2>
+        <div class="service-grid">
+            <div class="service-item">
+                <i class="fas fa-laptop-code"></i>
+                <h3>Front-End Excellence</h3>
+                <p>AI-generated responsive designs tailored to your brand, ensuring captivating user experiences across all devices.</p>
+            </div>
+            <div class="service-item">
+                <i class="fas fa-server"></i>
+                <h3>Robust Back-End</h3>
+                <p>Scalable, secure server-side solutions powering core website functionality and data management.</p>
+            </div>
+            <div class="service-item">
+                <i class="fas fa-paint-brush"></i>
+                <h3>Custom Creation</h3>
+                <p>Bespoke websites crafted by our expert team and AI, perfectly aligned with your unique vision and goals.</p>
+            </div>
+            <div class="service-item">
+                <i class="fas fa-tools"></i>
+                <h3>Ongoing Support & Growth</h3>
+                <p>Continuous assistance and the flexibility to expand your website's features as your business evolves.</p>
+            </div>
+            <div class="service-item">
+                <i class="fas fa-headset"></i>
+                <h3>Dedicated Support</h3>
+                <p>Our team ensures optimal performance. For personalized assistance, contact us.</p>
+            </div>
+        </div>
+
+        <!-- Contact Button -->
+        <div class="contact-button-container">
+            <a href="#contact" class="btn btn-contact">Contact Us Today</a>
+        </div>
+    </div>
+</section>
+
+
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Create Your Professional Website in Minutes</h1>
+                    <p>Let AI build your perfect website. No coding required.</p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary btn-large">Start Building Free</button>
+                        <button class="btn btn-outline btn-large">View Templates</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+
+<section class="generator-section"> <div class="container"> <div class="generator-grid"> <div class="form-container"> <h2>Create Your Website</h2> <form id="websiteGeneratorForm"> <!-- Website Type & Structure --> <div class="form-section"> <h3>Website Type & Structure</h3> <div class="form-group"> <label for="websiteType">Type of Website</label> <select id="websiteType" required> <option value="">Select website type</option> <option value="business">Business Website</option> <option value="ecommerce">E-commerce Store</option> <option value="portfolio">Portfolio</option> <option value="blog">Blog</option> <option value="landing">Landing Page</option> </select> </div>                    <div class="form-group">
+                        <label for="pageCount">How many pages do you need?</label>
+                        <select id="pageCount" required>
+                            <option value="1">Single Page</option>
+                            <option value="3">Basic (3 pages)</option>
+                            <option value="5">Standard (5 pages)</option>
+                            <option value="10">Professional (10 pages)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Which pages do you need?</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="pages" value="home"> Home
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="pages" value="about"> About
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="pages" value="services"> Services
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="pages" value="contact"> Contact
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design Preferences -->
+                <div class="form-section">
+                    <h3>Design Preferences</h3>
+                    <div class="form-group">
+                        <label for="colorScheme">Color Scheme</label>
+                        <select id="colorScheme" required>
+                            <option value="">Select color scheme</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                            <option value="colorful">Colorful</option>
+                            <option value="monochrome">Monochrome</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fontStyle">Font Style</label>
+                        <select id="fontStyle" required>
+                            <option value="">Select font style</option>
+                            <option value="modern">Modern</option>
+                            <option value="classic">Classic</option>
+                            <option value="playful">Playful</option>
+                            <option value="minimalist">Minimalist</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="layoutPreference">Layout Preference</label>
+                        <select id="layoutPreference" required>
+                            <option value="">Select layout preference</option>
+                            <option value="grid">Grid</option>
+                            <option value="singleColumn">Single Column</option>
+                            <option value="asymmetric">Asymmetric</option>
+                            <option value="magazine">Magazine Style</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Business Information -->
+                <div class="form-section">
+                    <h3>Business Details</h3>
+                    <div class="form-group">
+                        <label for="businessName">Business Name</label>
+                        <input type="text" id="businessName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="businessType">Business Type</label>
+                        <select id="businessType" required>
+                            <option value="">Select business type</option>
+                            <option value="retail">Retail Store</option>
+                            <option value="restaurant">Restaurant/Café</option>
+                            <option value="professional">Professional Services</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="technology">Technology</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="businessDescription">Brief Description</label>
+                        <textarea id="businessDescription" rows="4" required></textarea>
+                    </div>
+                </div>
+
+                <!-- Extra Features -->
+                <div class="form-section">
+                    <h3>Extra Features</h3>
+                    <div class="form-group">
+                        <label>What features do you need?</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="booking"> Online Booking
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="newsletter"> Newsletter
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="social"> Social Media
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="chat"> Live Chat
+                            </label>
+                        </div>
+                    </div>
+
+                   <button type="button" onclick="testGeneration()" class="btn btn-secondary">
+    Test Generation
+</button>f
+
+                    <div id="testResult"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Generate Website</button>
+            </form>
+        </div>
+
+        <div class="preview-container">
+            <h2>Live Preview</h2>
+            <div id="previewFrame">
+                <div class="preview-placeholder">
+                    Your website preview will appear here
+                </div>
+            </div>
+            <div class="preview-controls">
+                <button class="btn btn-outline" id="mobilePreview">
+                    <i class="fas fa-mobile-alt"></i>
+                </button>
+                <button class="btn btn-outline" id="tabletPreview">
+                    <i class="fas fa-tablet-alt"></i>
+                </button>
+                <button class="btn btn-outline active" id="desktopPreview">
+                    <i class="fas fa-desktop"></i>
+                </button>
+
+                <div class="page-navigation">
+                    <button id="prevPage">Previous Page</button>
+                    <span id="pageIndicator">Page 1 of 1</span>
+                    <button id="nextPage">Next Page</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</section>
+
+    </main>
+
+
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h3>About</h3>
+                    <p>AI-powered website generation for businesses of all sizes.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#">Templates</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Documentation</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+
+
+    <script src="/js/utils/cache.js"></script>
+    <script src="/js/utils/rateLimit.js"></script>
+    <script src="/js/features/preview/previewManager.js"></script>
+<script src="/js/features/preview/previewManager.js"></script>
+
+
+
+
+<script src="public/js/main.js">    </script>
+
+
+
+<script src="/public/js/auth.js"></script>
+<script src="/public/js/dashboard.js"></script>
+<script src="/public/js/documentation.js"></script>
+<script src="/public/js/generator.js"></script>
+<script src="/public/js/init.js"></script>
+<script src="/public/js/utils.js"></script>
+
+
+<h1>OpenAI API Test</h1>
+<button id="testButton">Test API Connection</button>
+<div id="testResult"></div>
+
+<<<<<<< HEAD
+    <script>
+       async function testAPIConnection() {
+            console.log('Testing API connection...');
+            const apiKey = 'sk-svcacct-MQx7BXXxDb1JM_RlyXQ6r6PBRI1uzy_gqNQkQ90T7lbAQEUG2Un-gnNp6gyELT3BlbkFJ_JhHHk3kdRprgqSH7zb7I06VMgcwrV-5gjKhvuceyxs4bkRUFKnAZQasoSPTgA';
+            const testResult = document.getElementById('testResult');
+            testResult.innerHTML = 'Testing API connection...';
+=======
+<script>
+  async function testAPIConnection() {
+    console.log('Testing API connection...');
+
+    // 🔐 Replace this with a secure server-side call instead
+    const apiKey = ''; // ❌ REMOVED: API key should never be in client-side code
+>>>>>>> a97286f (api remove)
+
+    const testResult = document.getElementById('testResult');
+    testResult.innerHTML = 'Testing API connection...';
+
+    try {
+      console.log('Preparing request...');
+      const url = 'https://api.openai.com/v1/chat/completions';
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+      const body = {
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: 'Say this is a test' }],
+        temperature: 0.7
+      };
+
+      console.log('Request URL:', url);
+      console.log('Request Headers:', JSON.stringify(headers, null, 2));
+      console.log('Request Body:', JSON.stringify(body, null, 2));
+
+      console.log('Sending request to API...');
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers), null, 2));
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response:', JSON.stringify(data, null, 2));
+      testResult.innerHTML = `API connection successful! Response: ${data.choices[0].message.content}`;
+    } catch (error) {
+      console.error('API connection failed:', error);
+      console.error('Error stack:', error.stack);
+      testResult.innerHTML = `API connection failed: ${error.message}`;
+    }
+  }
+
+  document.getElementById('testButton').addEventListener('click', () => {
+    console.log('Button clicked');
+    testAPIConnection();
+  });
+</script>
+
+
+
+
+</body>
+
+
+
+
+
+
+
+
+
+</html>
+
+
+
+
+
+
+

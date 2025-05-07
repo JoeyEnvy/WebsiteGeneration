@@ -1,0 +1,15 @@
+TradeMasters Plumbing
+ChicCuts Hairdresser
+GreenThread Fashion
+QuantumLeap AI Tech
+
+website template content/TradeMasters Plumbing/C.mp4
+website template content/ChicCuts Hairdresser/A.mp4
+website template content/GreenThread Fashion/D.mp4
+website template content/QuantumLeap AI Tech/C.mp4
+
+website template content/TradeMasters Plumbing/1 through to 10.png
+website template content/ChicCuts Hairdresser/1 through to 4.png
+website template content/GreenThread Fashion/1 through to 9.png
+website template content/QuantumLeap AI Tech/1 through to 10.png
+

@@ -1,0 +1,16 @@
+
+
+fixed contact anchor BOTTOM RIGHT 
+
+
+anchor menu right fixed on scroll
+
+
+WhatsApp button , back to top , contact button 
+
+back to top button 
+
+
+I want all the section to load in from 0 to 100 percent opacity from the right side of the screen
+on page load and when they scroll into view, then on the navbar click to go to another .html page
+I want them to go to 0 percent opacity and move towards the left of the screen

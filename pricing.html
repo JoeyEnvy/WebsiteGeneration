@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - AI Website Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <!-- Same navigation as index.html -->
+    </header>
+
+    <main>
+        <section class="pricing-hero container">
+            <h1 class="text-center">Simple, Transparent Pricing</h1>
+            <p class="text-center">Choose the perfect plan for your business</p>
+            
+            <div class="pricing-toggle mt-2">
+                <span>Monthly</span>
+                <label class="switch">
+                    <input type="checkbox" id="billingToggle">
+                    <span class="slider"></span>
+                </label>
+                <span>Annual (Save 20%)</span>
+            </div>
+        </section>
+
+        <section class="pricing-plans container">
+            <div class="grid grid-3">
+                <!-- Basic Plan -->
+                <div class="pricing-card">
+                    <h2>Basic</h2>
+                    <div class="price">
+                        <span class="amount">$99</span>
+                        <span class="period">one-time</span>
+                    </div>
+                    <ul class="features-list">
+                        <li>Single website generation</li>
+                        <li>Basic AI content generation</li>
+                        <li>GitHub hosting</li>
+                        <li>Mobile responsive design</li>
+                        <li>Basic SEO optimization</li>
+                    </ul>
+                    <button class="btn btn-primary">Get Started</button>
+                </div>
+
+                <!-- Professional Plan -->
+                <div class="pricing-card featured">
+                    <div class="popular-tag">Most Popular</div>
+                    <h2>Professional</h2>
+                    <div class="price">
+                        <span class="amount">$29</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <ul class="features-list">
+                        <li>Everything in Basic, plus:</li>
+                        <li>Advanced AI content generation</li>
+                        <li>Custom domain</li>
+                        <li>Monthly updates</li>
+                        <li>Priority support</li>
+                        <li>Analytics dashboard</li>
+                    </ul>
+                    <button class="btn btn-secondary">Start Free Trial</button>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="pricing-card">
+                    <h2>Enterprise</h2>
+                    <div class="price">
+                        <span class="amount">Custom</span>
+                    </div>
+                    <ul class="features-list">
+                        <li>Everything in Professional, plus:</li>
+                        <li>Multiple websites</li>
+                        <li>Custom integrations</li>
+                        <li>Dedicated support</li>
+                        <li>API access</li>
+                    </ul>
+                    <button class="btn btn-primary">Contact Sales</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="faq container">
+            <h2 class="text-center">Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <!-- FAQ items -->
+                <div class="faq-item">
+                    <h3>What's included in the free trial?</h3>
+                    <p>Our 14-day free trial includes all Professional plan features...</p>
+                </div>
+                <!-- More FAQ items -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <!-- Same footer as index.html -->
+    </footer>
+
+<!-- Add these before the closing </body> tag -->
+<script src="js/init.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+
+<!-- Add page-specific scripts as needed -->
+<!-- For index.html -->
+<script src="js/generator.js"></script>
+
+<!-- For dashboard.html -->
+<script src="js/dashboard.js"></script>
+
+<!-- For documentation.html -->
+<script src="js/documentation.js"></script>
+
+
+</body>
+</html>
