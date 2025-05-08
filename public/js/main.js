@@ -257,6 +257,7 @@ Apply the following enhancements: ${enhancements}
         this.previewFrame.innerHTML = '';
         this.previewFrame.appendChild(iframe);
 
+
         iframe.contentWindow.document.open();
         iframe.contentWindow.document.write(currentPageContent);
         iframe.contentWindow.document.close();
