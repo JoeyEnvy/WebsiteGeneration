@@ -6,6 +6,14 @@ class WebsiteGenerator {
         this.currentPage = 0;
         this.generatedPages = [];
         this.currentStep = 1;
+        this.userHasPaid = false;
+
+        // Load any cached site from localStorage
+        const savedPages = localStorage.getItem('generatedPages');
+        if (savedPages) {
+            this.generatedPages = JSON.parse(savedPages);
+            this.updatePreview();
+        }
 
         this.initializeEventListeners();
         this.highlightStep(this.currentStep);
@@ -35,6 +43,25 @@ class WebsiteGenerator {
 
         document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
         document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
+
+        const purchaseBtn = document.getElementById('purchaseBtn');
+        const downloadBtn = document.getElementById('downloadSiteBtn');
+
+        if (purchaseBtn) {
+            purchaseBtn.addEventListener('click', () => {
+                const confirmed = confirm("Simulated payment: Proceed to pay £X?");
+                if (confirmed) {
+                    this.userHasPaid = true;
+                    purchaseBtn.style.display = 'none';
+                    if (downloadBtn) downloadBtn.style.display = 'inline-block';
+                    alert('Payment successful. You can now download your website.');
+                }
+            });
+        }
+
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+        }
     }
 
     goToStep(stepNumber) {
@@ -68,6 +95,7 @@ class WebsiteGenerator {
 
             if (data.success) {
                 this.generatedPages = data.pages;
+                localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
                 this.updatePreview();
                 this.showSuccess('Website generated successfully!');
             } else {
@@ -78,6 +106,27 @@ class WebsiteGenerator {
         } finally {
             this.hideLoading();
         }
+    }
+
+    downloadGeneratedSite() {
+        if (!this.userHasPaid) {
+            alert('Please purchase access to download your website.');
+            return;
+        }
+
+        if (!this.generatedPages.length) {
+            alert('No website generated yet.');
+            return;
+        }
+
+        const zip = new JSZip();
+        this.generatedPages.forEach((html, i) => {
+            zip.file(`page${i + 1}.html`, html);
+        });
+
+        zip.generateAsync({ type: 'blob' }).then(blob => {
+            saveAs(blob, "my-website.zip");
+        });
     }
 
     buildFinalPrompt(formData) {
@@ -127,7 +176,6 @@ Details:
             }
         });
 
-        // Checkbox validation for "pages" and "features"
         if (stepId === 'step1') {
             const checkedPages = step.querySelectorAll('input[name="pages"]:checked');
             if (checkedPages.length === 0) {
@@ -279,5 +327,4 @@ function debounce(func, wait) {
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });
-
 
