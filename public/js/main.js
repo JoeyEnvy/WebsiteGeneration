@@ -3,6 +3,9 @@
 // ========================================================================
 class WebsiteGenerator {
     constructor() {
+        // ================================
+        // Initialize core variables
+        // ================================
         this.form = document.getElementById('websiteGeneratorForm');
         this.previewFrame = document.getElementById('previewFrame');
         this.currentPage = 0;
@@ -20,6 +23,9 @@ class WebsiteGenerator {
         this.highlightStep(this.currentStep);
     }
 
+    // ========================================================================
+    // Set up all button and event listeners
+    // ========================================================================
     initializeEventListeners() {
         document.getElementById('nextStep1').addEventListener('click', () => {
             if (this.validateStep('step1')) this.goToStep(2);
@@ -72,6 +78,9 @@ class WebsiteGenerator {
         }
     }
 
+    // ========================================================================
+    // Navigate between form steps
+    // ========================================================================
     goToStep(stepNumber) {
         document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
         document.getElementById(`step${stepNumber}`).style.display = 'block';
@@ -85,6 +94,9 @@ class WebsiteGenerator {
         });
     }
 
+    // ========================================================================
+    // Handle site generation submission
+    // ========================================================================
     async handleSubmit() {
         this.goToStep(5);
         this.showLoading();
@@ -93,14 +105,15 @@ class WebsiteGenerator {
             const formData = new FormData(this.form);
             const finalPrompt = this.buildFinalPrompt(formData);
 
-            const response = await fetch('https://websitegeneration.onrender.com/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: finalPrompt,
-                    pageCount: formData.get('pageCount') || '1'
-                })
-            });
+const response = await fetch('https://websitegeneration.onrender.com/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        query: finalPrompt,
+        pageCount: formData.get('pageCount') || '1'
+    })
+});
+
 
             const data = await response.json();
 
@@ -119,6 +132,9 @@ class WebsiteGenerator {
         }
     }
 
+    // ========================================================================
+    // Prompt builder to instruct GPT
+    // ========================================================================
     buildFinalPrompt(formData) {
         const websiteType = formData.get('websiteType');
         const pageCount = formData.get('pageCount');
@@ -162,6 +178,9 @@ Apply the following enhancements: ${enhancements}
         `.trim();
     }
 
+    // ========================================================================
+    // Validation handling
+    // ========================================================================
     validateStep(stepId) {
         const step = document.getElementById(stepId);
         const requiredFields = step.querySelectorAll('[required]');
@@ -221,13 +240,11 @@ Apply the following enhancements: ${enhancements}
         if (errorDiv) errorDiv.remove();
     }
 
+    // ========================================================================
+    // Preview iframe logic
+    // ========================================================================
     updatePreview() {
-        if (this.generatedPages.length === 0) {
-            this.previewFrame.innerHTML = `
-                <div class="preview-placeholder">Your website preview will appear here</div>
-            `;
-            return;
-        }
+        if (this.generatedPages.length === 0) return;
 
         const currentPageContent = this.generatedPages[this.currentPage];
         const scrollY = window.scrollY;
@@ -240,14 +257,10 @@ Apply the following enhancements: ${enhancements}
         this.previewFrame.innerHTML = '';
         this.previewFrame.appendChild(iframe);
 
-        iframe.onload = () => {
-            const doc = iframe.contentWindow?.document;
-            if (doc) {
-                doc.open();
-                doc.write(currentPageContent);
-                doc.close();
-            }
-        };
+
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(currentPageContent);
+        iframe.contentWindow.document.close();
 
         window.scrollTo({ top: scrollY, behavior: 'auto' });
         this.updatePageNavigation();
@@ -286,20 +299,25 @@ Apply the following enhancements: ${enhancements}
         });
     }
 
+    // ========================================================================
+    // UI feedback handling
+    // ========================================================================
     showLoading() {
         const loader = document.createElement('div');
         loader.className = 'loader';
         loader.innerHTML = 'Generating website...';
         this.form.appendChild(loader);
         const submitBtn = this.form.querySelector('button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = true;
+if (submitBtn) submitBtn.disabled = true;
+
     }
 
     hideLoading() {
         const loader = this.form.querySelector('.loader');
         if (loader) loader.remove();
         const submitBtn = this.form.querySelector('button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = false;
+if (submitBtn) submitBtn.disabled = false;
+
     }
 
     showSuccess(message) {
@@ -340,6 +358,9 @@ Apply the following enhancements: ${enhancements}
     }
 }
 
+// ========================================================================
+// Utility: debounce to limit input frequency
+// ========================================================================
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -348,6 +369,9 @@ function debounce(func, wait) {
     };
 }
 
+// ========================================================================
+// Bootstrapping the Website Generator when page loads
+// ========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });
