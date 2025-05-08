@@ -1,0 +1,35 @@
+I would like you to generate a complete website using HTML, CSS, and JavaScript, embedded in a single HTML document. 
+Please include all required code for multiple pages if I request them.
+
+Here are my requirements:
+
+- This is a "{{websiteType}}" website called "{{businessName}}", which is a "{{businessType}}" type of business.
+- It should have {{pageCount}} pages: {{pages}}.
+- Business Description: "{{businessDescription}}".
+- Extra features to include: {{features}}.
+- Design style: {{colorScheme}} theme, {{fontStyle}} fonts, {{layoutPreference}} layout.
+
+Please be as detailed as possible, using strong visual styling, animations, icons, and interactive JavaScript functionality.
+You may include images from the internet via placeholders or links.
+After presenting the initial HTML, expand upon it with enhanced styling, icon use, and layout polish.
+Ensure the final output is a complete <html> document from start to end.
+
+
+
+---------------------------------------
+
+I would like you to generate a complete website using HTML, CSS, and JavaScript, embedded in a single HTML document. 
+Please include all required code for multiple pages if I request them.
+
+Here are my requirements:
+
+- This is a "plumbing" website called "Plumbing Aesthetics", which is a "professional" type of business.
+- It should have 5 pages: Home, About, Services, FAQ, Contact.
+- Business Description: "We operate in the Neath Port Talbot area and our services include Bathrooms, Sinks, Gas Engineering, Callouts, General Fixing, Low Prices."
+- Extra features to include: FAQ, newsletter, chat.
+- Design style: dark theme, modern fonts, grid layout.
+
+Please be as detailed as possible, using strong visual styling, animations, icons, and interactive JavaScript functionality.
+You may include images from the internet via placeholders or links.
+After presenting the initial HTML, expand upon it with enhanced styling, icon use, and layout polish.
+Ensure the final output is a complete <html> document from start to end.

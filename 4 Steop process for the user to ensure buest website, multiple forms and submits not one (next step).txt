@@ -1,0 +1,53 @@
+🧠 Your AI Website Generator Flow
+✅ Step 1 – Website Type & Structure (Foundation)
+Prompt for user:
+
+“Let’s get started with the basics.
+What type of website do you want to create (business, portfolio, blog, e-commerce, etc.)?
+How many pages should it have, and what are the page names?”
+
+✅ This gives:
+
+websiteType, pageCount, pages[]
+
+✅ Step 2 – Visual Design & Layout
+Prompt for user:
+
+“Now, tell me how your website should look and feel.
+Choose a color scheme (light, dark, colorful, monochrome), font style (modern, classic, playful, minimalist), and layout style (grid, single column, asymmetric, magazine).”
+
+✅ This gives:
+
+colorScheme, fontStyle, layoutPreference
+
+✅ Step 3 – Business Info & Features
+Prompt for user:
+
+“Let’s finish with your business details and features.
+What’s your business name?
+Briefly describe what it does and who it’s for.
+Would you like to include extra features like booking, newsletter signup, social links, or live chat?”
+
+✅ This gives:
+
+businessName, businessType, businessDescription, features[]
+
+🟡 Step 4 – Finalize & Expand (The Power Shot)
+Trigger when user clicks Finalize button
+This is the prompt you send to GPT:
+
+txt
+Copy
+Edit
+Using the full information provided, generate a complete responsive website using HTML, CSS, and JavaScript. 
+Embed all styling and scripts inside one HTML document.
+
+Here are the instructions:
+
+1. Expand your response with more visual detail — enhance color usage, spacing, and sections.
+2. Add icons where useful, use placeholder images (unsplash, pixabay, etc.) where appropriate.
+3. Improve layout with advanced CSS techniques, transitions, and interactivity.
+4. Repeat this process for each page specified, returning one complete <html> document per page.
+5. DO NOT explain the code — just output the full document(s) in order, each starting with <!DOCTYPE html> and ending with </html>.
+
+Return all pages in full, ready for download or preview.
