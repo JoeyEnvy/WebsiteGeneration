@@ -57,7 +57,7 @@ app.post('/generate', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that builds complete websites using HTML, CSS, and JavaScript.'
+            content: 'You are a helpful assistant that builds complete standalone websites using only HTML, with inline CSS and JavaScript — no external files.'
           },
           {
             role: 'user',
@@ -72,23 +72,38 @@ app.post('/generate', async (req, res) => {
     const data = await openaiRes.json();
     console.log('🧠 OpenAI response:', JSON.stringify(data, null, 2));
 
-    const content = data?.choices?.[0]?.message?.content;
+    const rawContent = data?.choices?.[0]?.message?.content;
 
-    if (content && content.includes('<!DOCTYPE html>')) {
-      return res.json({
-        success: true,
-        pages: [content],
-        downloadUrl: '',
-        files: []
-      });
-    } else {
-      console.warn('⚠️ OpenAI did not return valid HTML. Sending fallback.');
+    if (!rawContent || !rawContent.includes('<!DOCTYPE html>')) {
+      console.warn('⚠️ No valid HTML pages found.');
       return res.json({
         success: false,
         error: 'OpenAI did not return valid HTML content.',
         debug: data
       });
     }
+
+    // Clean up and split into full HTML pages
+    const cleanedPages = rawContent
+      .replace(/```html|```/g, '') // remove markdown blocks
+      .split(/(?=<!DOCTYPE html>)/gi) // split at each new document
+      .map(page => page.trim())
+      .filter(page => page.includes('</html>'));
+
+    if (cleanedPages.length === 0) {
+      return res.json({
+        success: false,
+        error: 'No complete HTML documents were extracted from the response.',
+        debug: rawContent
+      });
+    }
+
+    return res.json({
+      success: true,
+      pages: cleanedPages,
+      downloadUrl: '',
+      files: []
+    });
 
   } catch (err) {
     console.error('❌ OpenAI fetch error:', err);
@@ -101,5 +116,3 @@ app.post('/generate', async (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
-
-
