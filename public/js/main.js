@@ -12,9 +12,17 @@ class WebsiteGenerator {
     }
 
     initializeEventListeners() {
-        document.getElementById('nextStep1').addEventListener('click', () => this.goToStep(2));
-        document.getElementById('nextStep2').addEventListener('click', () => this.goToStep(3));
-        document.getElementById('nextStep3').addEventListener('click', () => this.handleSubmit());
+        document.getElementById('nextStep1').addEventListener('click', () => {
+            if (this.validateStep('step1')) this.goToStep(2);
+        });
+
+        document.getElementById('nextStep2').addEventListener('click', () => {
+            if (this.validateStep('step2')) this.goToStep(3);
+        });
+
+        document.getElementById('nextStep3').addEventListener('click', () => {
+            if (this.validateStep('step3')) this.handleSubmit();
+        });
 
         document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
         document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
@@ -43,9 +51,7 @@ class WebsiteGenerator {
     }
 
     async handleSubmit() {
-        if (!this.validateForm()) return;
-
-        this.goToStep(4); // Show final loading step
+        this.goToStep(4);
         this.showLoading();
 
         try {
@@ -105,6 +111,75 @@ Details:
 - Extra features to include: ${features}.
 - Design style: ${colorScheme} theme, ${fontStyle} fonts, ${layoutPreference} layout.
         `.trim();
+    }
+
+    validateStep(stepId) {
+        const step = document.getElementById(stepId);
+        const requiredFields = step.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                this.showFieldError(field, 'This field is required');
+                isValid = false;
+            } else {
+                this.clearFieldError(field);
+            }
+        });
+
+        // Checkbox validation for "pages" and "features"
+        if (stepId === 'step1') {
+            const checkedPages = step.querySelectorAll('input[name="pages"]:checked');
+            if (checkedPages.length === 0) {
+                this.showCheckboxError(step.querySelector('input[name="pages"]'), 'Select at least one page');
+                isValid = false;
+            } else {
+                this.clearCheckboxError(step.querySelector('input[name="pages"]'));
+            }
+        }
+
+        if (stepId === 'step3') {
+            const checkedFeatures = step.querySelectorAll('input[name="features"]:checked');
+            if (checkedFeatures.length === 0) {
+                this.showCheckboxError(step.querySelector('input[name="features"]'), 'Select at least one feature');
+                isValid = false;
+            } else {
+                this.clearCheckboxError(step.querySelector('input[name="features"]'));
+            }
+        }
+
+        return isValid;
+    }
+
+    showFieldError(field, message) {
+        this.clearFieldError(field);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error';
+        errorDiv.innerHTML = message;
+        field.parentNode.appendChild(errorDiv);
+        field.classList.add('error');
+    }
+
+    clearFieldError(field) {
+        const errorDiv = field.parentNode.querySelector('.field-error');
+        if (errorDiv) errorDiv.remove();
+        field.classList.remove('error');
+    }
+
+    showCheckboxError(field, message) {
+        const group = field.closest('.checkbox-group');
+        if (group && !group.querySelector('.field-error')) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'field-error';
+            errorDiv.innerHTML = message;
+            group.appendChild(errorDiv);
+        }
+    }
+
+    clearCheckboxError(field) {
+        const group = field.closest('.checkbox-group');
+        const errorDiv = group?.querySelector('.field-error');
+        if (errorDiv) errorDiv.remove();
     }
 
     updatePreview() {
@@ -190,36 +265,6 @@ Details:
         alert.innerHTML = message;
         this.form.insertBefore(alert, this.form.firstChild);
         setTimeout(() => alert.remove(), 5000);
-    }
-
-    validateForm() {
-        const requiredFields = this.form.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                this.showFieldError(field, 'This field is required');
-                isValid = false;
-            } else {
-                this.clearFieldError(field);
-            }
-        });
-
-        return isValid;
-    }
-
-    showFieldError(field, message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'field-error';
-        errorDiv.innerHTML = message;
-        field.parentNode.appendChild(errorDiv);
-        field.classList.add('error');
-    }
-
-    clearFieldError(field) {
-        const errorDiv = field.parentNode.querySelector('.field-error');
-        if (errorDiv) errorDiv.remove();
-        field.classList.remove('error');
     }
 }
 
