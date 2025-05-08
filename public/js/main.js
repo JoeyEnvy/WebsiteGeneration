@@ -9,9 +9,9 @@ class WebsiteGenerator {
         this.form = document.getElementById('websiteGeneratorForm');
         this.previewFrame = document.getElementById('previewFrame');
         this.currentPage = 0;
-        this.generatedPages = []; // holds the full generated HTML from GPT
+        this.generatedPages = [];
         this.currentStep = 1;
-        this.userHasPaid = false; // payment flag for download control
+        this.userHasPaid = false;
 
         const savedPages = localStorage.getItem('generatedPages');
         if (savedPages) {
@@ -36,6 +36,10 @@ class WebsiteGenerator {
         document.getElementById('nextStep3').addEventListener('click', () => {
             if (this.validateStep('step3')) this.goToStep(4);
         });
+        document.getElementById('nextStep4')?.addEventListener('click', () => {
+            if (this.validateStep('step4')) this.goToStep(5);
+        });
+
         document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
         document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
         document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
@@ -74,6 +78,9 @@ class WebsiteGenerator {
         }
     }
 
+    // ========================================================================
+    // Navigate between form steps
+    // ========================================================================
     goToStep(stepNumber) {
         document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
         document.getElementById(`step${stepNumber}`).style.display = 'block';
@@ -87,6 +94,9 @@ class WebsiteGenerator {
         });
     }
 
+    // ========================================================================
+    // Handle site generation submission
+    // ========================================================================
     async handleSubmit() {
         this.goToStep(5);
         this.showLoading();
@@ -118,6 +128,9 @@ class WebsiteGenerator {
         }
     }
 
+    // ========================================================================
+    // Prompt builder to instruct GPT
+    // ========================================================================
     buildFinalPrompt(formData) {
         const websiteType = formData.get('websiteType');
         const pageCount = formData.get('pageCount');
@@ -157,10 +170,13 @@ Do not include any external links to CSS, JS, or images. Do not explain or comme
 "${businessDescription}" — expand this into 2–3 well-written paragraphs that describe the business purpose, audience, and mission. Also include 4–6 bullet points.
 
 ✨ Additional Enhancements:
-- Apply the following enhancements: ${enhancements}
+Apply the following enhancements: ${enhancements}
         `.trim();
     }
 
+    // ========================================================================
+    // Validation handling
+    // ========================================================================
     validateStep(stepId) {
         const step = document.getElementById(stepId);
         const requiredFields = step.querySelectorAll('[required]');
@@ -220,6 +236,9 @@ Do not include any external links to CSS, JS, or images. Do not explain or comme
         if (errorDiv) errorDiv.remove();
     }
 
+    // ========================================================================
+    // Preview iframe logic
+    // ========================================================================
     updatePreview() {
         if (this.generatedPages.length === 0) return;
 
@@ -275,18 +294,25 @@ Do not include any external links to CSS, JS, or images. Do not explain or comme
         });
     }
 
+    // ========================================================================
+    // UI feedback handling
+    // ========================================================================
     showLoading() {
         const loader = document.createElement('div');
         loader.className = 'loader';
         loader.innerHTML = 'Generating website...';
         this.form.appendChild(loader);
-        this.form.querySelector('button[type="submit"]')?.disabled = true;
+        const submitBtn = this.form.querySelector('button[type="submit"]');
+if (submitBtn) submitBtn.disabled = true;
+
     }
 
     hideLoading() {
         const loader = this.form.querySelector('.loader');
         if (loader) loader.remove();
-        this.form.querySelector('button[type="submit"]')?.disabled = false;
+        const submitBtn = this.form.querySelector('button[type="submit"]');
+if (submitBtn) submitBtn.disabled = false;
+
     }
 
     showSuccess(message) {
@@ -304,8 +330,32 @@ Do not include any external links to CSS, JS, or images. Do not explain or comme
         this.form.insertBefore(alert, this.form.firstChild);
         setTimeout(() => alert.remove(), 5000);
     }
+
+    downloadGeneratedSite() {
+        if (!this.userHasPaid) {
+            alert('Please purchase access to download your website.');
+            return;
+        }
+
+        if (!this.generatedPages.length) {
+            alert('No website generated yet.');
+            return;
+        }
+
+        const zip = new JSZip();
+        this.generatedPages.forEach((html, i) => {
+            zip.file(`page${i + 1}.html`, html);
+        });
+
+        zip.generateAsync({ type: 'blob' }).then(blob => {
+            saveAs(blob, "my-website.zip");
+        });
+    }
 }
 
+// ========================================================================
+// Utility: debounce to limit input frequency
+// ========================================================================
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -314,8 +364,10 @@ function debounce(func, wait) {
     };
 }
 
+// ========================================================================
+// Bootstrapping the Website Generator when page loads
+// ========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });
-
 
