@@ -105,11 +105,15 @@ class WebsiteGenerator {
             const formData = new FormData(this.form);
             const finalPrompt = this.buildFinalPrompt(formData);
 
-            const response = await fetch('https://websitegeneration.onrender.com/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: finalPrompt })
-            });
+const response = await fetch('https://websitegeneration.onrender.com/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        query: finalPrompt,
+        pageCount: formData.get('pageCount') || '1'
+    })
+});
+
 
             const data = await response.json();
 
