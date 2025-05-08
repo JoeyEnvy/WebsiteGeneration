@@ -13,9 +13,6 @@ class WebsiteGenerator {
         this.currentStep = 1;
         this.userHasPaid = false; // payment flag for download control
 
-        // ================================
-        // Load saved pages from localStorage if available
-        // ================================
         const savedPages = localStorage.getItem('generatedPages');
         if (savedPages) {
             this.generatedPages = JSON.parse(savedPages);
@@ -30,7 +27,6 @@ class WebsiteGenerator {
     // Set up all button and event listeners
     // ========================================================================
     initializeEventListeners() {
-        // Step navigation buttons
         document.getElementById('nextStep1').addEventListener('click', () => {
             if (this.validateStep('step1')) this.goToStep(2);
         });
@@ -38,23 +34,26 @@ class WebsiteGenerator {
             if (this.validateStep('step2')) this.goToStep(3);
         });
         document.getElementById('nextStep3').addEventListener('click', () => {
-            if (this.validateStep('step3')) this.handleSubmit();
+            if (this.validateStep('step3')) this.goToStep(4);
         });
         document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
         document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
+        document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
 
-        // Preview device scaling buttons
         document.querySelectorAll('.preview-controls button').forEach(button => {
             button.addEventListener('click', () => {
                 this.changePreviewDevice(button.id.replace('Preview', ''));
             });
         });
 
-        // Navigation through generated pages
         document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
         document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
 
-        // Purchase + download button events
+        this.form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
+
         const purchaseBtn = document.getElementById('purchaseBtn');
         const downloadBtn = document.getElementById('downloadSiteBtn');
 
@@ -75,9 +74,6 @@ class WebsiteGenerator {
         }
     }
 
-    // ========================================================================
-    // Navigate to a specific step in the form
-    // ========================================================================
     goToStep(stepNumber) {
         document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
         document.getElementById(`step${stepNumber}`).style.display = 'block';
@@ -85,20 +81,14 @@ class WebsiteGenerator {
         this.highlightStep(stepNumber);
     }
 
-    // ========================================================================
-    // Visually highlight the current step in progress bar
-    // ========================================================================
     highlightStep(stepNumber) {
         document.querySelectorAll('.step-progress-bar .step').forEach((el, index) => {
             el.classList.toggle('active', index === stepNumber - 1);
         });
     }
 
-    // ========================================================================
-    // Submit the form and request GPT website generation
-    // ========================================================================
     async handleSubmit() {
-        this.goToStep(4);
+        this.goToStep(5);
         this.showLoading();
 
         try {
@@ -128,58 +118,20 @@ class WebsiteGenerator {
         }
     }
 
-    // ========================================================================
-    // Download generated HTML pages as a .zip file (after payment)
-    // ========================================================================
-    downloadGeneratedSite() {
-        if (!this.userHasPaid) {
-            alert('Please purchase access to download your website.');
-            return;
-        }
+    buildFinalPrompt(formData) {
+        const websiteType = formData.get('websiteType');
+        const pageCount = formData.get('pageCount');
+        const pages = Array.from(formData.getAll('pages')).join(', ');
+        const businessName = formData.get('businessName');
+        const businessType = formData.get('businessType');
+        const businessDescription = formData.get('businessDescription');
+        const features = Array.from(formData.getAll('features')).join(', ');
+        const colorScheme = formData.get('colorScheme');
+        const fontStyle = formData.get('fontStyle');
+        const layoutPreference = formData.get('layoutPreference');
+        const enhancements = Array.from(formData.getAll('enhancements')).join(', ');
 
-        if (!this.generatedPages.length) {
-            alert('No website generated yet.');
-            return;
-        }
-
-        const zip = new JSZip();
-        this.generatedPages.forEach((html, i) => {
-            zip.file(`page${i + 1}.html`, html);
-        });
-
-        zip.generateAsync({ type: 'blob' }).then(blob => {
-            saveAs(blob, "my-website.zip");
-        });
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // ========================================================================
-// Build a detailed prompt for GPT using all form fields
-// ========================================================================
-buildFinalPrompt(formData) {
-    const websiteType = formData.get('websiteType');
-    const pageCount = formData.get('pageCount');
-    const pages = Array.from(formData.getAll('pages')).join(', ');
-    const businessName = formData.get('businessName');
-    const businessType = formData.get('businessType');
-    const businessDescription = formData.get('businessDescription');
-    const features = Array.from(formData.getAll('features')).join(', ');
-    const colorScheme = formData.get('colorScheme');
-    const fontStyle = formData.get('fontStyle');
-    const layoutPreference = formData.get('layoutPreference');
-
-    return `
+        return `
 You are a professional website developer.
 
 Generate exactly ${pageCount} fully standalone HTML pages: ${pages}.
@@ -192,7 +144,7 @@ Do not include any external links to CSS, JS, or images. Do not explain or comme
 - Structure pages using semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
 - Use grid or flex layout systems to organize content into responsive rows and columns.
 - Prioritize good spacing, font hierarchy, and visual balance.
-- All code should be fully embedded — no CDN, no \`\`\` markdown blocks, no explanation.
+- All code should be fully embedded — no CDN, no markdown, no explanation.
 
 📦 Details:
 - Website Type: ${websiteType}
@@ -202,27 +154,13 @@ Do not include any external links to CSS, JS, or images. Do not explain or comme
 - Design: ${colorScheme} theme, ${fontStyle} font, ${layoutPreference} layout
 
 📝 Business Description:
-"${businessDescription}" — expand this into 1–2 well-written paragraphs that describe the business purpose, audience, and mission.
-Also provide 4–6 bullet points summarizing key offerings, goals, or services.
-    `.trim();
-}
+"${businessDescription}" — expand this into 2–3 well-written paragraphs that describe the business purpose, audience, and mission. Also include 4–6 bullet points.
 
+✨ Additional Enhancements:
+- Apply the following enhancements: ${enhancements}
+        `.trim();
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-    // ========================================================================
-    // Validate each step's required fields before moving forward
-    // ========================================================================
     validateStep(stepId) {
         const step = document.getElementById(stepId);
         const requiredFields = step.querySelectorAll('[required]');
@@ -237,32 +175,20 @@ Also provide 4–6 bullet points summarizing key offerings, goals, or services.
             }
         });
 
-        if (stepId === 'step1') {
-            const checkedPages = step.querySelectorAll('input[name="pages"]:checked');
-            if (checkedPages.length === 0) {
-                this.showCheckboxError(step.querySelector('input[name="pages"]'), 'Select at least one page');
+        const checkboxes = step.querySelectorAll('input[type="checkbox"]');
+        if (checkboxes.length) {
+            const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            if (!anyChecked) {
+                this.showCheckboxError(checkboxes[0], 'Select at least one option');
                 isValid = false;
             } else {
-                this.clearCheckboxError(step.querySelector('input[name="pages"]'));
-            }
-        }
-
-        if (stepId === 'step3') {
-            const checkedFeatures = step.querySelectorAll('input[name="features"]:checked');
-            if (checkedFeatures.length === 0) {
-                this.showCheckboxError(step.querySelector('input[name="features"]'), 'Select at least one feature');
-                isValid = false;
-            } else {
-                this.clearCheckboxError(step.querySelector('input[name="features"]'));
+                this.clearCheckboxError(checkboxes[0]);
             }
         }
 
         return isValid;
     }
 
-    // ========================================================================
-    // Show error messages on missing input
-    // ========================================================================
     showFieldError(field, message) {
         this.clearFieldError(field);
         const errorDiv = document.createElement('div');
@@ -294,9 +220,6 @@ Also provide 4–6 bullet points summarizing key offerings, goals, or services.
         if (errorDiv) errorDiv.remove();
     }
 
-    // ========================================================================
-    // Render the current generated page into iframe preview
-    // ========================================================================
     updatePreview() {
         if (this.generatedPages.length === 0) return;
 
@@ -335,9 +258,6 @@ Also provide 4–6 bullet points summarizing key offerings, goals, or services.
         this.updatePreview();
     }
 
-    // ========================================================================
-    // Adjust iframe preview size for selected device
-    // ========================================================================
     changePreviewDevice(device) {
         const sizes = {
             mobile: '375px',
@@ -355,26 +275,20 @@ Also provide 4–6 bullet points summarizing key offerings, goals, or services.
         });
     }
 
-    // ========================================================================
-    // Show / Hide loading animation
-    // ========================================================================
     showLoading() {
         const loader = document.createElement('div');
         loader.className = 'loader';
         loader.innerHTML = 'Generating website...';
         this.form.appendChild(loader);
-        this.form.querySelector('button[type="submit"], #nextStep3').disabled = true;
+        this.form.querySelector('button[type="submit"]')?.disabled = true;
     }
 
     hideLoading() {
         const loader = this.form.querySelector('.loader');
         if (loader) loader.remove();
-        this.form.querySelector('button[type="submit"], #nextStep3').disabled = false;
+        this.form.querySelector('button[type="submit"]')?.disabled = false;
     }
 
-    // ========================================================================
-    // Notification banners (success or error)
-    // ========================================================================
     showSuccess(message) {
         const alert = document.createElement('div');
         alert.className = 'alert alert-success';
@@ -392,9 +306,6 @@ Also provide 4–6 bullet points summarizing key offerings, goals, or services.
     }
 }
 
-// ========================================================================
-// Utility: debounce to limit input frequency
-// ========================================================================
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -403,10 +314,8 @@ function debounce(func, wait) {
     };
 }
 
-// ========================================================================
-// Bootstrapping the Website Generator when page loads
-// ========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });
+
 

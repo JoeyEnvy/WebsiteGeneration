@@ -85,22 +85,23 @@
 
 
 <!-- Generator Form Section Updated to 4 Steps -->
+<!-- Generator Form Section Updated to 5 Steps -->
 <section class="generator-section">
   <div class="container">
     <div class="generator-grid">
-<div class="form-container">
-  <h2>Create Your Website</h2>
+      <div class="form-container">
+        <h2>Create Your Website</h2>
 
-  <!-- Step Progress Indicator -->
-  <div class="step-progress-bar">
-    <div class="step" id="indicator-step1">1</div>
-    <div class="step" id="indicator-step2">2</div>
-    <div class="step" id="indicator-step3">3</div>
-    <div class="step" id="indicator-step4">4</div>
-  </div>
+        <!-- Step Progress Indicator -->
+        <div class="step-progress-bar">
+          <div class="step" id="indicator-step1">1</div>
+          <div class="step" id="indicator-step2">2</div>
+          <div class="step" id="indicator-step3">3</div>
+          <div class="step" id="indicator-step4">4</div>
+          <div class="step" id="indicator-step5">5</div>
+        </div>
 
-  <form id="websiteGeneratorForm">
-
+        <form id="websiteGeneratorForm">
 
           <!-- Step 1: Website Type & Structure -->
           <div class="form-step" id="step1">
@@ -111,7 +112,6 @@
               <select id="websiteType" name="websiteType" required>
                 <option value="">Select website type</option>
                 <option value="business">Business Website</option>
-                <option value="ecommerce">E-commerce Store</option>
                 <option value="portfolio">Portfolio</option>
                 <option value="blog">Blog</option>
                 <option value="landing">Landing Page</option>
@@ -141,7 +141,6 @@
                 <option value="1">Single Page</option>
                 <option value="3">Basic (3 pages)</option>
                 <option value="5">Standard (5 pages)</option>
-                <option value="10">Professional (10 pages)</option>
               </select>
             </div>
 
@@ -215,24 +214,45 @@
                 <label><input type="checkbox" name="features" value="booking"> Online Booking</label>
                 <label><input type="checkbox" name="features" value="newsletter"> Newsletter</label>
                 <label><input type="checkbox" name="features" value="social"> Social Media</label>
-                <label><input type="checkbox" name="features" value="chat"> Live Chat</label>
+                <label><input type="checkbox" name="features" value="contact form"> Contact Form</label>
               </div>
             </div>
 
             <button type="button" class="btn" id="prevStep3">Back</button>
-            <button type="button" class="btn btn-primary" id="nextStep3">Finalize</button>
+            <button type="button" class="btn btn-primary" id="nextStep3">Next</button>
           </div>
 
-          <!-- Step 4: Final Result (hidden at first) -->
-          <div class="form-step" id="step4" style="display:none;">
+          <!-- Step 4: Advanced Enhancements -->
+<!-- Step 4: Advanced Enhancements -->
+<div class="form-step" id="step4" style="display:none;">
+  <h3>Step 4: Advanced Enhancements</h3>
+
+  <div class="form-group">
+    <label>Select additional enhancements for your website</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" name="enhancements" value="light animations"> Light Animations</label>
+      <label><input type="checkbox" name="enhancements" value="enhanced styling"> Enhanced Styling</label>
+      <label><input type="checkbox" name="enhancements" value="icons and hover effects"> Icons and Hover Effects</label>
+      <label><input type="checkbox" name="enhancements" value="expanded details"> Expanded Paragraph Details</label>
+    </div>
+  </div>
+
+  <button type="button" class="btn" id="prevStep4">Back</button>
+  <button type="submit" class="btn btn-primary">Generate Website</button>
+</div>
+
+
+          <!-- Step 5: Final Result -->
+          <div class="form-step" id="step5" style="display:none;">
             <h3>Generating Your Website...</h3>
             <p>Please wait while your website is being generated. This may take a moment.</p>
             <div class="loading-bar"></div>
           </div>
+
         </form>
       </div>
 
-      <!-- Preview Area (unchanged) -->
+      <!-- Preview Area -->
       <div class="preview-container">
         <h2>Live Preview</h2>
         <div id="previewFrame">
@@ -254,6 +274,7 @@
     </div>
   </div>
 </section>
+
 
 
     </main>
