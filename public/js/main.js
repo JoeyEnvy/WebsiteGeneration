@@ -11,10 +11,10 @@ class WebsiteGenerator {
         this.userHasPaid = false;
 
         const savedPages = localStorage.getItem('generatedPages');
-if (savedPages) {
-    this.generatedPages = JSON.parse(savedPages);
-    // Preview will not auto-load on page load to avoid stale iframe display
-}
+        if (savedPages) {
+            this.generatedPages = JSON.parse(savedPages);
+            // Preview will not auto-load on page load to avoid stale iframe display
+        }
 
         this.initializeEventListeners();
         this.highlightStep(this.currentStep);
@@ -236,6 +236,7 @@ Do not explain or comment anything.
 - Structure pages using semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
 - Use grid or flex layout systems to organize content into responsive rows and columns.
 - Prioritize good spacing, font hierarchy, and visual balance.
+- Style all images with soft shadows, borders, and proper padding.
 
 📦 Details:
 - Website Type: ${websiteType}
@@ -245,7 +246,7 @@ Do not explain or comment anything.
 - Design: ${colorScheme} theme, ${fontStyle} font, ${layoutPreference} layout
 
 📝 Business Description:
-"${businessDescription}" — expand this into 2–3 well-written paragraphs that describe the business purpose, audience, and mission. Also include 4–6 bullet points.
+"${businessDescription}" — expand this into 2–3 rich paragraphs (300–500 words total) that describe the business purpose, audience, and mission. Also include 4–6 bullet points in one or more columns.
 
 📐 Section Structure:
 - Each page must include at least 5 clearly labeled sections such as:
@@ -254,15 +255,22 @@ Do not explain or comment anything.
   3. Services Grid
   4. Testimonials
   5. Contact Section
+- Randomize some page layouts: e.g. navbar on top or side, hero image left or right, or full-width banner.
+
+🎨 Visuals & Variation:
+- Use different font pairings for headers and body text.
+- Mix content alignment (left-aligned, centered, or justified)
+- Add alternating section backgrounds for visual rhythm.
 
 🖼️ Images & Icons:
-- Pull at least 2–3 relevant images from public sources online (Unsplash, Pexels, Pixabay).
+- Pull at least 2–3 relevant images per page from public sources online (Unsplash, Pexels, Pixabay).
 - Include at least 3 icons per page using FontAwesome CDN.
+- Style images with borders, drop shadows, and spacing.
 
 📋 Content Notes:
 - Never use "Lorem Ipsum".
-- Use context-aware, realistic content.
-- Include CTA buttons, headers, subheaders, and paragraph text.
+- Use context-aware, realistic, varied content.
+- Include clear CTAs, subheadings, bullet lists, and quotes.
         `.trim();
     }
 
@@ -354,4 +362,3 @@ function debounce(func, wait) {
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });
-
