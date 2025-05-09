@@ -574,7 +574,7 @@ showPostGenerationOptions() {
     panel.innerHTML = `
         <h3>✅ Your site is ready! What would you like to do next?</h3>
         <div class="action-buttons">
-            <button class="btn btn-outline" id="regeneratePageBtn">🔄 Regenerate a Specific Page</button>
+            <button class="btn btn-outline" id="editPagesBtn">🛠️ Edit Pages</button>
             <button class="btn btn-outline" id="addBrandingBtn">✏️ Add Branding</button>
             <button class="btn btn-outline" id="deploymentHelpBtn">🌍 Deployment Instructions</button>
         </div>
@@ -582,28 +582,20 @@ showPostGenerationOptions() {
 
     previewControls.appendChild(panel);
 
-const self = this; // ✅ Capture correct 'this' from WebsiteGenerator instance
-
-document.getElementById('regeneratePageBtn').addEventListener('click', function () {
-    const modal = document.getElementById('regenerateModal');
-    const select = document.getElementById('regeneratePageSelect');
-
-    if (modal && select) {
-        modal.style.display = 'block';
-        select.selectedIndex = self.currentPage; // ✅ uses correct context
-    }
-});
-
-
+    const self = this;
+    document.getElementById('editPagesBtn').addEventListener('click', function () {
+        const panel = document.getElementById('customizationPanel');
+        if (panel) panel.style.display = 'block';
+        self.initializeCustomizationPanel(); // ensures buttons are re-hooked
+    });
 
     document.getElementById('addBrandingBtn').addEventListener('click', () => {
-        alert('Add Branding (scaffolded) — logo, favicon, email insertion UI coming soon.');
+        alert('Add Branding (coming soon) — logo, favicon, email options.');
     });
 
     document.getElementById('deploymentHelpBtn').addEventListener('click', () => {
-        alert('Deployment Instructions (GitHub Pages, Netlify, custom domain)');
+        alert('Deployment Instructions (GitHub Pages, Netlify, ZIP download).');
     });
-
 }
 
 
