@@ -11,10 +11,10 @@ class WebsiteGenerator {
         this.userHasPaid = false;
 
         const savedPages = localStorage.getItem('generatedPages');
-        if (savedPages) {
-            this.generatedPages = JSON.parse(savedPages);
-            this.updatePreview();
-        }
+if (savedPages) {
+    this.generatedPages = JSON.parse(savedPages);
+    // Preview will not auto-load on page load to avoid stale iframe display
+}
 
         this.initializeEventListeners();
         this.highlightStep(this.currentStep);
