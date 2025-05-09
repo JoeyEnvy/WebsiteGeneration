@@ -1,6 +1,3 @@
-// ========================================================================
-// WebsiteGenerator class handles all functionality of the website generator
-// ========================================================================
 class WebsiteGenerator {
     constructor() {
         this.form = document.getElementById('websiteGeneratorForm');
@@ -13,12 +10,82 @@ class WebsiteGenerator {
         const savedPages = localStorage.getItem('generatedPages');
         if (savedPages) {
             this.generatedPages = JSON.parse(savedPages);
-            // Preview will not auto-load on page load to avoid stale iframe display
         }
 
-        this.initializeEventListeners();
+        this.initializeEventListeners();  // <== calling it here
         this.highlightStep(this.currentStep);
     }
+
+    // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
+    initializeEventListeners() {
+        document.getElementById('nextStep1').addEventListener('click', () => {
+            if (this.validateStep('step1')) this.goToStep(2);
+        });
+        document.getElementById('nextStep2').addEventListener('click', () => {
+            if (this.validateStep('step2')) this.goToStep(3);
+        });
+        document.getElementById('nextStep3').addEventListener('click', () => {
+            if (this.validateStep('step3')) this.goToStep(4);
+        });
+        document.getElementById('nextStep4')?.addEventListener('click', () => {
+            if (this.validateStep('step4')) this.goToStep(5);
+        });
+
+        document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
+        document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
+        document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
+
+        document.querySelectorAll('.preview-controls button').forEach(button => {
+            button.addEventListener('click', () => {
+                this.changePreviewDevice(button.id.replace('Preview', ''));
+            });
+        });
+
+        document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
+        document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
+
+        this.form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
+
+        const purchaseBtn = document.getElementById('purchaseBtn');
+        const downloadBtn = document.getElementById('downloadSiteBtn');
+
+        if (purchaseBtn) {
+            purchaseBtn.addEventListener('click', () => {
+                const confirmed = confirm("Simulated payment: Proceed to pay £X?");
+                if (confirmed) {
+                    this.userHasPaid = true;
+                    purchaseBtn.style.display = 'none';
+                    if (downloadBtn) downloadBtn.style.display = 'inline-block';
+                    alert('Payment successful. You can now download your website.');
+                }
+            });
+        }
+
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+        }
+
+        // ✅ Regenerate Modal Logic
+        const closeModal = document.getElementById('closeRegenerateModal');
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                document.getElementById('regenerateModal').style.display = 'none';
+            });
+        }
+
+        const confirmBtn = document.getElementById('confirmRegeneratePageBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                const pageIndex = parseInt(document.getElementById('regeneratePageSelect').value);
+                alert(`This will regenerate Page ${pageIndex + 1} in the next version.`);
+                document.getElementById('regenerateModal').style.display = 'none';
+            });
+        }
+    }
+
 
     updatePreview() {
         if (this.generatedPages.length === 0) return;
@@ -496,9 +563,10 @@ showPostGenerationOptions() {
 
     previewControls.appendChild(panel);
 
-    document.getElementById('regeneratePageBtn').addEventListener('click', () => {
-        alert('Regenerate Page (scaffolded) — will allow page selection and regeneration.');
-    });
+document.getElementById('regeneratePageBtn').addEventListener('click', () => {
+    document.getElementById('regenerateModal').style.display = 'block';
+});
+
 
     document.getElementById('addBrandingBtn').addEventListener('click', () => {
         alert('Add Branding (scaffolded) — logo, favicon, email insertion UI coming soon.');

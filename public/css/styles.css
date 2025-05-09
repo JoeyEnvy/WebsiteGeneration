@@ -216,6 +216,30 @@ button {
 
 
 
+.modal {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  z-index: 1000;
+  padding: 20px;
+  width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+}
+
+.modal-content {
+  position: relative;
+}
+
+.modal .close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-size: 20px;
+  cursor: pointer;
+}
 
 
 
