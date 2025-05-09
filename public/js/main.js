@@ -3,9 +3,6 @@
 // ========================================================================
 class WebsiteGenerator {
     constructor() {
-        // ================================
-        // Initialize core variables
-        // ================================
         this.form = document.getElementById('websiteGeneratorForm');
         this.previewFrame = document.getElementById('previewFrame');
         this.currentPage = 0;
@@ -23,9 +20,38 @@ class WebsiteGenerator {
         this.highlightStep(this.currentStep);
     }
 
-    // ========================================================================
-    // Set up all button and event listeners
-    // ========================================================================
+    updatePreview() {
+        if (this.generatedPages.length === 0) return;
+
+        const currentPageContent = this.generatedPages[this.currentPage];
+        const scrollY = window.scrollY;
+
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '500px';
+        iframe.style.border = 'none';
+
+        this.previewFrame.innerHTML = '';
+        this.previewFrame.appendChild(iframe);
+
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(currentPageContent);
+        iframe.contentWindow.document.close();
+
+        window.scrollTo({ top: scrollY, behavior: 'auto' });
+        this.updatePageNavigation();
+    }
+
+    updatePageNavigation() {
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+        const pageIndicator = document.getElementById('pageIndicator');
+
+        prevButton.disabled = this.currentPage === 0;
+        nextButton.disabled = this.currentPage === this.generatedPages.length - 1;
+        pageIndicator.textContent = `Page ${this.currentPage + 1} of ${this.generatedPages.length}`;
+    }
+
     initializeEventListeners() {
         document.getElementById('nextStep1').addEventListener('click', () => {
             if (this.validateStep('step1')) this.goToStep(2);
@@ -78,9 +104,6 @@ class WebsiteGenerator {
         }
     }
 
-    // ========================================================================
-    // Navigate between form steps
-    // ========================================================================
     goToStep(stepNumber) {
         document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
         document.getElementById(`step${stepNumber}`).style.display = 'block';
@@ -94,93 +117,6 @@ class WebsiteGenerator {
         });
     }
 
-    // ========================================================================
-    // Handle site generation submission
-    // ========================================================================
-    async handleSubmit() {
-        this.goToStep(5);
-        this.showLoading();
-
-        try {
-            const formData = new FormData(this.form);
-            const finalPrompt = this.buildFinalPrompt(formData);
-
-const response = await fetch('https://websitegeneration.onrender.com/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        query: finalPrompt,
-        pageCount: formData.get('pageCount') || '1'
-    })
-});
-
-
-            const data = await response.json();
-
-            if (data.success) {
-                this.generatedPages = data.pages;
-                localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-                this.updatePreview();
-                this.showSuccess('Website generated successfully!');
-            } else {
-                throw new Error(data.error || 'Unknown error from server.');
-            }
-        } catch (error) {
-            this.showError('Failed to generate website: ' + error.message);
-        } finally {
-            this.hideLoading();
-        }
-    }
-
-    // ========================================================================
-    // Prompt builder to instruct GPT
-    // ========================================================================
-    buildFinalPrompt(formData) {
-        const websiteType = formData.get('websiteType');
-        const pageCount = formData.get('pageCount');
-        const pages = Array.from(formData.getAll('pages')).join(', ');
-        const businessName = formData.get('businessName');
-        const businessType = formData.get('businessType');
-        const businessDescription = formData.get('businessDescription');
-        const features = Array.from(formData.getAll('features')).join(', ');
-        const colorScheme = formData.get('colorScheme');
-        const fontStyle = formData.get('fontStyle');
-        const layoutPreference = formData.get('layoutPreference');
-        const enhancements = Array.from(formData.getAll('enhancements')).join(', ');
-
-        return `
-You are a professional website developer.
-
-Generate exactly ${pageCount} fully standalone HTML pages: ${pages}.
-Each page must be a complete HTML5 document using embedded <style> and <script> only.
-Do not include any external links to CSS, JS, or images. Do not explain or comment anything.
-
-✅ Design Requirements:
-- Use a clean, modern, professional layout.
-- Use responsive design with media queries for 1024px, 768px, 480px, and 320px breakpoints.
-- Structure pages using semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
-- Use grid or flex layout systems to organize content into responsive rows and columns.
-- Prioritize good spacing, font hierarchy, and visual balance.
-- All code should be fully embedded — no CDN, no markdown, no explanation.
-
-📦 Details:
-- Website Type: ${websiteType}
-- Business: "${businessName}" (${businessType})
-- Pages: ${pages}
-- Features: ${features}
-- Design: ${colorScheme} theme, ${fontStyle} font, ${layoutPreference} layout
-
-📝 Business Description:
-"${businessDescription}" — expand this into 2–3 well-written paragraphs that describe the business purpose, audience, and mission. Also include 4–6 bullet points.
-
-✨ Additional Enhancements:
-Apply the following enhancements: ${enhancements}
-        `.trim();
-    }
-
-    // ========================================================================
-    // Validation handling
-    // ========================================================================
     validateStep(stepId) {
         const step = document.getElementById(stepId);
         const requiredFields = step.querySelectorAll('[required]');
@@ -240,40 +176,126 @@ Apply the following enhancements: ${enhancements}
         if (errorDiv) errorDiv.remove();
     }
 
-    // ========================================================================
-    // Preview iframe logic
-    // ========================================================================
-    updatePreview() {
-        if (this.generatedPages.length === 0) return;
+    async handleSubmit() {
+        this.goToStep(5);
+        this.showLoading();
 
-        const currentPageContent = this.generatedPages[this.currentPage];
-        const scrollY = window.scrollY;
+        try {
+            const formData = new FormData(this.form);
+            const finalPrompt = this.buildFinalPrompt(formData);
 
-        const iframe = document.createElement('iframe');
-        iframe.style.width = '100%';
-        iframe.style.height = '500px';
-        iframe.style.border = 'none';
+            const response = await fetch('https://websitegeneration.onrender.com/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: finalPrompt,
+                    pageCount: formData.get('pageCount') || '1'
+                })
+            });
 
-        this.previewFrame.innerHTML = '';
-        this.previewFrame.appendChild(iframe);
+            const data = await response.json();
 
-
-        iframe.contentWindow.document.open();
-        iframe.contentWindow.document.write(currentPageContent);
-        iframe.contentWindow.document.close();
-
-        window.scrollTo({ top: scrollY, behavior: 'auto' });
-        this.updatePageNavigation();
+            if (data.success) {
+                this.generatedPages = data.pages;
+                localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+                this.updatePreview();
+                this.showSuccess('Website generated successfully!');
+            } else {
+                throw new Error(data.error || 'Unknown error from server.');
+            }
+        } catch (error) {
+            this.showError('Failed to generate website: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
     }
 
-    updatePageNavigation() {
-        const prevButton = document.getElementById('prevPage');
-        const nextButton = document.getElementById('nextPage');
-        const pageIndicator = document.getElementById('pageIndicator');
+    buildFinalPrompt(formData) {
+        const websiteType = formData.get('websiteType');
+        const pageCount = formData.get('pageCount');
+        const pages = Array.from(formData.getAll('pages')).join(', ');
+        const businessName = formData.get('businessName');
+        const businessType = formData.get('businessType');
+        const businessDescription = formData.get('businessDescription');
+        const features = Array.from(formData.getAll('features')).join(', ');
+        const colorScheme = formData.get('colorScheme');
+        const fontStyle = formData.get('fontStyle');
+        const layoutPreference = formData.get('layoutPreference');
+        const enhancements = Array.from(formData.getAll('enhancements')).join(', ');
 
-        prevButton.disabled = this.currentPage === 0;
-        nextButton.disabled = this.currentPage === this.generatedPages.length - 1;
-        pageIndicator.textContent = `Page ${this.currentPage + 1} of ${this.generatedPages.length}`;
+        return `
+You are a professional website developer.
+
+Generate exactly ${pageCount} fully standalone HTML pages: ${pages}.
+Each page must be a complete HTML5 document using embedded <style> and <script> only.
+Do not explain or comment anything.
+
+✅ Design Requirements:
+- Use a clean, modern, professional layout.
+- Use responsive design with media queries for 1024px, 768px, 480px, and 320px breakpoints.
+- Structure pages using semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
+- Use grid or flex layout systems to organize content into responsive rows and columns.
+- Prioritize good spacing, font hierarchy, and visual balance.
+
+📦 Details:
+- Website Type: ${websiteType}
+- Business: "${businessName}" (${businessType})
+- Pages: ${pages}
+- Features: ${features}
+- Design: ${colorScheme} theme, ${fontStyle} font, ${layoutPreference} layout
+
+📝 Business Description:
+"${businessDescription}" — expand this into 2–3 well-written paragraphs that describe the business purpose, audience, and mission. Also include 4–6 bullet points.
+
+📐 Section Structure:
+- Each page must include at least 5 clearly labeled sections such as:
+  1. Hero Section
+  2. About/Description
+  3. Services Grid
+  4. Testimonials
+  5. Contact Section
+
+🖼️ Images & Icons:
+- Pull at least 2–3 relevant images from public sources online (Unsplash, Pexels, Pixabay).
+- Include at least 3 icons per page using FontAwesome CDN.
+
+📋 Content Notes:
+- Never use "Lorem Ipsum".
+- Use context-aware, realistic content.
+- Include CTA buttons, headers, subheaders, and paragraph text.
+        `.trim();
+    }
+
+    showLoading() {
+        const loader = document.createElement('div');
+        loader.className = 'loader';
+        loader.innerHTML = 'Generating website...';
+        this.form.appendChild(loader);
+        const submitBtn = this.form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+    }
+
+    hideLoading() {
+        const loader = this.form.querySelector('.loader');
+        if (loader) loader.remove();
+        const submitBtn = this.form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
+    }
+
+    showSuccess(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success';
+        alert.innerHTML = message;
+        this.form.insertBefore(alert, this.form.firstChild);
+        setTimeout(() => alert.remove(), 5000);
+    }
+
+    showError(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-error';
+        alert.innerHTML = message;
+        this.form.insertBefore(alert, this.form.firstChild);
+        setTimeout(() => alert.remove(), 5000);
     }
 
     changePage(direction) {
@@ -299,43 +321,6 @@ Apply the following enhancements: ${enhancements}
         });
     }
 
-    // ========================================================================
-    // UI feedback handling
-    // ========================================================================
-    showLoading() {
-        const loader = document.createElement('div');
-        loader.className = 'loader';
-        loader.innerHTML = 'Generating website...';
-        this.form.appendChild(loader);
-        const submitBtn = this.form.querySelector('button[type="submit"]');
-if (submitBtn) submitBtn.disabled = true;
-
-    }
-
-    hideLoading() {
-        const loader = this.form.querySelector('.loader');
-        if (loader) loader.remove();
-        const submitBtn = this.form.querySelector('button[type="submit"]');
-if (submitBtn) submitBtn.disabled = false;
-
-    }
-
-    showSuccess(message) {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-success';
-        alert.innerHTML = message;
-        this.form.insertBefore(alert, this.form.firstChild);
-        setTimeout(() => alert.remove(), 5000);
-    }
-
-    showError(message) {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-error';
-        alert.innerHTML = message;
-        this.form.insertBefore(alert, this.form.firstChild);
-        setTimeout(() => alert.remove(), 5000);
-    }
-
     downloadGeneratedSite() {
         if (!this.userHasPaid) {
             alert('Please purchase access to download your website.');
@@ -358,9 +343,6 @@ if (submitBtn) submitBtn.disabled = false;
     }
 }
 
-// ========================================================================
-// Utility: debounce to limit input frequency
-// ========================================================================
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -369,9 +351,6 @@ function debounce(func, wait) {
     };
 }
 
-// ========================================================================
-// Bootstrapping the Website Generator when page loads
-// ========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     new WebsiteGenerator();
 });

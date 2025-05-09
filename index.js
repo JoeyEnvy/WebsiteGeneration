@@ -41,7 +41,7 @@ app.get('/get-steps/:sessionId', (req, res) => {
 // ========================================================================
 app.post('/generate', async (req, res) => {
   const prompt = req.body.query;
-  const expectedPageCount = parseInt(req.body.pageCount || '1'); // from frontend (expected # pages)
+  const expectedPageCount = parseInt(req.body.pageCount || '1');
 
   if (!prompt || prompt.trim().length === 0) {
     return res.json({ success: false, error: 'Prompt is empty or invalid.' });
@@ -52,14 +52,37 @@ app.post('/generate', async (req, res) => {
   const messages = [
     {
       role: 'system',
-      content: 'You are a helpful assistant that builds complete websites using inline CSS and JS. Do not use external links or markdown. Each HTML page should start with <!DOCTYPE html> and end with </html>.'
+      content: `
+You are a professional website developer tasked with generating full standalone HTML5 websites.
+
+🔧 Output Rules:
+- Every page must be a complete HTML5 document (start with <!DOCTYPE html>, end with </html>).
+- All CSS and JavaScript must be inline.
+- You MAY use external assets if they are public, reliable, and required for visuals (e.g., images, icons).
+
+📐 Structure Requirements:
+- Each page must contain a minimum of 5 clearly defined, responsive sections.
+- Use semantic HTML5: <header>, <nav>, <main>, <section>, <footer>, etc.
+
+🖼️ Media & Icons:
+- Embed at least 2–3 royalty-free images per page from **Unsplash**, **Pexels**, or **Pixabay** via direct URLs.
+- Include icons using the **FontAwesome CDN**:
+  https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css
+
+📋 Content Requirements:
+- Do not use 'Lorem Ipsum'.
+- Generate context-aware content using any description provided.
+- Each section should be unique and useful: hero, about, services, testimonials, contact, etc.
+
+🚫 Do not use markdown, placeholder filenames, or non-functional links.
+      `.trim()
     },
     { role: 'user', content: prompt }
   ];
 
   let fullContent = '';
   let retries = 0;
-  const maxRetries = 4; // allow up to 4 total passes (1 prompt + 3 continues)
+  const maxRetries = 4;
 
   try {
     while (retries < maxRetries) {
@@ -82,18 +105,14 @@ app.post('/generate', async (req, res) => {
       fullContent += '\n' + content.trim();
 
       const htmlCount = (fullContent.match(/<\/?html>/gi) || []).filter(tag => tag === '</html>').length;
-      const doctypeCount = (fullContent.match(/<!DOCTYPE html>/gi) || []).length;
-
       const enoughPages = htmlCount >= expectedPageCount;
       if (enoughPages) break;
 
-      // Request next part if not complete
       messages.push({ role: 'assistant', content });
       messages.push({ role: 'user', content: 'continue' });
       retries++;
     }
 
-    // Split final HTML output
     const cleanedPages = fullContent
       .replace(/```html|```/g, '')
       .split(/(?=<!DOCTYPE html>)/gi)
