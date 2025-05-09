@@ -68,6 +68,38 @@ initializeEventListeners() {
         downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
     }
 
+
+if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+}
+
+// 👇 Add this right here:
+document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
+    const name = document.getElementById('businessNameInput').value.trim();
+    const email = document.getElementById('contactEmail').value.trim();
+    const phone = document.getElementById('contactPhone').value.trim();
+    const address = document.getElementById('contactAddress').value.trim();
+
+    const iframe = document.getElementById('previewFrame').querySelector('iframe');
+    if (!iframe) return;
+
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+    let footer = doc.querySelector('footer');
+    if (!footer) {
+        footer = doc.createElement('footer');
+        footer.style.cssText = 'padding: 20px; background: #f4f4f4; text-align: center;';
+        doc.body.appendChild(footer);
+    }
+
+    footer.innerHTML = ''; // Clear previous content
+    if (name) footer.innerHTML += `<h4 style="margin-bottom: 8px;">${name}</h4>`;
+    if (email) footer.innerHTML += `<p>Email: <a href="mailto:${email}">${email}</a></p>`;
+    if (phone) footer.innerHTML += `<p>Phone: ${phone}</p>`;
+    if (address) footer.innerHTML += `<p>Address: ${address}</p>`;
+});
+
+
     // ✅ Regenerate Modal Logic
     const closeModal = document.getElementById('closeRegenerateModal');
     if (closeModal) {
@@ -200,6 +232,78 @@ updatePreview() {
 
         const purchaseBtn = document.getElementById('purchaseBtn');
         const downloadBtn = document.getElementById('downloadSiteBtn');
+
+// ✅ Show branding panel when user clicks "Add Branding"
+document.getElementById('addBrandingBtn')?.addEventListener('click', () => {
+  document.getElementById('brandingPanel').style.display = 'block';
+});
+
+// ✅ Apply logo image to the iframe
+document.getElementById('applyLogoBtn')?.addEventListener('click', () => {
+  const logoUrl = document.getElementById('logoUrl').value;
+  const iframeDoc = this.previewFrame.querySelector('iframe')?.contentDocument;
+  if (iframeDoc && logoUrl) {
+    const existingLogo = iframeDoc.querySelector('img.logo');
+    if (existingLogo) {
+      existingLogo.src = logoUrl;
+    } else {
+      const newLogo = iframeDoc.createElement('img');
+      newLogo.src = logoUrl;
+      newLogo.className = 'logo';
+      newLogo.style.maxHeight = '60px';
+      iframeDoc.querySelector('header')?.prepend(newLogo);
+    }
+  }
+});
+
+// ✅ Apply favicon
+document.getElementById('applyFaviconBtn')?.addEventListener('click', () => {
+  const faviconUrl = document.getElementById('faviconUrl').value;
+  const iframeDoc = this.previewFrame.querySelector('iframe')?.contentDocument;
+  if (iframeDoc && faviconUrl) {
+    let link = iframeDoc.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = iframeDoc.createElement('link');
+      link.rel = 'icon';
+      iframeDoc.head.appendChild(link);
+    }
+    link.href = faviconUrl;
+  }
+});
+
+// ✅ Apply contact info
+document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
+  const iframeDoc = this.previewFrame.querySelector('iframe')?.contentDocument;
+  if (!iframeDoc) return;
+
+  const name = document.getElementById('businessNameInput').value;
+  const email = document.getElementById('contactEmail').value;
+  const phone = document.getElementById('contactPhone').value;
+  const address = document.getElementById('contactAddress').value;
+
+  let contactSection = iframeDoc.querySelector('section#contact, footer');
+  if (!contactSection) {
+    contactSection = iframeDoc.createElement('section');
+    contactSection.id = 'contact';
+    iframeDoc.body.appendChild(contactSection);
+  }
+
+  contactSection.innerHTML = `
+    <h3>Contact Us</h3>
+    <p><strong>${name}</strong></p>
+    <p>Email: <a href="mailto:${email}">${email}</a></p>
+    <p>Phone: <a href="tel:${phone}">${phone}</a></p>
+    <p>Address: ${address}</p>
+  `;
+});
+
+// ✅ Save branding (optional summary alert or collapse panel)
+document.getElementById('saveBrandingBtn')?.addEventListener('click', () => {
+  alert('Branding info applied to this page.');
+  document.getElementById('brandingPanel').style.display = 'none';
+});
+
+
 
         if (purchaseBtn) {
             purchaseBtn.addEventListener('click', () => {
@@ -589,9 +693,13 @@ showPostGenerationOptions() {
         self.initializeCustomizationPanel(); // ensures buttons are re-hooked
     });
 
-    document.getElementById('addBrandingBtn').addEventListener('click', () => {
-        alert('Add Branding (coming soon) — logo, favicon, email options.');
-    });
+document.getElementById('addBrandingBtn').addEventListener('click', () => {
+    const brandingPanel = document.getElementById('brandingPanel');
+    if (brandingPanel) {
+        brandingPanel.style.display = 'block';
+    }
+});
+
 
     document.getElementById('deploymentHelpBtn').addEventListener('click', () => {
         alert('Deployment Instructions (GitHub Pages, Netlify, ZIP download).');
