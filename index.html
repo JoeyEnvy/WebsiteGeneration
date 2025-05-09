@@ -232,8 +232,7 @@
             <button type="button" class="btn btn-primary" id="nextStep3">Next</button>
           </div>
 
-          <!-- Step 4: Optional Enhancements -->
- <!-- Step 4: Optional Enhancements -->
+
 <div class="form-step" id="step4" style="display:none;">
   <h3>Step 4: Optional Enhancements</h3>
   <p>Select any enhancements you'd like to include in your site:</p>
@@ -269,6 +268,13 @@
             Your website preview will appear here
           </div>
         </div>
+
+
+
+
+
+
+
         <div class="preview-controls">
           <button class="btn btn-outline" id="mobilePreview"><i class="fas fa-mobile-alt"></i></button>
           <button class="btn btn-outline" id="tabletPreview"><i class="fas fa-tablet-alt"></i></button>
@@ -277,9 +283,54 @@
             <button id="prevPage">Previous Page</button>
             <span id="pageIndicator">Page 1 of 1</span>
             <button id="nextPage">Next Page</button>
-
-
           </div>
+
+
+
+<div class="form-group" id="pageSelector" style="margin-top: 10px;">
+  <label for="pageSelect">Choose a page to regenerate:</label>
+  <select id="pageSelect" class="form-control">
+    <option value="0">Home</option>
+    <option value="1">About</option>
+    <option value="2">Services</option>
+    <option value="3">Contact</option>
+    <option value="4">FAQ</option>
+  </select>
+</div>
+
+<!-- Edit Instruction -->
+<div id="editNotice" style="display: none; background: #e3fcef; padding: 10px; margin-top: 10px; font-size: 0.9rem;">
+  📝 Click any text in the preview to edit it. Click outside to save.
+</div>
+
+
+
+<!-- Page Customization Panel -->
+<div class="customization-panel" id="customizationPanel" style="margin-top: 30px; display: none;">
+
+  <h3 style="margin-bottom: 10px;">🎨 Customize This Page</h3>
+  <div class="custom-tools" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+    <button class="btn btn-outline" id="randomFontBtn">🆕 Randomize Fonts</button>
+    <button class="btn btn-outline" id="randomNavBtn">🎨 Randomize Navbar Style</button>
+    <button class="btn btn-outline" id="randomColorsBtn">🌈 Randomize Section Colors</button>
+    <button class="btn btn-outline" id="toggleLayoutBtn">🪄 Toggle Layout Style</button>
+    <button class="btn btn-outline" id="editTextBtn">✍️ Edit Text Blocks</button>
+    <button class="btn btn-outline" id="swapHeroImageBtn">🖼️ Swap Hero Image</button>
+    <button class="btn btn-outline" id="reorderSectionsBtn">🔢 Reorder Sections</button>
+    <button class="btn btn-outline" id="addBackToTopBtn">⬆️ Add Back to Top Button</button>
+    <button class="btn btn-outline" id="insertLinksBtn">🔗 Insert Custom Links</button>
+  </div>
+  <p style="font-size: 0.9rem; color: #555;">These changes will affect the currently visible page. You can toggle between pages using the navigation above.</p>
+</div>
+
+
+
+
+
+
+
+
+
 
 <!-- Add the hint right here -->
 <div id="iframeHintMessage" style="display:none; margin-top: 12px; background: #fff3cd; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #856404;">
@@ -422,7 +473,12 @@
 </script>
 
 
-
+<div id="imageModal" class="modal" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:#fff; padding:20px; box-shadow:0 0 10px rgba(0,0,0,0.3); z-index:1000;">
+  <span class="close" id="closeImageModal" style="cursor:pointer; float:right;">&times;</span>
+  <h3>Swap Hero Image</h3>
+  <input type="text" id="newHeroImageUrl" placeholder="Enter image URL" style="width:100%; margin:10px 0;" />
+  <button id="applyHeroImageBtn" class="btn btn-primary">Apply</button>
+</div>
 
 </body>
 
