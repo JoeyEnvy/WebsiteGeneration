@@ -3,6 +3,13 @@ window.addEventListener('beforeunload', () => {
   localStorage.removeItem('generatedPages');
 });
 
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+}
 
 class WebsiteGenerator {
     constructor() {
@@ -23,205 +30,25 @@ class WebsiteGenerator {
     }
 
     // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
-initializeEventListeners() {
-    document.getElementById('nextStep1').addEventListener('click', () => {
-        if (this.validateStep('step1')) this.goToStep(2);
-    });
-    document.getElementById('nextStep2').addEventListener('click', () => {
-        if (this.validateStep('step2')) this.goToStep(3);
-    });
-    document.getElementById('nextStep3').addEventListener('click', () => {
-        if (this.validateStep('step3')) this.goToStep(4);
-    });
-    document.getElementById('nextStep4')?.addEventListener('click', () => {
-        if (this.validateStep('step4')) this.goToStep(5);
-    });
-
-    document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
-    document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
-    document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
-
-    document.querySelectorAll('.preview-controls button').forEach(button => {
-        button.addEventListener('click', () => {
-            this.changePreviewDevice(button.id.replace('Preview', ''));
-        });
-    });
-
-    document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
-    document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
-
-    this.form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        this.handleSubmit();
-    });
-
-    const purchaseBtn = document.getElementById('purchaseBtn');
-    const downloadBtn = document.getElementById('downloadSiteBtn');
-
-    if (purchaseBtn) {
-        purchaseBtn.addEventListener('click', () => {
-            const confirmed = confirm("Simulated payment: Proceed to pay £X?");
-            if (confirmed) {
-                this.userHasPaid = true;
-                purchaseBtn.style.display = 'none';
-                if (downloadBtn) downloadBtn.style.display = 'inline-block';
-                alert('Payment successful. You can now download your website.');
-            }
-        });
-    }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
-    }
-
-
-if (downloadBtn) {
-    downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
-}
-
-// 👇 Add this right here:
-document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
-    const name = document.getElementById('businessNameInput').value.trim();
-    const email = document.getElementById('contactEmail').value.trim();
-    const phone = document.getElementById('contactPhone').value.trim();
-    const address = document.getElementById('contactAddress').value.trim();
-
-    const iframe = document.getElementById('previewFrame').querySelector('iframe');
-    if (!iframe) return;
-
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-    let footer = doc.querySelector('footer');
-    if (!footer) {
-        footer = doc.createElement('footer');
-        footer.style.cssText = 'padding: 20px; background: #f4f4f4; text-align: center;';
-        doc.body.appendChild(footer);
-    }
-
-    footer.innerHTML = ''; // Clear previous content
-    if (name) footer.innerHTML += `<h4 style="margin-bottom: 8px;">${name}</h4>`;
-    if (email) footer.innerHTML += `<p>Email: <a href="mailto:${email}">${email}</a></p>`;
-    if (phone) footer.innerHTML += `<p>Phone: ${phone}</p>`;
-    if (address) footer.innerHTML += `<p>Address: ${address}</p>`;
-});
-
-
-    // ✅ Regenerate Modal Logic
-    const closeModal = document.getElementById('closeRegenerateModal');
-    if (closeModal) {
-        closeModal.addEventListener('click', () => {
-            document.getElementById('regenerateModal').style.display = 'none';
-        });
-    }
-
-    const confirmBtn = document.getElementById('confirmRegeneratePageBtn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', () => {
-            const pageIndex = parseInt(document.getElementById('regeneratePageSelect').value);
-            if (!isNaN(pageIndex)) {
-                this.currentPage = pageIndex;
-                this.updatePreview();
-
-                // ✅ Show customization tools
-const panel = document.getElementById('customizationPanel');
-if (panel) {
-    panel.style.display = 'none'; // Ensure the entire panel is hidden
-    const tools = panel.querySelector('.custom-tools');
-    if (tools) tools.style.display = 'none'; // Also hide the button grid inside
-}
-
-document.getElementById('regenerateModal').style.display = 'none';
-
-            }
-        });
-    }
-}
-
-
-updatePreview() {
-    if (this.generatedPages.length === 0) return;
-
-    const currentPageContent = this.generatedPages[this.currentPage];
-    const scrollY = window.scrollY;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '100%';
-    iframe.style.height = '500px';
-    iframe.style.border = 'none';
-
-    this.previewFrame.innerHTML = '';
-    this.previewFrame.appendChild(iframe);
-
-    iframe.contentWindow.document.open();
-    iframe.contentWindow.document.write(currentPageContent);
-    iframe.contentWindow.document.close();
-
-    iframe.onload = () => {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-        // Inject dynamic style
-        const style = doc.createElement('style');
-        style.innerHTML = `
-            .single-column {
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                gap: 32px !important;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-                box-sizing: border-box;
-            }
-            #backToTop {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                padding: 10px;
-                background: #007bff;
-                color: #fff;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-            }
-        `;
-        doc.head.appendChild(style);
-
-        // ✅ INIT customization only once iframe is ready
-        const panel = document.getElementById('customizationPanel');
-        if (panel) panel.style.display = 'none'; // ✅ Hide customization tools initially
-        this.initializeCustomizationPanel();
-    };
-
-    window.scrollTo({ top: scrollY, behavior: 'auto' });
-    this.updatePageNavigation();
-    this.showPostGenerationOptions();
-}
-
-
-
-    updatePageNavigation() {
-        const prevButton = document.getElementById('prevPage');
-        const nextButton = document.getElementById('nextPage');
-        const pageIndicator = document.getElementById('pageIndicator');
-
-        prevButton.disabled = this.currentPage === 0;
-        nextButton.disabled = this.currentPage === this.generatedPages.length - 1;
-        pageIndicator.textContent = `Page ${this.currentPage + 1} of ${this.generatedPages.length}`;
-    }
-
     initializeEventListeners() {
         document.getElementById('nextStep1').addEventListener('click', () => {
             if (this.validateStep('step1')) this.goToStep(2);
         });
+
         document.getElementById('nextStep2').addEventListener('click', () => {
             if (this.validateStep('step2')) this.goToStep(3);
         });
+
         document.getElementById('nextStep3').addEventListener('click', () => {
             if (this.validateStep('step3')) this.goToStep(4);
         });
-        document.getElementById('nextStep4')?.addEventListener('click', () => {
-            if (this.validateStep('step4')) this.goToStep(5);
-        });
+
+        const nextStep4Btn = document.getElementById('nextStep4');
+        if (nextStep4Btn) {
+            nextStep4Btn.addEventListener('click', () => {
+                if (this.validateStep('step4')) this.goToStep(5);
+            });
+        }
 
         document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
         document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
@@ -244,78 +71,6 @@ updatePreview() {
         const purchaseBtn = document.getElementById('purchaseBtn');
         const downloadBtn = document.getElementById('downloadSiteBtn');
 
-// ✅ Show branding panel when user clicks "Add Branding"
-document.getElementById('addBrandingBtn')?.addEventListener('click', () => {
-  document.getElementById('brandingPanel').style.display = 'block';
-});
-
-// ✅ Apply logo image to the iframe
-document.getElementById('applyLogoBtn')?.addEventListener('click', () => {
-  const logoUrl = document.getElementById('logoUrl').value;
-  const iframeDoc = this.previewFrame.querySelector('iframe')?.contentDocument;
-  if (iframeDoc && logoUrl) {
-    const existingLogo = iframeDoc.querySelector('img.logo');
-    if (existingLogo) {
-      existingLogo.src = logoUrl;
-    } else {
-      const newLogo = iframeDoc.createElement('img');
-      newLogo.src = logoUrl;
-      newLogo.className = 'logo';
-      newLogo.style.maxHeight = '60px';
-      iframeDoc.querySelector('header')?.prepend(newLogo);
-    }
-  }
-});
-
-// ✅ Apply favicon
-document.getElementById('applyFaviconBtn')?.addEventListener('click', () => {
-  const faviconUrl = document.getElementById('faviconUrl').value;
-  const iframeDoc = this.previewFrame.querySelector('iframe')?.contentDocument;
-  if (iframeDoc && faviconUrl) {
-    let link = iframeDoc.querySelector("link[rel~='icon']");
-    if (!link) {
-      link = iframeDoc.createElement('link');
-      link.rel = 'icon';
-      iframeDoc.head.appendChild(link);
-    }
-    link.href = faviconUrl;
-  }
-});
-
-// ✅ Apply contact info
-document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
-  const iframeDoc = this.previewFrame.querySelector('iframe')?.contentDocument;
-  if (!iframeDoc) return;
-
-  const name = document.getElementById('businessNameInput').value;
-  const email = document.getElementById('contactEmail').value;
-  const phone = document.getElementById('contactPhone').value;
-  const address = document.getElementById('contactAddress').value;
-
-  let contactSection = iframeDoc.querySelector('section#contact, footer');
-  if (!contactSection) {
-    contactSection = iframeDoc.createElement('section');
-    contactSection.id = 'contact';
-    iframeDoc.body.appendChild(contactSection);
-  }
-
-  contactSection.innerHTML = `
-    <h3>Contact Us</h3>
-    <p><strong>${name}</strong></p>
-    <p>Email: <a href="mailto:${email}">${email}</a></p>
-    <p>Phone: <a href="tel:${phone}">${phone}</a></p>
-    <p>Address: ${address}</p>
-  `;
-});
-
-// ✅ Save branding (optional summary alert or collapse panel)
-document.getElementById('saveBrandingBtn')?.addEventListener('click', () => {
-  alert('Branding info applied to this page.');
-  document.getElementById('brandingPanel').style.display = 'none';
-});
-
-
-
         if (purchaseBtn) {
             purchaseBtn.addEventListener('click', () => {
                 const confirmed = confirm("Simulated payment: Proceed to pay £X?");
@@ -331,12 +86,131 @@ document.getElementById('saveBrandingBtn')?.addEventListener('click', () => {
         if (downloadBtn) {
             downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
         }
+
+        // 👇 Add this right here:
+        document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
+            const name = document.getElementById('businessNameInput').value.trim();
+            const email = document.getElementById('contactEmail').value.trim();
+            const phone = document.getElementById('contactPhone').value.trim();
+            const address = document.getElementById('contactAddress').value.trim();
+
+            const iframe = document.getElementById('previewFrame').querySelector('iframe');
+            if (!iframe) return;
+
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+            let footer = doc.querySelector('footer');
+            if (!footer) {
+                footer = doc.createElement('footer');
+                footer.style.cssText = 'padding: 20px; background: #f4f4f4; text-align: center;';
+                doc.body.appendChild(footer);
+            }
+
+            footer.innerHTML = ''; // Clear previous content
+            if (name) footer.innerHTML += `<h4 style="margin-bottom: 8px;">${name}</h4>`;
+            if (email) footer.innerHTML += `<p>Email: <a href="mailto:${email}">${email}</a></p>`;
+            if (phone) footer.innerHTML += `<p>Phone: ${phone}</p>`;
+            if (address) footer.innerHTML += `<p>Address: ${address}</p>`;
+        });
+
+        // ✅ Regenerate Modal Logic
+        const closeModal = document.getElementById('closeRegenerateModal');
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                document.getElementById('regenerateModal').style.display = 'none';
+            });
+        }
+
+        const confirmBtn = document.getElementById('confirmRegeneratePageBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                const pageIndex = parseInt(document.getElementById('regeneratePageSelect').value);
+                if (!isNaN(pageIndex)) {
+                    this.currentPage = pageIndex;
+                    this.updatePreview();
+
+                    // ✅ Show customization tools
+                    const panel = document.getElementById('customizationPanel');
+                    if (panel) {
+                        panel.style.display = 'none'; // Ensure the entire panel is hidden
+                        const tools = panel.querySelector('.custom-tools');
+                        if (tools) tools.style.display = 'none'; // Also hide the button grid inside
+                    }
+
+                    document.getElementById('regenerateModal').style.display = 'none';
+                }
+            });
+        }
     }
 
+    updatePreview() {
+        if (this.generatedPages.length === 0) return;
 
+        const currentPageContent = this.generatedPages[this.currentPage];
+        const scrollY = window.scrollY;
 
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '500px';
+        iframe.style.border = 'none';
 
+        this.previewFrame.innerHTML = '';
+        this.previewFrame.appendChild(iframe);
 
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(currentPageContent);
+        iframe.contentWindow.document.close();
+
+        iframe.onload = () => {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Inject dynamic style
+            const style = doc.createElement('style');
+            style.innerHTML = `
+                .single-column {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    gap: 32px !important;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    box-sizing: border-box;
+                }
+                #backToTop {
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    padding: 10px;
+                    background: #007bff;
+                    color: #fff;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                }
+            `;
+            doc.head.appendChild(style);
+
+            // ✅ INIT customization only once iframe is ready
+            const panel = document.getElementById('customizationPanel');
+            if (panel) panel.style.display = 'none'; // ✅ Hide customization tools initially
+            this.initializeCustomizationPanel();
+        };
+
+        window.scrollTo({ top: scrollY, behavior: 'auto' });
+        this.updatePageNavigation();
+        this.showPostGenerationOptions();
+    }
+
+    updatePageNavigation() {
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+        const pageIndicator = document.getElementById('pageIndicator');
+
+        prevButton.disabled = this.currentPage === 0;
+        nextButton.disabled = this.currentPage === this.generatedPages.length - 1;
+        pageIndicator.textContent = `Page ${this.currentPage + 1} of ${this.generatedPages.length}`;
+    }
 
     goToStep(stepNumber) {
         document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
@@ -586,174 +460,164 @@ Do not explain or comment anything.
         });
     }
 
-initializeCustomizationPanel() {
-    const iframe = this.previewFrame.querySelector('iframe');
-    if (!iframe) return;
+    initializeCustomizationPanel() {
+        const iframe = this.previewFrame.querySelector('iframe');
+        if (!iframe) return;
 
-    const getIframeDoc = () => iframe.contentDocument || iframe.contentWindow.document;
+        const getIframeDoc = () => iframe.contentDocument || iframe.contentWindow.document;
 
-    const attachHandler = (id, handler) => {
-        const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', handler);
-    };
+        const attachHandler = (id, handler) => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', handler);
+        };
 
-    attachHandler('randomFontBtn', () => {
-        const fonts = ['Arial', 'Georgia', 'Verdana', 'Courier New', 'Trebuchet MS'];
-        const selected = fonts[Math.floor(Math.random() * fonts.length)];
-        getIframeDoc().body.style.fontFamily = selected;
-    });
-
-    attachHandler('randomNavBtn', () => {
-        const nav = getIframeDoc().querySelector('nav');
-        if (nav) {
-            const styles = [
-                'background: #000; color: white; padding: 10px;',
-                'background: #f8f9fa; color: #333; padding: 20px;',
-                'background: linear-gradient(to right, #4b6cb7, #182848); color: white; padding: 15px;'
-            ];
-            nav.style.cssText = styles[Math.floor(Math.random() * styles.length)];
-        }
-    });
-
-    attachHandler('randomColorsBtn', () => {
-        const colors = ['#f0f8ff', '#fffbe6', '#e3fcef', '#f9e2e2', '#e8f0fe'];
-        getIframeDoc().querySelectorAll('section').forEach(sec => {
-            sec.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        attachHandler('randomFontBtn', () => {
+            const fonts = ['Arial', 'Georgia', 'Verdana', 'Courier New', 'Trebuchet MS'];
+            const selected = fonts[Math.floor(Math.random() * fonts.length)];
+            getIframeDoc().body.style.fontFamily = selected;
         });
-    });
 
-    attachHandler('toggleLayoutBtn', () => {
-        const main = getIframeDoc().querySelector('main');
-        if (main) main.classList.toggle('single-column');
-    });
-
-    attachHandler('editTextBtn', () => {
-        const doc = getIframeDoc();
-        const textEls = doc.querySelectorAll('h1, h2, h3, p');
-        document.getElementById('editNotice').style.display = 'block';
-        textEls.forEach(el => {
-            el.contentEditable = true;
-            el.style.outline = '1px dashed #00b894';
+        attachHandler('randomNavBtn', () => {
+            const nav = getIframeDoc().querySelector('nav');
+            if (nav) {
+                const styles = [
+                    'background: #000; color: white; padding: 10px;',
+                    'background: #f8f9fa; color: #333; padding: 20px;',
+                    'background: linear-gradient(to right, #4b6cb7, #182848); color: white; padding: 15px;'
+                ];
+                nav.style.cssText = styles[Math.floor(Math.random() * styles.length)];
+            }
         });
-        doc.body.addEventListener('click', () => {
-            document.getElementById('editNotice').style.display = 'none';
-        }, { once: true });
-    });
 
-    attachHandler('swapHeroImageBtn', () => {
-        document.getElementById('imageModal').style.display = 'block';
-    });
+        attachHandler('randomColorsBtn', () => {
+            const colors = ['#f0f8ff', '#fffbe6', '#e3fcef', '#f9e2e2', '#e8f0fe'];
+            getIframeDoc().querySelectorAll('section').forEach(sec => {
+                sec.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            });
+        });
 
-    attachHandler('applyHeroImageBtn', () => {
-        const url = document.getElementById('newHeroImageUrl').value;
-        const img = getIframeDoc().querySelector('section img, header img');
-        if (img && url) {
-            img.src = url;
+        attachHandler('toggleLayoutBtn', () => {
+            const main = getIframeDoc().querySelector('main');
+            if (main) main.classList.toggle('single-column');
+        });
+
+        attachHandler('editTextBtn', () => {
+            const doc = getIframeDoc();
+            const textEls = doc.querySelectorAll('h1, h2, h3, p');
+            document.getElementById('editNotice').style.display = 'block';
+            textEls.forEach(el => {
+                el.contentEditable = true;
+                el.style.outline = '1px dashed #00b894';
+            });
+            doc.body.addEventListener('click', () => {
+                document.getElementById('editNotice').style.display = 'none';
+            }, { once: true });
+        });
+
+        attachHandler('swapHeroImageBtn', () => {
+            document.getElementById('imageModal').style.display = 'block';
+        });
+
+        attachHandler('applyHeroImageBtn', () => {
+            const url = document.getElementById('newHeroImageUrl').value;
+            const img = getIframeDoc().querySelector('section img, header img');
+            if (img && url) {
+                img.src = url;
+                document.getElementById('imageModal').style.display = 'none';
+            }
+        });
+
+        attachHandler('closeImageModal', () => {
             document.getElementById('imageModal').style.display = 'none';
-        }
-    });
-
-    attachHandler('closeImageModal', () => {
-        document.getElementById('imageModal').style.display = 'none';
-    });
-
-    attachHandler('addBackToTopBtn', () => {
-        const doc = getIframeDoc();
-        if (!doc.getElementById('backToTop')) {
-            const btn = doc.createElement('button');
-            btn.id = 'backToTop';
-            btn.textContent = '⬆️ Top';
-            btn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer;';
-            btn.onclick = () => doc.documentElement.scrollTop = 0;
-            doc.body.appendChild(btn);
-        }
-    });
-
-    attachHandler('insertLinksBtn', () => {
-        getIframeDoc().querySelectorAll('a[href^=\"#\"], button').forEach((el, i) => {
-            if (el.tagName === 'A') el.href = `https://example.com/link-${i}`;
-            el.textContent += ' 🔗';
         });
-    });
-}
 
+        attachHandler('addBackToTopBtn', () => {
+            const doc = getIframeDoc();
+            if (!doc.getElementById('backToTop')) {
+                const btn = doc.createElement('button');
+                btn.id = 'backToTop';
+                btn.textContent = '⬆️ Top';
+                btn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer;';
+                btn.onclick = () => doc.documentElement.scrollTop = 0;
+                doc.body.appendChild(btn);
+            }
+        });
 
-
-
-
-showPostGenerationOptions() {
-    const previewControls = document.querySelector('.preview-controls');
-    if (!previewControls || document.getElementById('postGenActions')) return;
-
-    const panel = document.createElement('div');
-    panel.id = 'postGenActions';
-    panel.className = 'post-gen-panel';
-    panel.innerHTML = `
-        <h3>✅ Your site is ready! What would you like to do next?</h3>
-        <div class="action-buttons">
-            <button class="btn btn-outline" id="editPagesBtn">🛠️ Edit Pages</button>
-            <button class="btn btn-outline" id="addBrandingBtn">✏️ Add Branding</button>
-            <button class="btn btn-outline" id="deploymentHelpBtn">🌍 Deployment Instructions</button>
-        </div>
-    `;
-
-previewControls.appendChild(panel);
-
-// 🛠️ Setup "Edit Pages" button toggle
-const editBtn = document.getElementById('editPagesBtn');
-if (editBtn) {
-    editBtn.addEventListener('click', () => {
-        const customizationPanel = document.getElementById('customizationPanel');
-        const brandingPanel = document.getElementById('brandingPanel');
-
-        // Ensure both panels exist
-        if (!customizationPanel || !brandingPanel) return;
-
-        // Hide branding panel
-        brandingPanel.style.display = 'none';
-
-        // Toggle customization panel
-const isHidden = (customizationPanel.style.display === 'none' || customizationPanel.style.display === '');
-customizationPanel.style.display = isHidden ? 'block' : 'none';
-
-const tools = customizationPanel.querySelector('.custom-tools');
-if (tools) tools.style.display = isHidden ? 'flex' : 'none';
-
-    });
-}
-
-
-
-
-document.getElementById('addBrandingBtn').addEventListener('click', () => {
-    const panel = document.getElementById('brandingPanel');
-    const customPanel = document.getElementById('customizationPanel');
-
-    if (customPanel) customPanel.style.display = 'none'; // hide other panel
-
-    if (panel) {
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        attachHandler('insertLinksBtn', () => {
+            getIframeDoc().querySelectorAll('a[href^=\"#\"], button').forEach((el, i) => {
+                if (el.tagName === 'A') el.href = `https://example.com/link-${i}`;
+                el.textContent += ' 🔗';
+            });
+        });
     }
-});
 
+    showPostGenerationOptions() {
+        const previewControls = document.querySelector('.preview-controls');
+        if (!previewControls || document.getElementById('postGenActions')) return;
 
-    document.getElementById('deploymentHelpBtn').addEventListener('click', () => {
-        alert('Deployment Instructions (GitHub Pages, Netlify, ZIP download).');
-    });
+        const panel = document.createElement('div');
+        panel.id = 'postGenActions';
+        panel.className = 'post-gen-panel';
+        panel.innerHTML = `
+            <h3>✅ Your site is ready! What would you like to do next?</h3>
+            <div class="action-buttons">
+                <button class="btn btn-outline" id="editPagesBtn">🛠️ Edit Pages</button>
+                <button class="btn btn-outline" id="addBrandingBtn">✏️ Add Branding</button>
+                <button class="btn btn-outline" id="deploymentHelpBtn">🌍 Deployment Instructions</button>
+            </div>
+        `;
+
+        previewControls.appendChild(panel);
+
+        // 🛠️ Setup "Edit Pages" button toggle
+        const editBtn = document.getElementById('editPagesBtn');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                const customizationPanel = document.getElementById('customizationPanel');
+                const brandingPanel = document.getElementById('brandingPanel');
+
+                // Ensure both panels exist
+                if (!customizationPanel || !brandingPanel) return;
+
+                // Hide branding panel
+                brandingPanel.style.display = 'none';
+
+                // Toggle customization panel
+                const isHidden = (customizationPanel.style.display === 'none' || customizationPanel.style.display === '');
+                customizationPanel.style.display = isHidden ? 'block' : 'none';
+
+                const tools = customizationPanel.querySelector('.custom-tools');
+                if (tools) tools.style.display = isHidden ? 'flex' : 'none';
+            });
+        }
+
+        // ✏️ Branding panel toggle
+        document.getElementById('addBrandingBtn').addEventListener('click', () => {
+            const panel = document.getElementById('brandingPanel');
+            const customPanel = document.getElementById('customizationPanel');
+
+            if (customPanel) customPanel.style.display = 'none'; // hide other panel
+            if (panel) {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+
+        // 🌍 Deployment Modal toggle
+        const deployBtn = document.getElementById('deploymentHelpBtn');
+        const deployModal = document.getElementById('deploymentModal');
+        const closeDeploy = document.getElementById('closeDeploymentModal');
+
+        if (deployBtn && deployModal && closeDeploy) {
+            deployBtn.addEventListener('click', () => {
+                deployModal.style.display = 'block';
+            });
+
+            closeDeploy.addEventListener('click', () => {
+                deployModal.style.display = 'none';
+            });
+        }
+    }
 }
-
-
-
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-    };
-}
-
 
 document.addEventListener('DOMContentLoaded', () => {
     const customizationPanel = document.getElementById('customizationPanel');
@@ -764,4 +628,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new WebsiteGenerator();
 });
-
