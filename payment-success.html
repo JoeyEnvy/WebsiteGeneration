@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Payment Cancelled - AI Website Generator</title>
+  <title>Payment Success - AI Website Generator</title>
   <link rel="stylesheet" href="public/css/styles.css"/>
 
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #fff6f6;
+      background: #f6fff8;
     }
 
-    .cancel-container {
+    .success-container {
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -23,19 +23,19 @@
       padding: 20px;
     }
 
-    .cancel-container h1 {
-      color: #dc3545;
+    .success-container h1 {
+      color: #28a745;
       font-size: 2.5rem;
       margin-bottom: 12px;
     }
 
-    .cancel-container p {
+    .success-container p {
       font-size: 1.2rem;
       margin-bottom: 30px;
       color: #333;
     }
 
-    .cancel-container .btn {
+    .success-container .btn {
       padding: 12px 24px;
       font-size: 1rem;
       border-radius: 6px;
@@ -46,36 +46,36 @@
       display: inline-block;
     }
 
-    .btn-red {
-      background-color: #dc3545;
+    .btn-green {
+      background-color: #28a745;
       color: #fff;
       border: none;
     }
 
-    .btn-red:hover {
-      background-color: #c82333;
+    .btn-green:hover {
+      background-color: #218838;
     }
 
     .btn-outline {
       background-color: transparent;
-      border: 2px solid #dc3545;
-      color: #dc3545;
+      border: 2px solid #28a745;
+      color: #28a745;
     }
 
     .btn-outline:hover {
-      background-color: #dc3545;
+      background-color: #28a745;
       color: #fff;
     }
   </style>
 </head>
 <body>
 
-  <div class="cancel-container">
-    <h1>❌ Payment Cancelled</h1>
-    <p>It looks like your payment didn’t go through. You can return to the generator or try again below.</p>
+  <div class="success-container">
+    <h1>✅ Payment Successful</h1>
+    <p>Thank you for your purchase! You now have full access to your deployment option.</p>
     <div>
       <a href="index.html" class="btn btn-outline">← Return to Generator</a>
-      <a href="payment.html" class="btn btn-red">💳 Retry Payment</a>
+      <a href="dashboard.html" class="btn btn-green">🚀 Go to Dashboard</a>
     </div>
   </div>
 

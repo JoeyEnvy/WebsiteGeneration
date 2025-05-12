@@ -30,118 +30,132 @@ class WebsiteGenerator {
     }
 
     // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
-    initializeEventListeners() {
-        document.getElementById('nextStep1').addEventListener('click', () => {
-            if (this.validateStep('step1')) this.goToStep(2);
+initializeEventListeners() {
+    document.getElementById('nextStep1').addEventListener('click', () => {
+        if (this.validateStep('step1')) this.goToStep(2);
+    });
+
+    document.getElementById('nextStep2').addEventListener('click', () => {
+        if (this.validateStep('step2')) this.goToStep(3);
+    });
+
+    document.getElementById('nextStep3').addEventListener('click', () => {
+        if (this.validateStep('step3')) this.goToStep(4);
+    });
+
+    const nextStep4Btn = document.getElementById('nextStep4');
+    if (nextStep4Btn) {
+        nextStep4Btn.addEventListener('click', () => {
+            if (this.validateStep('step4')) this.goToStep(5);
         });
-
-        document.getElementById('nextStep2').addEventListener('click', () => {
-            if (this.validateStep('step2')) this.goToStep(3);
-        });
-
-        document.getElementById('nextStep3').addEventListener('click', () => {
-            if (this.validateStep('step3')) this.goToStep(4);
-        });
-
-        const nextStep4Btn = document.getElementById('nextStep4');
-        if (nextStep4Btn) {
-            nextStep4Btn.addEventListener('click', () => {
-                if (this.validateStep('step4')) this.goToStep(5);
-            });
-        }
-
-        document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
-        document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
-        document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
-
-        document.querySelectorAll('.preview-controls button').forEach(button => {
-            button.addEventListener('click', () => {
-                this.changePreviewDevice(button.id.replace('Preview', ''));
-            });
-        });
-
-        document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
-        document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
-
-        this.form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleSubmit();
-        });
-
-        const purchaseBtn = document.getElementById('purchaseBtn');
-        const downloadBtn = document.getElementById('downloadSiteBtn');
-
-        if (purchaseBtn) {
-            purchaseBtn.addEventListener('click', () => {
-                const confirmed = confirm("Simulated payment: Proceed to pay £X?");
-                if (confirmed) {
-                    this.userHasPaid = true;
-                    purchaseBtn.style.display = 'none';
-                    if (downloadBtn) downloadBtn.style.display = 'inline-block';
-                    alert('Payment successful. You can now download your website.');
-                }
-            });
-        }
-
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
-        }
-
-        // 👇 Add this right here:
-        document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
-            const name = document.getElementById('businessNameInput').value.trim();
-            const email = document.getElementById('contactEmail').value.trim();
-            const phone = document.getElementById('contactPhone').value.trim();
-            const address = document.getElementById('contactAddress').value.trim();
-
-            const iframe = document.getElementById('previewFrame').querySelector('iframe');
-            if (!iframe) return;
-
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-            let footer = doc.querySelector('footer');
-            if (!footer) {
-                footer = doc.createElement('footer');
-                footer.style.cssText = 'padding: 20px; background: #f4f4f4; text-align: center;';
-                doc.body.appendChild(footer);
-            }
-
-            footer.innerHTML = ''; // Clear previous content
-            if (name) footer.innerHTML += `<h4 style="margin-bottom: 8px;">${name}</h4>`;
-            if (email) footer.innerHTML += `<p>Email: <a href="mailto:${email}">${email}</a></p>`;
-            if (phone) footer.innerHTML += `<p>Phone: ${phone}</p>`;
-            if (address) footer.innerHTML += `<p>Address: ${address}</p>`;
-        });
-
-        // ✅ Regenerate Modal Logic
-        const closeModal = document.getElementById('closeRegenerateModal');
-        if (closeModal) {
-            closeModal.addEventListener('click', () => {
-                document.getElementById('regenerateModal').style.display = 'none';
-            });
-        }
-
-        const confirmBtn = document.getElementById('confirmRegeneratePageBtn');
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', () => {
-                const pageIndex = parseInt(document.getElementById('regeneratePageSelect').value);
-                if (!isNaN(pageIndex)) {
-                    this.currentPage = pageIndex;
-                    this.updatePreview();
-
-                    // ✅ Show customization tools
-                    const panel = document.getElementById('customizationPanel');
-                    if (panel) {
-                        panel.style.display = 'none'; // Ensure the entire panel is hidden
-                        const tools = panel.querySelector('.custom-tools');
-                        if (tools) tools.style.display = 'none'; // Also hide the button grid inside
-                    }
-
-                    document.getElementById('regenerateModal').style.display = 'none';
-                }
-            });
-        }
     }
+
+    document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
+    document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
+    document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
+
+    document.querySelectorAll('.preview-controls button').forEach(button => {
+        button.addEventListener('click', () => {
+            this.changePreviewDevice(button.id.replace('Preview', ''));
+        });
+    });
+
+    document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
+    document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
+
+    this.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleSubmit();
+    });
+
+    const purchaseBtn = document.getElementById('purchaseBtn');
+    const downloadBtn = document.getElementById('downloadSiteBtn');
+
+    if (purchaseBtn) {
+        purchaseBtn.addEventListener('click', () => {
+            const confirmed = confirm("Simulated payment: Proceed to pay £X?");
+            if (confirmed) {
+                this.userHasPaid = true;
+                purchaseBtn.style.display = 'none';
+                if (downloadBtn) downloadBtn.style.display = 'inline-block';
+                alert('Payment successful. You can now download your website.');
+            }
+        });
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+    }
+
+    // ✅ Apply contact info to footer inside iframe
+    document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
+        const name = document.getElementById('businessNameInput').value.trim();
+        const email = document.getElementById('contactEmail').value.trim();
+        const phone = document.getElementById('contactPhone').value.trim();
+        const address = document.getElementById('contactAddress').value.trim();
+
+        const iframe = document.getElementById('previewFrame').querySelector('iframe');
+        if (!iframe) return;
+
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+        let footer = doc.querySelector('footer');
+        if (!footer) {
+            footer = doc.createElement('footer');
+            footer.style.cssText = 'padding: 20px; background: #f4f4f4; text-align: center;';
+            doc.body.appendChild(footer);
+        }
+
+        footer.innerHTML = '';
+        if (name) footer.innerHTML += `<h4 style="margin-bottom: 8px;">${name}</h4>`;
+        if (email) footer.innerHTML += `<p>Email: <a href="mailto:${email}">${email}</a></p>`;
+        if (phone) footer.innerHTML += `<p>Phone: ${phone}</p>`;
+        if (address) footer.innerHTML += `<p>Address: ${address}</p>`;
+    });
+
+    // ✅ Regenerate Modal Logic
+    const closeModal = document.getElementById('closeRegenerateModal');
+    if (closeModal) {
+        closeModal.addEventListener('click', () => {
+            document.getElementById('regenerateModal').style.display = 'none';
+        });
+    }
+
+    const confirmBtn = document.getElementById('confirmRegeneratePageBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+            const pageIndex = parseInt(document.getElementById('regeneratePageSelect').value);
+            if (!isNaN(pageIndex)) {
+                this.currentPage = pageIndex;
+                this.updatePreview();
+
+                const panel = document.getElementById('customizationPanel');
+                if (panel) {
+                    panel.style.display = 'none';
+                    const tools = panel.querySelector('.custom-tools');
+                    if (tools) tools.style.display = 'none';
+                }
+
+                document.getElementById('regenerateModal').style.display = 'none';
+            }
+        });
+    }
+
+    // ✅ Stripe Checkout Deployment Options
+    document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
+        this.startStripeCheckout('github-instructions');
+    });
+    document.getElementById('deployZipOnly')?.addEventListener('click', () => {
+        this.startStripeCheckout('zip-download');
+    });
+    document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
+        this.startStripeCheckout('github-hosted');
+    });
+    document.getElementById('deployFullHosting')?.addEventListener('click', () => {
+        this.startStripeCheckout('full-hosting');
+    });
+}
+
 
     updatePreview() {
         if (this.generatedPages.length === 0) return;
@@ -459,6 +473,28 @@ Do not explain or comment anything.
             saveAs(blob, "my-website.zip");
         });
     }
+
+    // ✅ Start Stripe Checkout session
+    async startStripeCheckout(type) {
+        try {
+            const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type })
+            });
+
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert('Failed to start checkout session.');
+            }
+        } catch (err) {
+            console.error('Stripe Checkout error:', err);
+            alert('Something went wrong with payment.');
+        }
+    }
+
 
     initializeCustomizationPanel() {
         const iframe = this.previewFrame.querySelector('iframe');

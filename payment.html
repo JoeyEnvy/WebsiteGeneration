@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Options - AI Website Generator</title>
+  <link rel="stylesheet" href="public/css/styles.css"/>
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="container">
+        <div class="logo">
+          <h1>AI Website Generator</h1>
+        </div>
+        <div class="nav-links">
+          <a href="index.html#how-it-works">How It Works</a>
+          <a href="templates.html">Templates</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="documentation.html">Docs</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="payment-options">
+      <div class="container">
+        <h2>💳 Select Your Payment Option</h2>
+        <p>Please choose how you'd like to proceed with your website deployment:</p>
+
+        <div class="deploy-options">
+          <!-- Option 1 -->
+          <div class="deploy-option-card">
+            <h4>🧾 GitHub Self Deployment</h4>
+            <p>Get step-by-step instructions to deploy your site yourself on GitHub Pages.</p>
+            <p><strong>Price: £75</strong></p>
+            <button class="btn btn-primary" onclick="pay('github-instructions')">Proceed</button>
+          </div>
+
+          <!-- Option 2 -->
+          <div class="deploy-option-card">
+            <h4>📦 ZIP File Only</h4>
+            <p>Download your full site as a ZIP without support.</p>
+            <p><strong>Price: £50</strong></p>
+            <button class="btn btn-primary" onclick="pay('zip-download')">Proceed</button>
+          </div>
+
+          <!-- Option 3 -->
+          <div class="deploy-option-card">
+            <h4>🚀 GitHub Hosted + Support</h4>
+            <p>We'll host your site and offer support on GitHub Pages.</p>
+            <p><strong>Price: £125</strong></p>
+            <button class="btn btn-primary" onclick="pay('github-hosted')">Proceed</button>
+          </div>
+
+          <!-- Option 4 -->
+          <div class="deploy-option-card">
+            <h4>🌐 Full Hosting + Custom Domain</h4>
+            <p>Get full hosting and a custom domain managed by our team.</p>
+            <p><strong>Price: £300</strong></p>
+            <button class="btn btn-primary" onclick="pay('full-hosting')">Proceed</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Website Generator. All rights reserved.</p>
+    </div>
+  </footer>
+
+<script>
+  async function pay(option) {
+    // Map button options to backend types
+    const typeMap = {
+      'github-self': 'github-instructions',
+      'zip-only': 'zip-download',
+      'github-hosted': 'github-hosted',
+      'full-hosting': 'full-hosting'
+    };
+
+    const mappedType = typeMap[option];
+    if (!mappedType) {
+      alert('Invalid option selected.');
+      return;
+    }
+
+    try {
+      const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ type: mappedType })
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Something went wrong. Please try again.');
+        console.error('Invalid Stripe response:', data);
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      alert('Failed to initiate payment. Please try again later.');
+    }
+  }
+</script>
+
+</body>
+</html>
+

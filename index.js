@@ -1,6 +1,12 @@
 // ========================================================================
-// Express + OpenAI backend for Website Generator (with continuation + 7-page support)
+// Express + OpenAI + Stripe backend for Website Generator
 // ========================================================================
+
+import dotenv from 'dotenv';
+dotenv.config(); // ✅ Load all env vars first
+
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 import express from 'express';
 import cors from 'cors';
@@ -34,6 +40,52 @@ app.get('/get-steps/:sessionId', (req, res) => {
     return res.status(404).json({ success: false, error: 'Session not found' });
   }
   res.json({ success: true, steps: sessionData });
+});
+
+// ========================================================================
+// Stripe Checkout Payment Endpoint
+// ========================================================================
+app.post('/create-checkout-session', async (req, res) => {
+  const { type } = req.body;
+
+  const priceMap = {
+    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
+    'zip-download': { price: 5000, name: 'ZIP File Only' },
+    'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
+    'full-hosting': { price: 30000, name: 'Full Hosting + Custom Domain' }
+  };
+
+  const product = priceMap[type];
+  if (!product) {
+    return res.status(400).json({ error: 'Invalid deployment option.' });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: product.name
+            },
+            unit_amount: product.price
+          },
+          quantity: 1
+        }
+      ],
+success_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-success.html?option=' + type,
+cancel_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-cancelled.html'
+
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('❌ Stripe session creation failed:', err);
+    res.status(500).json({ error: 'Failed to create Stripe session' });
+  }
 });
 
 // ========================================================================
@@ -104,7 +156,7 @@ You are a professional website developer tasked with generating full standalone 
       const content = data?.choices?.[0]?.message?.content || '';
       fullContent += '\n' + content.trim();
 
-      const htmlCount = (fullContent.match(/<\/?html>/gi) || []).filter(tag => tag === '</html>').length;
+      const htmlCount = (fullContent.match(/<\/html>/gi) || []).length;
       const enoughPages = htmlCount >= expectedPageCount;
       if (enoughPages) break;
 
