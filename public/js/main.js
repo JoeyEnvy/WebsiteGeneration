@@ -141,19 +141,34 @@ initializeEventListeners() {
         });
     }
 
-    // ✅ Stripe Checkout Deployment Options
-    document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
-        this.startStripeCheckout('github-instructions');
-    });
-    document.getElementById('deployZipOnly')?.addEventListener('click', () => {
-        this.startStripeCheckout('zip-download');
-    });
-    document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
-        this.startStripeCheckout('github-hosted');
-    });
-    document.getElementById('deployFullHosting')?.addEventListener('click', () => {
-        this.startStripeCheckout('full-hosting');
-    });
+    // ✅ Deployment Modal Toggle + Stripe Binding
+    const deployBtn = document.getElementById('deploymentHelpBtn');
+    const deployModal = document.getElementById('deploymentModal');
+    const closeDeploy = document.getElementById('closeDeploymentModal');
+
+    if (deployBtn && deployModal && closeDeploy) {
+        deployBtn.addEventListener('click', () => {
+            deployModal.style.display = 'block';
+
+            // Bind Stripe buttons once modal is visible
+            document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
+                this.startStripeCheckout('github-instructions');
+            });
+            document.getElementById('deployZipOnly')?.addEventListener('click', () => {
+                this.startStripeCheckout('zip-download');
+            });
+            document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
+                this.startStripeCheckout('github-hosted');
+            });
+            document.getElementById('deployFullHosting')?.addEventListener('click', () => {
+                this.startStripeCheckout('full-hosting');
+            });
+        });
+
+        closeDeploy.addEventListener('click', () => {
+            deployModal.style.display = 'none';
+        });
+    }
 }
 
 

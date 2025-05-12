@@ -398,7 +398,7 @@
           <li>Basic custom domain overview</li>
         </ul>
         <p><strong>Price: £75</strong></p>
-        <button class="btn btn-primary">Get Instructions + Files</button>
+        <button class="btn btn-primary" id="deployGithubSelf">Get Instructions + Files</button>
       </div>
 
       <!-- Option 2: ZIP Only -->
@@ -410,7 +410,7 @@
           <li>Use with any FTP or host</li>
         </ul>
         <p><strong>Price: £50</strong></p>
-        <button class="btn btn-primary">Download .ZIP Only</button>
+     <button class="btn btn-primary" id="deployZipOnly">Download .ZIP Only</button>
       </div>
 
       <!-- Option 3: GitHub Hosted -->
@@ -422,7 +422,7 @@
           <li>Contact us anytime at <strong>support@websitegenerator.co.uk</strong></li>
         </ul>
         <p><strong>Price: £125</strong></p>
-        <button class="btn btn-primary">Buy GitHub Hosting + Support</button>
+        <button class="btn btn-primary" id="deployGithubHosted">Buy GitHub Hosting + Support</button>
       </div>
 
       <!-- Option 4: Custom Domain -->
@@ -437,7 +437,7 @@
         <label for="customDomain">Check domain availability:</label>
         <input type="text" id="customDomain" placeholder="e.g. mybusiness.co.uk">
         <p><strong>Price: £300</strong></p>
-        <button class="btn btn-primary">Buy Full Hosting + URL</button>
+        <button class="btn btn-primary" id="deployFullHosting">Buy Full Hosting + URL</button>
       </div>
 
     </div>
@@ -509,10 +509,6 @@
 <!-- <script src="/public/js/init.js"></script> -->
 <!-- <script src="/public/js/utils.js"></script> -->
 
-
-<h1>OpenAI API Test</h1>
-<button id="testButton">Test API Connection</button>
-<div id="testResult"></div>
 
 <script>
   async function testAPIConnection() {
