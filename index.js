@@ -76,9 +76,8 @@ app.post('/create-checkout-session', async (req, res) => {
           quantity: 1
         }
       ],
-success_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-success.html?option=' + type,
-cancel_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-cancelled.html'
-
+      success_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-success.html?option=' + type,
+      cancel_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-cancelled.html'
     });
 
     res.json({ url: session.url });
@@ -86,6 +85,20 @@ cancel_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-cancelled.html
     console.error('❌ Stripe session creation failed:', err);
     res.status(500).json({ error: 'Failed to create Stripe session' });
   }
+});
+
+// ========================================================================
+// Download Log Endpoint
+// ========================================================================
+app.post('/log-download', (req, res) => {
+  const { sessionId, type, timestamp } = req.body;
+
+  if (!sessionId || !type || !timestamp) {
+    return res.status(400).json({ success: false, error: 'Missing sessionId, type, or timestamp.' });
+  }
+
+  console.log(`[📥 Download Log] Type: ${type} | Session: ${sessionId} | Time: ${timestamp}`);
+  res.json({ success: true });
 });
 
 // ========================================================================
@@ -192,4 +205,5 @@ You are a professional website developer tasked with generating full standalone 
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
+
 

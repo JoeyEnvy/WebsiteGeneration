@@ -69,15 +69,115 @@
   </style>
 </head>
 <body>
-
-  <div class="success-container">
+  <div class="success-container" id="successContainer">
     <h1>✅ Payment Successful</h1>
-    <p>Thank you for your purchase! You now have full access to your deployment option.</p>
-    <div>
-      <a href="index.html" class="btn btn-outline">← Return to Generator</a>
-      <a href="dashboard.html" class="btn btn-green">🚀 Go to Dashboard</a>
-    </div>
+    <p id="successMessage">Thank you for your purchase! You now have full access to your deployment option.</p>
+    <div id="actionButtons"></div>
   </div>
 
+  <!-- JSZip + FileSaver for .zip download -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const purchaseType = params.get('option');
+  const messageEl = document.getElementById('successMessage');
+  const actionButtons = document.getElementById('actionButtons');
+
+  const savedPages = localStorage.getItem('generatedPages');
+  const sessionId = localStorage.getItem('sessionId');
+
+  const showZipDownloadButton = (pages) => {
+    const btn = document.createElement('button');
+    btn.innerText = "📦 Download My Website ZIP";
+    btn.className = "btn btn-green";
+    btn.addEventListener('click', () => {
+      const zip = new JSZip();
+      pages.forEach((html, i) => {
+        zip.file(`page${i + 1}.html`, html);
+      });
+      zip.generateAsync({ type: 'blob' }).then(blob => {
+        saveAs(blob, "my-website.zip");
+
+        // ✅ Log the download event
+        fetch('https://websitegeneration.onrender.com/log-download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionId,
+            type: purchaseType,
+            timestamp: new Date().toISOString()
+          })
+        });
+
+        // ✅ Redirect to confirmation page
+        setTimeout(() => {
+          window.location.href = 'download-success.html';
+        }, 1000);
+      });
+    });
+    actionButtons.appendChild(btn);
+  };
+
+  if (!purchaseType) {
+    messageEl.innerText = "Thanks for your payment. We'll follow up with you shortly.";
+
+  } else if (purchaseType === 'zip-download') {
+    messageEl.innerText = "You purchased a ZIP download of your website.";
+
+    if (savedPages) {
+      showZipDownloadButton(JSON.parse(savedPages));
+    } else if (sessionId) {
+      fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.steps.pages) {
+            showZipDownloadButton(data.steps.pages);
+          } else {
+            messageEl.innerText = "⚠️ We couldn't recover your generated website. Please regenerate it.";
+          }
+        });
+    } else {
+      messageEl.innerText = "⚠️ No session ID found. Please regenerate your website.";
+    }
+
+  } else if (purchaseType === 'github-instructions') {
+    messageEl.innerText = "You purchased GitHub Self-Deployment Instructions.";
+
+    const guideLink = document.createElement('a');
+    guideLink.href = "instructions.html";
+    guideLink.innerText = "📘 View Deployment Guide";
+    guideLink.className = "btn btn-green";
+    actionButtons.appendChild(guideLink);
+
+    if (savedPages) {
+      showZipDownloadButton(JSON.parse(savedPages));
+    } else if (sessionId) {
+      fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.steps.pages) {
+            showZipDownloadButton(data.steps.pages);
+          } else {
+            actionButtons.innerHTML += `<p style="color:red;">⚠️ No saved files found. Contact support.</p>`;
+          }
+        });
+    } else {
+      actionButtons.innerHTML += `<p style="color:red;">⚠️ Your session expired. Contact support.</p>`;
+    }
+  }
+
+  // Always include return button
+  const backLink = document.createElement('a');
+  backLink.href = "index.html";
+  backLink.className = "btn btn-outline";
+  backLink.innerText = "← Return to Generator";
+  actionButtons.appendChild(backLink);
+</script>
+
+
 </body>
+
+
 </html>

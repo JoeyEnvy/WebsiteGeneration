@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GitHub Deployment Instructions</title>
+  <link rel="stylesheet" href="public/css/styles.css"/>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f8fc;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      color: #007bff;
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 30px;
+      color: #333;
+    }
+
+    code {
+      background: #eef;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+
+    a {
+      color: #007bff;
+    }
+
+    .note {
+      background: #fff8e1;
+      border-left: 5px solid #ffc107;
+      padding: 10px 16px;
+      margin: 20px 0;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧾 GitHub Pages Deployment Guide</h1>
+    <p>This guide explains how to upload your AI-generated website to GitHub and optionally connect your own custom GoDaddy domain.</p>
+
+    <h2>Step 1: Create a GitHub Account</h2>
+    <p>If you don’t already have one, <a href="https://github.com/signup" target="_blank">sign up at github.com</a>.</p>
+
+    <h2>Step 2: Install GitHub Desktop (Recommended)</h2>
+    <ol>
+      <li>Download GitHub Desktop from <a href="https://desktop.github.com/" target="_blank">desktop.github.com</a></li>
+      <li>Install and sign in with your GitHub account</li>
+    </ol>
+
+    <h2>Step 3: Create a New Repository</h2>
+    <ol>
+      <li>Click <strong>“File → New Repository”</strong> in GitHub Desktop</li>
+      <li>Name your repository (e.g. <code>mywebsite</code>)</li>
+      <li>Set the local path to a new folder (e.g. <code>C:\MyWebsite</code>)</li>
+      <li>Click <strong>Create Repository</strong></li>
+    </ol>
+
+    <h2>Step 4: Add Your Website Files</h2>
+    <ol>
+      <li>Unzip your generated website</li>
+      <li>Copy the HTML/CSS/JS files into your repo folder</li>
+      <li>In GitHub Desktop, you’ll see the changes listed</li>
+      <li>Add a summary like “Add website files” and click <strong>Commit to main</strong></li>
+      <li>Then click <strong>Push origin</strong> to upload to GitHub</li>
+    </ol>
+
+    <h2>Step 5: Enable GitHub Pages</h2>
+    <ol>
+      <li>Go to <a href="https://github.com/" target="_blank">github.com</a> and open your repository</li>
+      <li>Click the <strong>Settings</strong> tab</li>
+      <li>In the left menu, click <strong>Pages</strong></li>
+      <li>Under <strong>Source</strong>, choose <code>main</code> branch and <code>/ (root)</code> folder</li>
+      <li>Click <strong>Save</strong></li>
+      <li>Your website will now be live at:<br><code>https://yourusername.github.io/your-repo-name</code></li>
+    </ol>
+
+    <div class="note">
+      🔄 You can update your site any time by editing files and clicking “Commit” → “Push origin” in GitHub Desktop.
+    </div>
+
+    <h2>🌐 Optional: Connect a GoDaddy Domain</h2>
+    <ol>
+      <li>Login to your <a href="https://godaddy.com" target="_blank">GoDaddy account</a></li>
+      <li>Go to <strong>My Products → DNS</strong> on your domain</li>
+      <li>Find the section called <strong>DNS Records</strong></li>
+      <li>Add or update these records:
+        <ul>
+          <li><strong>Type:</strong> CNAME</li>
+          <li><strong>Name:</strong> www</li>
+          <li><strong>Value:</strong> <code>yourusername.github.io</code></li>
+        </ul>
+      </li>
+      <li>In GitHub, go to your repository → <strong>Settings → Pages</strong></li>
+      <li>Under <strong>Custom domain</strong>, enter your full domain (e.g. <code>www.mybusiness.co.uk</code>) and click <strong>Save</strong></li>
+      <li>Check that it works after DNS propagates (can take up to 24 hrs)</li>
+    </ol>
+
+    <div class="note">
+      ❓ Need help? Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
+    </div>
+  </div>
+</body>
+</html>

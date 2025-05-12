@@ -31,18 +31,6 @@ class WebsiteGenerator {
 
     // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
 initializeEventListeners() {
-    document.getElementById('nextStep1').addEventListener('click', () => {
-        if (this.validateStep('step1')) this.goToStep(2);
-    });
-
-    document.getElementById('nextStep2').addEventListener('click', () => {
-        if (this.validateStep('step2')) this.goToStep(3);
-    });
-
-    document.getElementById('nextStep3').addEventListener('click', () => {
-        if (this.validateStep('step3')) this.goToStep(4);
-    });
-
     const nextStep4Btn = document.getElementById('nextStep4');
     if (nextStep4Btn) {
         nextStep4Btn.addEventListener('click', () => {
@@ -50,20 +38,32 @@ initializeEventListeners() {
         });
     }
 
-    document.getElementById('prevStep2').addEventListener('click', () => this.goToStep(1));
-    document.getElementById('prevStep3').addEventListener('click', () => this.goToStep(2));
+    document.getElementById('nextStep1')?.addEventListener('click', () => {
+        if (this.validateStep('step1')) this.goToStep(2);
+    });
+
+    document.getElementById('nextStep2')?.addEventListener('click', () => {
+        if (this.validateStep('step2')) this.goToStep(3);
+    });
+
+    document.getElementById('nextStep3')?.addEventListener('click', () => {
+        if (this.validateStep('step3')) this.goToStep(4);
+    });
+
+    document.getElementById('prevStep2')?.addEventListener('click', () => this.goToStep(1));
+    document.getElementById('prevStep3')?.addEventListener('click', () => this.goToStep(2));
     document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
 
-    document.querySelectorAll('.preview-controls button').forEach(button => {
+    document.querySelectorAll('.preview-controls button')?.forEach(button => {
         button.addEventListener('click', () => {
             this.changePreviewDevice(button.id.replace('Preview', ''));
         });
     });
 
-    document.getElementById('prevPage').addEventListener('click', () => this.changePage(-1));
-    document.getElementById('nextPage').addEventListener('click', () => this.changePage(1));
+    document.getElementById('prevPage')?.addEventListener('click', () => this.changePage(-1));
+    document.getElementById('nextPage')?.addEventListener('click', () => this.changePage(1));
 
-    this.form.addEventListener('submit', (e) => {
+    this.form?.addEventListener('submit', (e) => {
         e.preventDefault();
         this.handleSubmit();
     });
@@ -87,89 +87,24 @@ initializeEventListeners() {
         downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
     }
 
-    // ✅ Apply contact info to footer inside iframe
-    document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () => {
-        const name = document.getElementById('businessNameInput').value.trim();
-        const email = document.getElementById('contactEmail').value.trim();
-        const phone = document.getElementById('contactPhone').value.trim();
-        const address = document.getElementById('contactAddress').value.trim();
-
-        const iframe = document.getElementById('previewFrame').querySelector('iframe');
-        if (!iframe) return;
-
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-        let footer = doc.querySelector('footer');
-        if (!footer) {
-            footer = doc.createElement('footer');
-            footer.style.cssText = 'padding: 20px; background: #f4f4f4; text-align: center;';
-            doc.body.appendChild(footer);
-        }
-
-        footer.innerHTML = '';
-        if (name) footer.innerHTML += `<h4 style="margin-bottom: 8px;">${name}</h4>`;
-        if (email) footer.innerHTML += `<p>Email: <a href="mailto:${email}">${email}</a></p>`;
-        if (phone) footer.innerHTML += `<p>Phone: ${phone}</p>`;
-        if (address) footer.innerHTML += `<p>Address: ${address}</p>`;
+    // ✅ Stripe Checkout Deployment Options
+    document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
+        this.startStripeCheckout('github-instructions');
     });
 
-    // ✅ Regenerate Modal Logic
-    const closeModal = document.getElementById('closeRegenerateModal');
-    if (closeModal) {
-        closeModal.addEventListener('click', () => {
-            document.getElementById('regenerateModal').style.display = 'none';
-        });
-    }
+    document.getElementById('deployZipOnly')?.addEventListener('click', () => {
+        this.startStripeCheckout('zip-download');
+    });
 
-    const confirmBtn = document.getElementById('confirmRegeneratePageBtn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', () => {
-            const pageIndex = parseInt(document.getElementById('regeneratePageSelect').value);
-            if (!isNaN(pageIndex)) {
-                this.currentPage = pageIndex;
-                this.updatePreview();
+    document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
+        this.startStripeCheckout('github-hosted');
+    });
 
-                const panel = document.getElementById('customizationPanel');
-                if (panel) {
-                    panel.style.display = 'none';
-                    const tools = panel.querySelector('.custom-tools');
-                    if (tools) tools.style.display = 'none';
-                }
-
-                document.getElementById('regenerateModal').style.display = 'none';
-            }
-        });
-    }
-
-    // ✅ Deployment Modal Toggle + Stripe Binding
-    const deployBtn = document.getElementById('deploymentHelpBtn');
-    const deployModal = document.getElementById('deploymentModal');
-    const closeDeploy = document.getElementById('closeDeploymentModal');
-
-    if (deployBtn && deployModal && closeDeploy) {
-        deployBtn.addEventListener('click', () => {
-            deployModal.style.display = 'block';
-
-            // Bind Stripe buttons once modal is visible
-            document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
-                this.startStripeCheckout('github-instructions');
-            });
-            document.getElementById('deployZipOnly')?.addEventListener('click', () => {
-                this.startStripeCheckout('zip-download');
-            });
-            document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
-                this.startStripeCheckout('github-hosted');
-            });
-            document.getElementById('deployFullHosting')?.addEventListener('click', () => {
-                this.startStripeCheckout('full-hosting');
-            });
-        });
-
-        closeDeploy.addEventListener('click', () => {
-            deployModal.style.display = 'none';
-        });
-    }
+    document.getElementById('deployFullHosting')?.addEventListener('click', () => {
+        this.startStripeCheckout('full-hosting');
+    });
 }
+
 
 
     updatePreview() {
