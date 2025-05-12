@@ -1,3 +1,9 @@
+// ✅ Clear previous site data on hard refresh
+window.addEventListener('beforeunload', () => {
+  localStorage.removeItem('generatedPages');
+});
+
+
 class WebsiteGenerator {
     constructor() {
         this.form = document.getElementById('websiteGeneratorForm');
@@ -117,10 +123,15 @@ document.getElementById('applyContactDetailsBtn')?.addEventListener('click', () 
                 this.updatePreview();
 
                 // ✅ Show customization tools
-                const panel = document.getElementById('customizationPanel');
-                if (panel) panel.style.display = 'block';
+const panel = document.getElementById('customizationPanel');
+if (panel) {
+    panel.style.display = 'none'; // Ensure the entire panel is hidden
+    const tools = panel.querySelector('.custom-tools');
+    if (tools) tools.style.display = 'none'; // Also hide the button grid inside
+}
 
-                document.getElementById('regenerateModal').style.display = 'none';
+document.getElementById('regenerateModal').style.display = 'none';
+
             }
         });
     }
@@ -177,7 +188,7 @@ updatePreview() {
 
         // ✅ INIT customization only once iframe is ready
         const panel = document.getElementById('customizationPanel');
-        if (panel) panel.style.display = 'block';
+        if (panel) panel.style.display = 'none'; // ✅ Hide customization tools initially
         this.initializeCustomizationPanel();
     };
 
@@ -421,6 +432,8 @@ document.getElementById('saveBrandingBtn')?.addEventListener('click', () => {
             if (data.success) {
                 this.generatedPages = data.pages;
                 localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+                this.currentPage = 0; // Reset to first page after fresh generation
+
                 this.updatePreview();
                 this.showSuccess('Website generated successfully!');
             } else {
@@ -684,19 +697,42 @@ showPostGenerationOptions() {
         </div>
     `;
 
-    previewControls.appendChild(panel);
+previewControls.appendChild(panel);
 
-    const self = this;
-    document.getElementById('editPagesBtn').addEventListener('click', function () {
-        const panel = document.getElementById('customizationPanel');
-        if (panel) panel.style.display = 'block';
-        self.initializeCustomizationPanel(); // ensures buttons are re-hooked
+// 🛠️ Setup "Edit Pages" button toggle
+const editBtn = document.getElementById('editPagesBtn');
+if (editBtn) {
+    editBtn.addEventListener('click', () => {
+        const customizationPanel = document.getElementById('customizationPanel');
+        const brandingPanel = document.getElementById('brandingPanel');
+
+        // Ensure both panels exist
+        if (!customizationPanel || !brandingPanel) return;
+
+        // Hide branding panel
+        brandingPanel.style.display = 'none';
+
+        // Toggle customization panel
+const isHidden = (customizationPanel.style.display === 'none' || customizationPanel.style.display === '');
+customizationPanel.style.display = isHidden ? 'block' : 'none';
+
+const tools = customizationPanel.querySelector('.custom-tools');
+if (tools) tools.style.display = isHidden ? 'flex' : 'none';
+
     });
+}
+
+
+
 
 document.getElementById('addBrandingBtn').addEventListener('click', () => {
-    const brandingPanel = document.getElementById('brandingPanel');
-    if (brandingPanel) {
-        brandingPanel.style.display = 'block';
+    const panel = document.getElementById('brandingPanel');
+    const customPanel = document.getElementById('customizationPanel');
+
+    if (customPanel) customPanel.style.display = 'none'; // hide other panel
+
+    if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
 });
 
@@ -718,6 +754,14 @@ function debounce(func, wait) {
     };
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
+    const customizationPanel = document.getElementById('customizationPanel');
+    if (customizationPanel) customizationPanel.style.display = 'none';
+
+    const tools = customizationPanel?.querySelector('.custom-tools');
+    if (tools) tools.style.display = 'none'; // ✅ Hide button grid just in case
+
     new WebsiteGenerator();
 });
+
