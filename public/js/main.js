@@ -256,6 +256,12 @@ initializeEventListeners() {
             const formData = new FormData(this.form);
             const finalPrompt = this.buildFinalPrompt(formData);
 
+// ✅ Ensure sessionId is created and stored before generation
+if (!localStorage.getItem('sessionId')) {
+    localStorage.setItem('sessionId', crypto.randomUUID());
+}
+
+
             const response = await fetch('https://websitegeneration.onrender.com/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -424,26 +430,36 @@ Do not explain or comment anything.
         });
     }
 
-    // ✅ Start Stripe Checkout session
-    async startStripeCheckout(type) {
-        try {
-            const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type })
-            });
-
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                alert('Failed to start checkout session.');
-            }
-        } catch (err) {
-            console.error('Stripe Checkout error:', err);
-            alert('Something went wrong with payment.');
-        }
+// ✅ Start Stripe Checkout session — FIXED to include sessionId
+async startStripeCheckout(type) {
+  try {
+    // ✅ Ensure sessionId exists and store it in localStorage if missing
+    let sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', sessionId);
     }
+
+    const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        sessionId // ✅ pass sessionId in body
+      })
+    });
+
+    const data = await response.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Failed to start checkout session.');
+    }
+  } catch (err) {
+    console.error('Stripe Checkout error:', err);
+    alert('Something went wrong with payment.');
+  }
+}
 
 
     initializeCustomizationPanel() {
