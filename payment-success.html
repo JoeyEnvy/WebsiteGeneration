@@ -52,132 +52,120 @@
       border: none;
     }
 
-    .btn-green:hover {
-      background-color: #218838;
-    }
-
     .btn-outline {
       background-color: transparent;
       border: 2px solid #28a745;
       color: #28a745;
-    }
-
-    .btn-outline:hover {
-      background-color: #28a745;
-      color: #fff;
     }
   </style>
 </head>
 <body>
   <div class="success-container" id="successContainer">
     <h1>✅ Payment Successful</h1>
-    <p id="successMessage">Thank you for your purchase! You now have full access to your deployment option.</p>
+    <p id="successMessage">Preparing your files...</p>
     <div id="actionButtons"></div>
   </div>
 
-  <!-- JSZip + FileSaver for .zip download -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <!-- JSZip + FileSaver -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
 <script>
-  const params = new URLSearchParams(window.location.search);
-  const purchaseType = params.get('option');
-  const messageEl = document.getElementById('successMessage');
-  const actionButtons = document.getElementById('actionButtons');
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const purchaseType = params.get('option');
+    const messageEl = document.getElementById('successMessage');
+    const actionButtons = document.getElementById('actionButtons');
+    const savedPages = localStorage.getItem('generatedPages');
+    const sessionId = params.get('sessionId') || localStorage.getItem('sessionId');
+if (params.get('sessionId')) {
+  localStorage.setItem('sessionId', params.get('sessionId'));
+}
 
-  const savedPages = localStorage.getItem('generatedPages');
-  const sessionId = localStorage.getItem('sessionId');
 
-  const showZipDownloadButton = (pages) => {
-    const btn = document.createElement('button');
-    btn.innerText = "📦 Download My Website ZIP";
-    btn.className = "btn btn-green";
-    btn.addEventListener('click', () => {
+    const generateZip = (pages) => {
       const zip = new JSZip();
       pages.forEach((html, i) => {
         zip.file(`page${i + 1}.html`, html);
       });
-      zip.generateAsync({ type: 'blob' }).then(blob => {
-        saveAs(blob, "my-website.zip");
+      return zip.generateAsync({ type: 'blob' });
+    };
 
-        // ✅ Log the download event
-        fetch('https://websitegeneration.onrender.com/log-download', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: sessionId,
-            type: purchaseType,
-            timestamp: new Date().toISOString()
+    const generatePdfInstructions = () => {
+      const pdfContent = `
+GitHub Deployment Instructions
+
+1. Create GitHub account: https://github.com/signup
+2. Download GitHub Desktop: https://desktop.github.com
+3. Create a new repository, copy files
+4. Commit → Push origin
+5. Enable GitHub Pages in Settings → Pages
+6. Optional: Add a GoDaddy domain
+For help, contact: support@websitegenerator.co.uk
+      `;
+      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      saveAs(blob, "Website-Instructions.pdf");
+    };
+
+    const handleSuccess = (pages) => {
+      if (['zip-download', 'github-instructions', 'github-hosted', 'full-hosting'].includes(purchaseType)) {
+        generateZip(pages)
+          .then(blob => {
+            saveAs(blob, "my-website.zip");
+
+            // Slight delay before PDF to avoid download clash
+            if (['github-instructions', 'github-hosted', 'full-hosting'].includes(purchaseType)) {
+              setTimeout(generatePdfInstructions, 800);
+            }
+
+            messageEl.innerText = "✅ Your files are ready. Redirecting...";
+            setTimeout(() => {
+              window.location.href = `instructions.html?option=${purchaseType}`;
+            }, 3000);
           })
-        });
-
-        // ✅ Redirect to confirmation page
+          .catch(() => {
+            messageEl.innerText = "⚠️ ZIP generation failed. Please try again or contact support.";
+          });
+      } else {
+        messageEl.innerText = "✅ Purchase confirmed. Redirecting...";
         setTimeout(() => {
-          window.location.href = 'download-success.html';
-        }, 1000);
-      });
-    });
-    actionButtons.appendChild(btn);
-  };
+          window.location.href = `instructions.html?option=${purchaseType}`;
+        }, 2000);
+      }
+    };
 
-  if (!purchaseType) {
-    messageEl.innerText = "Thanks for your payment. We'll follow up with you shortly.";
+    const loadPagesAndRun = () => {
+      if (savedPages) {
+        handleSuccess(JSON.parse(savedPages));
+      } else if (sessionId) {
+        fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.steps.pages) {
+              handleSuccess(data.steps.pages);
+            } else {
+              messageEl.innerText = "⚠️ Could not retrieve your site. Please regenerate.";
+            }
+          });
+      } else {
+        messageEl.innerText = "⚠️ Session missing. Please regenerate your site.";
+      }
+    };
 
-  } else if (purchaseType === 'zip-download') {
-    messageEl.innerText = "You purchased a ZIP download of your website.";
-
-    if (savedPages) {
-      showZipDownloadButton(JSON.parse(savedPages));
-    } else if (sessionId) {
-      fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.steps.pages) {
-            showZipDownloadButton(data.steps.pages);
-          } else {
-            messageEl.innerText = "⚠️ We couldn't recover your generated website. Please regenerate it.";
-          }
-        });
+    if (!purchaseType) {
+      messageEl.innerText = "⚠️ Missing purchase type. Contact support.";
     } else {
-      messageEl.innerText = "⚠️ No session ID found. Please regenerate your website.";
+      loadPagesAndRun();
     }
 
-  } else if (purchaseType === 'github-instructions') {
-    messageEl.innerText = "You purchased GitHub Self-Deployment Instructions.";
-
-    const guideLink = document.createElement('a');
-    guideLink.href = "instructions.html";
-    guideLink.innerText = "📘 View Deployment Guide";
-    guideLink.className = "btn btn-green";
-    actionButtons.appendChild(guideLink);
-
-    if (savedPages) {
-      showZipDownloadButton(JSON.parse(savedPages));
-    } else if (sessionId) {
-      fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.steps.pages) {
-            showZipDownloadButton(data.steps.pages);
-          } else {
-            actionButtons.innerHTML += `<p style="color:red;">⚠️ No saved files found. Contact support.</p>`;
-          }
-        });
-    } else {
-      actionButtons.innerHTML += `<p style="color:red;">⚠️ Your session expired. Contact support.</p>`;
-    }
-  }
-
-  // Always include return button
-  const backLink = document.createElement('a');
-  backLink.href = "index.html";
-  backLink.className = "btn btn-outline";
-  backLink.innerText = "← Return to Generator";
-  actionButtons.appendChild(backLink);
+    const backLink = document.createElement('a');
+    backLink.href = "index.html";
+    backLink.className = "btn btn-outline";
+    backLink.innerText = "← Return to Generator";
+    actionButtons.appendChild(backLink);
+  });
 </script>
 
-
 </body>
-
-
 </html>
+

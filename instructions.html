@@ -25,11 +25,35 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.05);
     }
 
-    h1 { color: #007bff; font-size: 2rem; margin-bottom: 20px; }
-    h2 { margin-top: 30px; color: #333; }
-    code { background: #eef; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
-    a { color: #007bff; }
-    .note { background: #fff8e1; border-left: 5px solid #ffc107; padding: 10px 16px; margin: 20px 0; font-size: 0.95rem; }
+    h1 {
+      color: #007bff;
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 30px;
+      color: #333;
+    }
+
+    code {
+      background: #eef;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+
+    a {
+      color: #007bff;
+    }
+
+    .note {
+      background: #fff8e1;
+      border-left: 5px solid #ffc107;
+      padding: 10px 16px;
+      margin: 20px 0;
+      font-size: 0.95rem;
+    }
 
     .button-area {
       margin-top: 40px;
@@ -46,111 +70,230 @@
       cursor: pointer;
     }
 
-    .btn-green { background-color: #28a745; color: white; border: none; }
-    .btn-outline { background-color: transparent; border: 2px solid #007bff; color: #007bff; }
+    .btn-green {
+      background-color: #28a745;
+      color: white;
+      border: none;
+    }
 
-    input[type="email"] {
+    .btn-outline {
+      background-color: transparent;
+      border: 2px solid #007bff;
+      color: #007bff;
+    }
+
+    .email-box {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .email-box input {
       padding: 10px;
-      width: 80%;
-      max-width: 400px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin: 10px auto;
-      display: block;
       font-size: 1rem;
+      width: 70%;
+      max-width: 300px;
+      margin-right: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .email-box button {
+      padding: 10px 16px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🧾 GitHub Pages Deployment Guide</h1>
-    <p>This guide explains how to upload your AI-generated website to GitHub and optionally connect your custom GoDaddy domain.</p>
+    <p>This guide explains how to upload your AI-generated website to GitHub and optionally connect your own custom GoDaddy domain.</p>
 
-    <!-- Guide content omitted for brevity; keep your full deployment instructions here -->
+    <div id="githubInstructions" style="display:none;">
+      <h2>Step 1: Create a GitHub Account</h2>
+      <p>If you don’t already have one, <a href="https://github.com/signup" target="_blank">sign up at github.com</a>.</p>
 
-    <div class="note">
-      ❓ Need help? Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
+      <h2>Step 2: Install GitHub Desktop (Recommended)</h2>
+      <ol>
+        <li>Download GitHub Desktop from <a href="https://desktop.github.com/" target="_blank">desktop.github.com</a></li>
+        <li>Install and sign in with your GitHub account</li>
+      </ol>
+
+      <h2>Step 3: Create a New Repository</h2>
+      <ol>
+        <li>Click <strong>“File → New Repository”</strong> in GitHub Desktop</li>
+        <li>Name your repository (e.g. <code>mywebsite</code>)</li>
+        <li>Set the local path to a new folder (e.g. <code>C:\MyWebsite</code>)</li>
+        <li>Click <strong>Create Repository</strong></li>
+      </ol>
+
+      <h2>Step 4: Add Your Website Files</h2>
+      <ol>
+        <li>Unzip your generated website</li>
+        <li>Copy the HTML/CSS/JS files into your repo folder</li>
+        <li>In GitHub Desktop, you’ll see the changes listed</li>
+        <li>Add a summary like “Add website files” and click <strong>Commit to main</strong></li>
+        <li>Then click <strong>Push origin</strong> to upload to GitHub</li>
+      </ol>
+
+      <h2>Step 5: Enable GitHub Pages</h2>
+      <ol>
+        <li>Go to <a href="https://github.com/" target="_blank">github.com</a> and open your repository</li>
+        <li>Click the <strong>Settings</strong> tab</li>
+        <li>In the left menu, click <strong>Pages</strong></li>
+        <li>Under <strong>Source</strong>, choose <code>main</code> branch and <code>/ (root)</code> folder</li>
+        <li>Click <strong>Save</strong></li>
+        <li>Your website will now be live at:<br><code>https://yourusername.github.io/your-repo-name</code></li>
+      </ol>
+
+      <div class="note">
+        🔄 You can update your site any time by editing files and clicking “Commit” → “Push origin” in GitHub Desktop.
+      </div>
+
+      <h2>🌐 Optional: Connect a GoDaddy Domain</h2>
+      <ol>
+        <li>Login to your <a href="https://godaddy.com" target="_blank">GoDaddy account</a></li>
+        <li>Go to <strong>My Products → DNS</strong> on your domain</li>
+        <li>Update these DNS records:
+          <ul>
+            <li><strong>Type:</strong> CNAME</li>
+            <li><strong>Name:</strong> www</li>
+            <li><strong>Value:</strong> <code>yourusername.github.io</code></li>
+          </ul>
+        </li>
+        <li>Back in GitHub → <strong>Settings → Pages</strong>, enter your domain (e.g. <code>www.mybusiness.co.uk</code>) and Save</li>
+      </ol>
+
+      <div class="note">
+        ❓ Need help? Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
+      </div>
     </div>
 
     <div class="button-area" id="buttonArea">
       <a href="index.html" class="btn btn-outline">← Return to Generator</a>
+    </div>
 
-      <!-- Download ZIP Button (generated dynamically) -->
-      
-      <!-- Email ZIP to User -->
-      <input type="email" id="userEmail" placeholder="Enter your email to receive .zip" />
-      <button class="btn btn-green" id="emailZipBtn">📧 Email ZIP File</button>
-
-      <!-- Regenerate Button -->
-      <a href="index.html#regenerate" class="btn btn-outline">🔁 Regenerate Website</a>
+    <div class="email-box" id="emailZipBox" style="display:none;">
+      <input type="email" id="emailInput" placeholder="Enter your email to receive ZIP" />
+      <button id="emailZipBtn">📤 Email ZIP</button>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-  <script>
-    const savedPages = localStorage.getItem('generatedPages');
-    const sessionId = localStorage.getItem('sessionId');
-    const container = document.getElementById('buttonArea');
-    const emailZipBtn = document.getElementById('emailZipBtn');
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const option = urlParams.get('option');
+  const sessionId = urlParams.get('sessionId') || localStorage.getItem('sessionId');
+  const savedPages = localStorage.getItem('generatedPages');
 
-    const showZipButton = (pages) => {
-      const btn = document.createElement('button');
-      btn.className = "btn btn-green";
-      btn.innerText = "📦 Download Website ZIP";
-      btn.addEventListener('click', () => {
-        const zip = new JSZip();
-        pages.forEach((html, i) => zip.file(`page${i + 1}.html`, html));
-        zip.generateAsync({ type: 'blob' }).then(blob => saveAs(blob, "my-website.zip"));
+  if (urlParams.get('sessionId')) {
+    localStorage.setItem('sessionId', urlParams.get('sessionId'));
+  }
+
+  const container = document.getElementById('buttonArea');
+  const emailBox = document.getElementById('emailZipBox');
+  const githubSection = document.getElementById('githubInstructions');
+
+  const showZipButton = (pages) => {
+    const btn = document.createElement('button');
+    btn.className = "btn btn-green";
+    btn.innerText = "📦 Download Your Website (.zip)";
+    btn.addEventListener('click', () => {
+      const zip = new JSZip();
+      pages.forEach((html, i) => {
+        zip.file(`page${i + 1}.html`, html);
       });
-      container.insertBefore(btn, emailZipBtn);
-    };
+      zip.generateAsync({ type: 'blob' }).then(blob => {
+        saveAs(blob, "my-website.zip");
+      });
+    });
+    container.appendChild(btn);
+  };
 
-    const fetchPagesAndShowZip = () => {
+  const showPdfButton = () => {
+    const btn = document.createElement('button');
+    btn.className = "btn btn-outline";
+    btn.innerText = "🧾 Download Instructions as PDF";
+    btn.addEventListener('click', () => window.print());
+    container.appendChild(btn);
+  };
+
+  const showRegenButton = () => {
+    const btn = document.createElement('a');
+    btn.href = "index.html";
+    btn.className = "btn btn-outline";
+    btn.innerText = "♻️ Regenerate Site";
+    container.appendChild(btn);
+  };
+
+  const loadSiteData = (pages) => {
+    if (option) {
+      if (['github-instructions', 'github-hosted', 'full-hosting'].includes(option)) {
+        githubSection.style.display = 'block';
+        showPdfButton();
+        showRegenButton();
+      }
+
+      if (pages && pages.length && ['zip-download', 'github-instructions', 'github-hosted'].includes(option)) {
+        showZipButton(pages);
+        emailBox.style.display = 'block';
+      }
+
+      if (!pages || !pages.length) {
+        container.innerHTML += `<p style="color:red;">⚠️ No website files found. You can regenerate or email support.</p>`;
+      }
+    } else {
+      container.innerHTML += `<p style="color:red;">⚠️ Payment option not detected in URL. Contact support.</p>`;
+    }
+  };
+
+  // ✅ Load site data once DOM is ready
+  window.addEventListener('DOMContentLoaded', () => {
+    if (savedPages) {
+      loadSiteData(JSON.parse(savedPages));
+    } else if (sessionId) {
       fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.steps.pages) {
-            showZipButton(data.steps.pages);
-            emailZipBtn.onclick = () => sendZipToUser(data.steps.pages);
+            loadSiteData(data.steps.pages);
           } else {
-            container.innerHTML += `<p style="color:red;">⚠️ Couldn't retrieve your files. Please contact support.</p>`;
+            container.innerHTML += `<p style="color:red;">⚠️ Could not recover your session. Please regenerate your site.</p>`;
           }
         });
-    };
-
-    const sendZipToUser = (pages) => {
-      const email = document.getElementById('userEmail').value.trim();
-      if (!email || !email.includes('@')) {
-        alert('Please enter a valid email address.');
-        return;
-      }
-
-      fetch("https://websitegeneration.onrender.com/email-zip", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pages })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          alert("✅ ZIP sent to your email!");
-        } else {
-          alert("❌ Failed to send email. Try again later.");
-        }
-      });
-    };
-
-    if (savedPages) {
-      const parsed = JSON.parse(savedPages);
-      showZipButton(parsed);
-      emailZipBtn.onclick = () => sendZipToUser(parsed);
-    } else if (sessionId) {
-      fetchPagesAndShowZip();
-    } else {
-      container.innerHTML += `<p style="color:red;">⚠️ Session expired. Please regenerate your site.</p>`;
     }
-  </script>
+
+    // ✅ Email ZIP handler
+    document.getElementById('emailZipBtn')?.addEventListener('click', () => {
+      const email = document.getElementById('emailInput').value.trim();
+      if (!email) return alert("Please enter your email.");
+      if (!savedPages) return alert("No website data found to email.");
+
+      fetch('https://websitegeneration.onrender.com/email-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          pages: JSON.parse(savedPages)
+        })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert("✅ ZIP sent to your email!");
+          } else {
+            alert("❌ Failed to send ZIP. Try again or contact support.");
+          }
+        });
+    });
+  });
+</script>
+
+
 </body>
 </html>
 

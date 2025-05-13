@@ -46,7 +46,7 @@ app.get('/get-steps/:sessionId', (req, res) => {
 // Stripe Checkout Payment Endpoint
 // ========================================================================
 app.post('/create-checkout-session', async (req, res) => {
-  const { type } = req.body;
+  const { type, sessionId } = req.body;
 
   const priceMap = {
     'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
@@ -76,7 +76,7 @@ app.post('/create-checkout-session', async (req, res) => {
           quantity: 1
         }
       ],
-      success_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-success.html?option=' + type,
+      success_url: `https://joeyenvy.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
       cancel_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-cancelled.html'
     });
 
@@ -205,5 +205,4 @@ You are a professional website developer tasked with generating full standalone 
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
-
 
