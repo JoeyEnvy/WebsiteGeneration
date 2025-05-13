@@ -113,6 +113,8 @@
     <h1>🧾 GitHub Pages Deployment Guide</h1>
     <p>This guide explains how to upload your AI-generated website to GitHub and optionally connect your own custom GoDaddy domain.</p>
 
+    <p id="loadingMsg">⏳ Loading your files...</p>
+
     <div id="githubInstructions" style="display:none;">
       <h2>Step 1: Create a GitHub Account</h2>
       <p>If you don’t already have one, <a href="https://github.com/signup" target="_blank">sign up at github.com</a>.</p>
@@ -189,7 +191,6 @@
   const urlParams = new URLSearchParams(window.location.search);
   const option = urlParams.get('option');
   const sessionId = urlParams.get('sessionId') || localStorage.getItem('sessionId');
-  const savedPages = localStorage.getItem('generatedPages');
 
   if (urlParams.get('sessionId')) {
     localStorage.setItem('sessionId', urlParams.get('sessionId'));
@@ -210,6 +211,7 @@
       });
       zip.generateAsync({ type: 'blob' }).then(blob => {
         saveAs(blob, "my-website.zip");
+        localStorage.removeItem('generatedPages'); // Optional cleanup
       });
     });
     container.appendChild(btn);
@@ -232,6 +234,8 @@
   };
 
   const loadSiteData = (pages) => {
+    document.getElementById('loadingMsg')?.remove();
+
     if (option) {
       if (['github-instructions', 'github-hosted', 'full-hosting'].includes(option)) {
         githubSection.style.display = 'block';
@@ -254,6 +258,8 @@
 
   // ✅ Load site data once DOM is ready
   window.addEventListener('DOMContentLoaded', () => {
+    const savedPages = localStorage.getItem('generatedPages');
+
     if (savedPages) {
       loadSiteData(JSON.parse(savedPages));
     } else if (sessionId) {
@@ -261,8 +267,10 @@
         .then(res => res.json())
         .then(data => {
           if (data.success && data.steps.pages) {
+            localStorage.setItem('generatedPages', JSON.stringify(data.steps.pages)); // ✅ fix added
             loadSiteData(data.steps.pages);
           } else {
+            document.getElementById('loadingMsg')?.remove();
             container.innerHTML += `<p style="color:red;">⚠️ Could not recover your session. Please regenerate your site.</p>`;
           }
         });
@@ -271,6 +279,7 @@
     // ✅ Email ZIP handler
     document.getElementById('emailZipBtn')?.addEventListener('click', () => {
       const email = document.getElementById('emailInput').value.trim();
+      const savedPages = localStorage.getItem('generatedPages');
       if (!email) return alert("Please enter your email.");
       if (!savedPages) return alert("No website data found to email.");
 
@@ -285,6 +294,7 @@
         .then(data => {
           if (data.success) {
             alert("✅ ZIP sent to your email!");
+            localStorage.removeItem('generatedPages'); // Optional cleanup
           } else {
             alert("❌ Failed to send ZIP. Try again or contact support.");
           }
@@ -292,8 +302,5 @@
     });
   });
 </script>
-
-
 </body>
 </html>
-

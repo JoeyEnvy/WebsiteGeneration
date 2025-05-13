@@ -248,59 +248,60 @@ initializeEventListeners() {
         if (errorDiv) errorDiv.remove();
     }
 
-async handleSubmit() {
-  this.goToStep(5);
-  this.showLoading();
+    async handleSubmit() {
+        this.goToStep(5);
+        this.showLoading();
 
-  try {
-    const formData = new FormData(this.form);
-    const finalPrompt = this.buildFinalPrompt(formData);
+        try {
+            const formData = new FormData(this.form);
+            const finalPrompt = this.buildFinalPrompt(formData);
 
-    // ✅ Ensure sessionId is created and stored before generation
-    let sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) {
-      sessionId = crypto.randomUUID();
-      localStorage.setItem('sessionId', sessionId);
-    }
+// ✅ Ensure sessionId is created and stored before generation
+if (!localStorage.getItem('sessionId')) {
+    localStorage.setItem('sessionId', crypto.randomUUID());
+}
 
-    const response = await fetch('https://websitegeneration.onrender.com/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: finalPrompt,
-        pageCount: formData.get('pageCount') || '1'
-      })
-    });
 
-    const data = await response.json();
+            const response = await fetch('https://websitegeneration.onrender.com/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: finalPrompt,
+                    pageCount: formData.get('pageCount') || '1'
+                })
+            });
 
-    if (data.success) {
-      this.generatedPages = data.pages;
-      localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-      this.currentPage = 0;
+            const data = await response.json();
 
-      // ✅ Save generated pages to the backend for Stripe/session recovery
-      await fetch('https://websitegeneration.onrender.com/store-step', {
+if (data.success) {
+    this.generatedPages = data.pages;
+    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+    this.currentPage = 0;
+
+    // ✅ NEW — Store site data on backend using sessionId
+    const sessionId = localStorage.getItem('sessionId');
+    await fetch('https://websitegeneration.onrender.com/store-step', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: sessionId,
-          step: 'pages',
-          content: data.pages
+            sessionId: sessionId,
+            step: 'pages',
+            content: data.pages
         })
-      });
+    });
 
-      this.updatePreview();
-      this.showSuccess('Website generated successfully!');
-    } else {
-      throw new Error(data.error || 'Unknown error from server.');
-    }
-  } catch (error) {
-    this.showError('Failed to generate website: ' + error.message);
-  } finally {
-    this.hideLoading();
-  }
+    this.updatePreview();
+    this.showSuccess('Website generated successfully!');
 }
+ else {
+                throw new Error(data.error || 'Unknown error from server.');
+            }
+        } catch (error) {
+            this.showError('Failed to generate website: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
 
     buildFinalPrompt(formData) {
         const websiteType = formData.get('websiteType');
@@ -446,45 +447,32 @@ Do not explain or comment anything.
 async startStripeCheckout(type) {
   try {
     // ✅ Ensure sessionId exists and store it in localStorage if missing
-    // ✅ Ensure sessionId exists and is stored
-let sessionId = localStorage.getItem('sessionId');
-if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem('sessionId', sessionId);
-}
+    let sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', sessionId);
+    }
 
-try {
-    const formData = new FormData(this.form);
-    const finalPrompt = this.buildFinalPrompt(formData);
-
-    const response = await fetch('https://websitegeneration.onrender.com/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            query: finalPrompt,
-            pageCount: formData.get('pageCount') || '1',
-            sessionId: sessionId // ✅ pass sessionId
-        })
+    const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        sessionId // ✅ pass sessionId in body
+      })
     });
 
     const data = await response.json();
-
-    if (data.success) {
-        this.generatedPages = data.pages;
-        localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-        localStorage.setItem('sessionId', sessionId); // ✅ reinforce the current sessionId
-        this.currentPage = 0;
-        this.updatePreview();
-        this.showSuccess('Website generated successfully!');
+    if (data.url) {
+      window.location.href = data.url;
     } else {
-        throw new Error(data.error || 'Unknown error from server.');
+      alert('Failed to start checkout session.');
     }
-} catch (error) {
-    this.showError('Failed to generate website: ' + error.message);
-} finally {
-    this.hideLoading();
+  } catch (err) {
+    console.error('Stripe Checkout error:', err);
+    alert('Something went wrong with payment.');
+  }
 }
-
 
 
     initializeCustomizationPanel() {
