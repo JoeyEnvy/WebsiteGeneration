@@ -111,7 +111,7 @@ app.post('/email-zip', async (req, res) => {
 
     const msg = {
       to: email,
-      from: 'support@websitegenerator.co.uk', // ✅ use a verified sender
+      from: 'c.fear.907@gmail.com', // ✅ use a verified sender
       subject: 'Your AI-Generated Website ZIP',
       text: 'Here is your generated website in ZIP format.',
       attachments: [
