@@ -97,8 +97,53 @@ For help, contact: support@websitegenerator.co.uk
         saveAs(blob, "Website-Instructions.pdf");
       };
 
+      // ✅ GitHub Hosted Tier: Deploy and redirect
+      if (purchaseType === 'github-hosted' && sessionId) {
+        const businessName = localStorage.getItem('businessName');
+        const userEmail = localStorage.getItem('email');
+
+        if (!businessName) {
+          console.warn('❌ businessName not found in localStorage');
+        } else {
+          fetch('https://websitegeneration.onrender.com/deploy-github', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, businessName })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.pagesUrl && data.repoUrl) {
+              const url = new URL('github-success.html', window.location.origin);
+              url.searchParams.set('live', data.pagesUrl);
+              url.searchParams.set('repo', data.repoUrl);
+              window.location.href = url.toString();
+
+              if (userEmail && savedPages) {
+                fetch('https://websitegeneration.onrender.com/email-zip', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: userEmail,
+                    pages: JSON.parse(savedPages),
+                    extraNote: `Here is your live site: ${data.pagesUrl}\nGitHub Repo: ${data.repoUrl}`
+                  })
+                });
+              }
+            } else {
+              messageEl.innerText = "⚠️ GitHub deployment failed. Please contact support.";
+            }
+          })
+          .catch(err => {
+            console.error('❌ GitHub deploy error:', err);
+            messageEl.innerText = "⚠️ GitHub deployment failed. Please contact support.";
+          });
+        }
+
+        return; // 🛑 stop here — don't run ZIP logic
+      }
+
+      // ✅ Only ZIP for £50 and £75
       const handleSuccess = (pages) => {
-        // ✅ Only ZIP for £50 and £75
         if (['zip-download', 'github-instructions'].includes(purchaseType)) {
           generateZip(pages)
             .then(blob => {
@@ -145,50 +190,7 @@ For help, contact: support@websitegenerator.co.uk
       if (!purchaseType) {
         messageEl.innerText = "⚠️ Missing purchase type. Contact support.";
       } else {
-        loadPagesAndRun();
-      }
-
-      // ✅ GitHub Hosted Tier: Trigger Deploy and Redirect
-      if (purchaseType === 'github-hosted' && sessionId) {
-        const businessName = localStorage.getItem('businessName');
-        const userEmail = localStorage.getItem('email');
-
-        if (!businessName) {
-          console.warn('❌ businessName not found in localStorage');
-        } else {
-          fetch('https://websitegeneration.onrender.com/deploy-github', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, businessName })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.pagesUrl && data.repoUrl) {
-              const url = new URL('github-success.html', window.location.origin);
-              url.searchParams.set('live', data.pagesUrl);
-              url.searchParams.set('repo', data.repoUrl);
-              window.location.href = url.toString();
-
-              if (userEmail && savedPages) {
-                fetch('https://websitegeneration.onrender.com/email-zip', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    email: userEmail,
-                    pages: JSON.parse(savedPages),
-                    extraNote: `Here is your live site: ${data.pagesUrl}\nGitHub Repo: ${data.repoUrl}`
-                  })
-                });
-              }
-            } else {
-              messageEl.innerText = "⚠️ GitHub deployment failed. Please contact support.";
-            }
-          })
-          .catch(err => {
-            console.error('❌ GitHub deploy error:', err);
-            messageEl.innerText = "⚠️ GitHub deployment failed. Please contact support.";
-          });
-        }
+        loadPagesAndRun(); // ✅ only runs for ZIP / instructions tiers
       }
 
       const backLink = document.createElement('a');
@@ -200,4 +202,5 @@ For help, contact: support@websitegenerator.co.uk
   </script>
 </body>
 </html>
+
 
