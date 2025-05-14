@@ -12,10 +12,14 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import sgMail from '@sendgrid/mail';
+import JSZip from 'jszip';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -84,6 +88,47 @@ app.post('/create-checkout-session', async (req, res) => {
   } catch (err) {
     console.error('❌ Stripe session creation failed:', err);
     res.status(500).json({ error: 'Failed to create Stripe session' });
+  }
+});
+
+// ========================================================================
+// Email ZIP File Endpoint (SendGrid)
+// ========================================================================
+app.post('/email-zip', async (req, res) => {
+  const { email, pages } = req.body;
+
+  if (!email || !pages || !Array.isArray(pages) || pages.length === 0) {
+    return res.status(400).json({ success: false, error: 'Missing email or pages.' });
+  }
+
+  try {
+    const zip = new JSZip();
+    pages.forEach((html, i) => {
+      zip.file(`page${i + 1}.html`, html);
+    });
+
+    const content = await zip.generateAsync({ type: 'base64' });
+
+    const msg = {
+      to: email,
+      from: 'support@websitegenerator.co.uk', // ✅ use a verified sender
+      subject: 'Your AI-Generated Website ZIP',
+      text: 'Here is your generated website in ZIP format.',
+      attachments: [
+        {
+          content,
+          filename: 'my-website.zip',
+          type: 'application/zip',
+          disposition: 'attachment'
+        }
+      ]
+    };
+
+    await sgMail.send(msg);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ Email ZIP error:', err);
+    res.status(500).json({ success: false, error: 'Failed to send ZIP.' });
   }
 });
 
@@ -205,4 +250,5 @@ You are a professional website developer tasked with generating full standalone 
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
+
 

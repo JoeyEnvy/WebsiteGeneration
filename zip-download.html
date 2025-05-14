@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Website is Ready</title>
+  <link rel="stylesheet" href="public/css/styles.css"/>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f8ff;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .box {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      color: #28a745;
+    }
+
+    p {
+      margin: 20px 0;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      margin: 10px;
+    }
+
+    .btn-green {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #007bff;
+      color: #007bff;
+    }
+
+    .error {
+      color: red;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>✅ Payment Successful</h1>
+    <p>Your website is ready. Click below to download your .zip file.</p>
+    <button id="downloadBtn" class="btn btn-green">📦 Download ZIP</button>
+    <br>
+    <a href="index.html" class="btn btn-outline">♻️ Regenerate Site</a>
+    <p id="errorMsg" class="error"></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('sessionId') || localStorage.getItem('sessionId');
+
+    if (urlParams.get('sessionId')) {
+      localStorage.setItem('sessionId', sessionId);
+    }
+
+    const downloadBtn = document.getElementById('downloadBtn');
+    const errorMsg = document.getElementById('errorMsg');
+
+    let pages = [];
+
+    fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.steps.pages) {
+          pages = data.steps.pages;
+          localStorage.setItem('generatedPages', JSON.stringify(pages)); // Optional
+        } else {
+          errorMsg.textContent = "⚠️ Could not retrieve your website. Please regenerate.";
+          downloadBtn.disabled = true;
+        }
+      })
+      .catch(() => {
+        errorMsg.textContent = "⚠️ Network error. Please try again.";
+        downloadBtn.disabled = true;
+      });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!pages.length) return alert("⚠️ No website found to download.");
+
+      const zip = new JSZip();
+      pages.forEach((html, i) => {
+        zip.file(`page${i + 1}.html`, html);
+      });
+
+      zip.generateAsync({ type: 'blob' }).then(blob => {
+        saveAs(blob, "my-website.zip");
+        localStorage.removeItem('generatedPages'); // optional cleanup
+      });
+    });
+  </script>
+</body>
+</html>
