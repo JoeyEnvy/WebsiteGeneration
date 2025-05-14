@@ -112,15 +112,16 @@ For help, contact: support@websitegenerator.co.uk
             .then(blob => {
               saveAs(blob, "my-website.zip");
 
-              // Slight delay before PDF to avoid download clash
               if (['github-instructions', 'github-hosted', 'full-hosting'].includes(purchaseType)) {
                 setTimeout(generatePdfInstructions, 800);
               }
 
-              messageEl.innerText = "✅ Your files are ready. Redirecting...";
-              setTimeout(() => {
-                window.location.href = `instructions.html?option=${purchaseType}`;
-              }, 3000);
+              if (purchaseType !== 'github-hosted') {
+                messageEl.innerText = "✅ Your files are ready. Redirecting...";
+                setTimeout(() => {
+                  window.location.href = `instructions.html?option=${purchaseType}`;
+                }, 3000);
+              }
             })
             .catch(() => {
               messageEl.innerText = "⚠️ ZIP generation failed. Please try again or contact support.";
@@ -157,10 +158,10 @@ For help, contact: support@websitegenerator.co.uk
         loadPagesAndRun();
       }
 
-      // ✅ Auto-deploy to GitHub for 'github-hosted' purchase
+      // ✅ GitHub-hosted: Deploy then redirect to github-success.html
       if (purchaseType === 'github-hosted' && sessionId) {
         const businessName = localStorage.getItem('businessName');
-        const userEmail = localStorage.getItem('email'); // optional: store this earlier
+        const userEmail = localStorage.getItem('email');
 
         if (!businessName) {
           console.warn('❌ businessName not found in localStorage');
@@ -173,13 +174,13 @@ For help, contact: support@websitegenerator.co.uk
           .then(res => res.json())
           .then(data => {
             if (data.pagesUrl && data.repoUrl) {
-              messageEl.innerHTML = `
-                <strong>Your website is now live!</strong><br><br>
-                <a href="${data.pagesUrl}" target="_blank">🌐 View Live Site</a><br>
-                <a href="${data.repoUrl}" target="_blank">📂 View GitHub Repo</a><br><br>
-                You will also receive an email with these links.
-              `;
+              // ✅ Redirect to success page with params
+              const url = new URL('github-success.html', window.location.origin);
+              url.searchParams.set('live', data.pagesUrl);
+              url.searchParams.set('repo', data.repoUrl);
+              window.location.href = url.toString();
 
+              // Email the user as well
               if (userEmail && savedPages) {
                 fetch('https://websitegeneration.onrender.com/email-zip', {
                   method: 'POST',
@@ -191,21 +192,6 @@ For help, contact: support@websitegenerator.co.uk
                   })
                 });
               }
-
-              const viewSiteBtn = document.createElement('a');
-              viewSiteBtn.href = data.pagesUrl;
-              viewSiteBtn.className = 'btn btn-green';
-              viewSiteBtn.target = '_blank';
-              viewSiteBtn.innerText = '🌐 Open Website';
-
-              const viewRepoBtn = document.createElement('a');
-              viewRepoBtn.href = data.repoUrl;
-              viewRepoBtn.className = 'btn btn-outline';
-              viewRepoBtn.target = '_blank';
-              viewRepoBtn.innerText = '📂 View GitHub Repo';
-
-              actionButtons.appendChild(viewSiteBtn);
-              actionButtons.appendChild(viewRepoBtn);
             } else {
               console.warn('❌ GitHub deployment failed');
             }
@@ -225,3 +211,4 @@ For help, contact: support@websitegenerator.co.uk
   </script>
 </body>
 </html>
+

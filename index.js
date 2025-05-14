@@ -135,7 +135,7 @@ app.post('/email-zip', async (req, res) => {
 });
 
 // ========================================================================
-// GitHub Deployment Route
+// GitHub Deployment Route — Upload all pages and base files
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
   const { sessionId, businessName } = req.body;
@@ -155,14 +155,39 @@ app.post('/deploy-github', async (req, res) => {
       private: false
     });
 
-    await octokit.repos.createOrUpdateFileContents({
-      owner: GITHUB_USERNAME,
-      repo: repoName,
-      path: 'index.html',
-      message: 'Initial commit - AI site',
-      content: Buffer.from(pages[0]).toString('base64'),
-      branch: 'main'
-    });
+    // Upload HTML pages
+    for (let i = 0; i < pages.length; i++) {
+      const html = pages[i];
+      const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
+      await octokit.repos.createOrUpdateFileContents({
+        owner: GITHUB_USERNAME,
+        repo: repoName,
+        path: filename,
+        message: `Add ${filename}`,
+        content: Buffer.from(html).toString('base64'),
+        branch: 'main'
+      });
+    }
+
+    // Upload empty CSS, JS, images, videos folders
+    const emptyFiles = [
+      { path: 'style.css', content: '/* Custom styles go here */' },
+      { path: 'script.js', content: '// Custom scripts go here' },
+      { path: 'assets/images/.gitkeep', content: '' },
+      { path: 'assets/videos/.gitkeep', content: '' },
+      { path: 'support.html', content: '<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p></body></html>' }
+    ];
+
+    for (const file of emptyFiles) {
+      await octokit.repos.createOrUpdateFileContents({
+        owner: GITHUB_USERNAME,
+        repo: repoName,
+        path: file.path,
+        message: `Add ${file.path}`,
+        content: Buffer.from(file.content).toString('base64'),
+        branch: 'main'
+      });
+    }
 
     await octokit.repos.updateInformationAboutPagesSite({
       owner: GITHUB_USERNAME,
@@ -295,6 +320,5 @@ app.post('/generate', async (req, res) => {
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
-
 
 

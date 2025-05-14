@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Site is Live!</title>
+  <link rel="stylesheet" href="public/css/styles.css"/>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f6fff8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 650px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      color: #28a745;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 1.1rem;
+      margin: 10px 0;
+    }
+
+    a {
+      color: #007bff;
+      word-break: break-word;
+    }
+
+    .btn {
+      margin-top: 15px;
+      display: inline-block;
+      padding: 12px 24px;
+      background: #28a745;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+
+    .btn-outline {
+      border: 2px solid #28a745;
+      background: transparent;
+      color: #28a745;
+    }
+
+    .button-row {
+      margin-top: 25px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎉 Your Website is Live!</h1>
+    <p><strong>Live URL:</strong><br>
+      <a id="liveUrl" href="#" target="_blank">Loading...</a>
+    </p>
+    <p><strong>GitHub Repo:</strong><br>
+      <a id="repoUrl" href="#" target="_blank">Loading...</a>
+    </p>
+    <p>Your site has also been emailed to you as a ZIP file.<br>
+       If you need help, email <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
+    </p>
+
+    <div class="button-row">
+      <a class="btn" id="downloadZipBtn" href="#">⬇️ Download ZIP Again</a>
+      <a class="btn btn-outline" href="index.html">🔁 Regenerate Site</a>
+      <a class="btn btn-outline" href="index.html">← Return to Generator</a>
+    </div>
+  </div>
+
+  <!-- JSZip + FileSaver -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const siteUrl = params.get('live');
+    const repoUrl = params.get('repo');
+
+    if (siteUrl) {
+      document.getElementById('liveUrl').href = siteUrl;
+      document.getElementById('liveUrl').textContent = siteUrl;
+    }
+
+    if (repoUrl) {
+      document.getElementById('repoUrl').href = repoUrl;
+      document.getElementById('repoUrl').textContent = repoUrl;
+    }
+
+    // Re-download ZIP
+    const savedPages = JSON.parse(localStorage.getItem('generatedPages') || '[]');
+    document.getElementById('downloadZipBtn').addEventListener('click', () => {
+      if (!savedPages.length) {
+        alert('⚠️ No saved site found. Please regenerate.');
+        return;
+      }
+
+      const zip = new JSZip();
+      savedPages.forEach((html, i) => {
+        zip.file(`page${i + 1}.html`, html);
+      });
+
+      zip.generateAsync({ type: 'blob' }).then(blob => {
+        saveAs(blob, "my-website.zip");
+      });
+    });
+  </script>
+</body>
+</html>
