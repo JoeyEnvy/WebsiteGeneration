@@ -56,6 +56,30 @@
       color: #007bff;
     }
 
+    .email-box {
+      margin-top: 20px;
+    }
+
+    .email-box input {
+      padding: 10px;
+      font-size: 1rem;
+      width: 70%;
+      max-width: 300px;
+      margin-right: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .email-box button {
+      padding: 10px 16px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
     .error {
       color: red;
       margin-top: 20px;
@@ -65,9 +89,16 @@
 <body>
   <div class="box">
     <h1>✅ Payment Successful</h1>
-    <p>Your website is ready. Click below to download your .zip file.</p>
-    <button id="downloadBtn" class="btn btn-green">📦 Download ZIP</button>
-    <br>
+    <p>Your website is ready. It will download automatically below.</p>
+
+    <button id="downloadBtn" class="btn btn-green">📦 Download ZIP Again</button>
+
+    <!-- ✅ Email form -->
+    <div class="email-box">
+      <input type="email" id="emailInput" placeholder="Enter your email to receive ZIP" />
+      <button id="emailZipBtn">📤 Email ZIP</button>
+    </div>
+
     <a href="index.html" class="btn btn-outline">♻️ Regenerate Site</a>
     <p id="errorMsg" class="error"></p>
   </div>
@@ -77,13 +108,11 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('sessionId') || localStorage.getItem('sessionId');
-
-    if (urlParams.get('sessionId')) {
-      localStorage.setItem('sessionId', sessionId);
-    }
+    if (urlParams.get('sessionId')) localStorage.setItem('sessionId', sessionId);
 
     const downloadBtn = document.getElementById('downloadBtn');
     const errorMsg = document.getElementById('errorMsg');
+    const emailBtn = document.getElementById('emailZipBtn');
 
     let pages = [];
 
@@ -92,30 +121,61 @@
       .then(data => {
         if (data.success && data.steps.pages) {
           pages = data.steps.pages;
-          localStorage.setItem('generatedPages', JSON.stringify(pages)); // Optional
+          localStorage.setItem('generatedPages', JSON.stringify(pages));
+
+          // Auto-download on page load
+          const zip = new JSZip();
+          pages.forEach((html, i) => zip.file(`page${i + 1}.html`, html));
+          zip.generateAsync({ type: 'blob' }).then(blob => {
+            saveAs(blob, "my-website.zip");
+          });
         } else {
           errorMsg.textContent = "⚠️ Could not retrieve your website. Please regenerate.";
           downloadBtn.disabled = true;
+          if (emailBtn) emailBtn.disabled = true;
         }
       })
       .catch(() => {
         errorMsg.textContent = "⚠️ Network error. Please try again.";
         downloadBtn.disabled = true;
+        if (emailBtn) emailBtn.disabled = true;
       });
 
     downloadBtn.addEventListener('click', () => {
       if (!pages.length) return alert("⚠️ No website found to download.");
-
       const zip = new JSZip();
-      pages.forEach((html, i) => {
-        zip.file(`page${i + 1}.html`, html);
-      });
-
+      pages.forEach((html, i) => zip.file(`page${i + 1}.html`, html));
       zip.generateAsync({ type: 'blob' }).then(blob => {
         saveAs(blob, "my-website.zip");
-        localStorage.removeItem('generatedPages'); // optional cleanup
+        localStorage.removeItem('generatedPages');
       });
+    });
+
+    document.getElementById('emailZipBtn')?.addEventListener('click', () => {
+      const email = document.getElementById('emailInput').value.trim();
+      const savedPages = localStorage.getItem('generatedPages');
+
+      if (!email) return alert("Please enter your email.");
+      if (!savedPages || savedPages.length === 0) return alert("No website data found to email.");
+
+      fetch('https://websitegeneration.onrender.com/email-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          pages: JSON.parse(savedPages)
+        })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert("✅ ZIP sent to your email!");
+            localStorage.removeItem('generatedPages');
+          } else {
+            alert("❌ Failed to send ZIP. Try again or contact support.");
+          }
+        });
     });
   </script>
 </body>
 </html>
+
