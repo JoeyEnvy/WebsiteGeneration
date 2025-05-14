@@ -1,9 +1,9 @@
 // ========================================================================
-// Express + OpenAI + Stripe backend for Website Generator
+// Express + OpenAI + Stripe backend for Website Generator (with GitHub Deploy)
 // ========================================================================
 
 import dotenv from 'dotenv';
-dotenv.config(); // ✅ Load all env vars first
+dotenv.config();
 
 import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -14,6 +14,7 @@ import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import sgMail from '@sendgrid/mail';
 import JSZip from 'jszip';
+import { Octokit } from '@octokit/rest';
 
 const app = express();
 app.use(cors());
@@ -22,12 +23,15 @@ app.use(express.json());
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GITHUB_USERNAME = process.env.GITHUB_USERNAME;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
-// ========================================================================
-// In-memory session storage (optional, for step-by-step tracking)
-// ========================================================================
 const tempSessions = {};
 
+// ========================================================================
+// Session Storage Endpoints
+// ========================================================================
 app.post('/store-step', (req, res) => {
   const { sessionId, step, content } = req.body;
   if (!sessionId || !step || !content) {
@@ -72,9 +76,7 @@ app.post('/create-checkout-session', async (req, res) => {
         {
           price_data: {
             currency: 'gbp',
-            product_data: {
-              name: product.name
-            },
+            product_data: { name: product.name },
             unit_amount: product.price
           },
           quantity: 1
@@ -95,7 +97,7 @@ app.post('/create-checkout-session', async (req, res) => {
 // Email ZIP File Endpoint (SendGrid)
 // ========================================================================
 app.post('/email-zip', async (req, res) => {
-  const { email, pages } = req.body;
+  const { email, pages, extraNote } = req.body;
 
   if (!email || !pages || !Array.isArray(pages) || pages.length === 0) {
     return res.status(400).json({ success: false, error: 'Missing email or pages.' });
@@ -111,9 +113,9 @@ app.post('/email-zip', async (req, res) => {
 
     const msg = {
       to: email,
-      from: 'c.fear.907@gmail.com', // ✅ use a verified sender
+      from: 'c.fear.907@gmail.com',
       subject: 'Your AI-Generated Website ZIP',
-      text: 'Here is your generated website in ZIP format.',
+      text: `${extraNote || 'Here is your generated website in ZIP format.'}`,
       attachments: [
         {
           content,
@@ -129,6 +131,52 @@ app.post('/email-zip', async (req, res) => {
   } catch (err) {
     console.error('❌ Email ZIP error:', err);
     res.status(500).json({ success: false, error: 'Failed to send ZIP.' });
+  }
+});
+
+// ========================================================================
+// GitHub Deployment Route
+// ========================================================================
+app.post('/deploy-github', async (req, res) => {
+  const { sessionId, businessName } = req.body;
+  const pages = tempSessions[sessionId]?.pages || [];
+
+  if (!sessionId || !businessName || pages.length === 0) {
+    return res.status(400).json({ error: 'Missing sessionId, businessName, or no pages.' });
+  }
+
+  const repoName = businessName.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
+
+  try {
+    await octokit.repos.createForAuthenticatedUser({
+      name: repoName,
+      description: `Auto-generated site for ${businessName}`,
+      homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
+      private: false
+    });
+
+    await octokit.repos.createOrUpdateFileContents({
+      owner: GITHUB_USERNAME,
+      repo: repoName,
+      path: 'index.html',
+      message: 'Initial commit - AI site',
+      content: Buffer.from(pages[0]).toString('base64'),
+      branch: 'main'
+    });
+
+    await octokit.repos.updateInformationAboutPagesSite({
+      owner: GITHUB_USERNAME,
+      repo: repoName,
+      source: { branch: 'main', path: '/' }
+    });
+
+    const pagesUrl = `https://${GITHUB_USERNAME}.github.io/${repoName}/`;
+    const repoUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}`;
+
+    res.json({ success: true, pagesUrl, repoUrl });
+  } catch (err) {
+    console.error('❌ GitHub deploy error:', err);
+    res.status(500).json({ error: 'GitHub deployment failed.' });
   }
 });
 
@@ -162,8 +210,7 @@ app.post('/generate', async (req, res) => {
   const messages = [
     {
       role: 'system',
-      content: `
-You are a professional website developer tasked with generating full standalone HTML5 websites.
+      content: `You are a professional website developer tasked with generating full standalone HTML5 websites.
 
 🔧 Output Rules:
 - Every page must be a complete HTML5 document (start with <!DOCTYPE html>, end with </html>).
@@ -184,8 +231,7 @@ You are a professional website developer tasked with generating full standalone 
 - Generate context-aware content using any description provided.
 - Each section should be unique and useful: hero, about, services, testimonials, contact, etc.
 
-🚫 Do not use markdown, placeholder filenames, or non-functional links.
-      `.trim()
+🚫 Do not use markdown, placeholder filenames, or non-functional links.`.trim()
     },
     { role: 'user', content: prompt }
   ];
@@ -238,7 +284,6 @@ You are a professional website developer tasked with generating full standalone 
     }
 
     return res.json({ success: true, pages: cleanedPages });
-
   } catch (err) {
     console.error('❌ Generation error:', err);
     return res.json({ success: false, error: 'Server error: ' + err.toString() });
@@ -250,5 +295,6 @@ You are a professional website developer tasked with generating full standalone 
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
+
 
 
