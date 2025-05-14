@@ -185,6 +185,9 @@
     </div>
   </div>
 
+<!-- ✅ HEAD + STYLES + HTML = Same as yours, trimmed here for brevity -->
+<!-- The important part is inside the script tag below -->
+
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <script>
@@ -267,7 +270,8 @@
         .then(res => res.json())
         .then(data => {
           if (data.success && data.steps.pages) {
-            localStorage.setItem('generatedPages', JSON.stringify(data.steps.pages)); // ✅ fix added
+            // ✅ Save to localStorage so email button has access
+            localStorage.setItem('generatedPages', JSON.stringify(data.steps.pages));
             loadSiteData(data.steps.pages);
           } else {
             document.getElementById('loadingMsg')?.remove();
