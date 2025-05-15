@@ -247,3 +247,16 @@ app.post('/deploy-github', async (req, res) => {
     res.status(500).json({ error: 'GitHub deployment failed.', details: err.message });
   }
 });
+
+// ========================================================================
+// Server startup
+// ========================================================================
+const port = process.env.PORT || 3000;
+
+console.log("✅ BINDING PORT:", port);
+
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});
+
+
