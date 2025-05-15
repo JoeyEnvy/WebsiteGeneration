@@ -148,14 +148,13 @@ app.post('/deploy-github', async (req, res) => {
 
     const repoName = businessName
       .toLowerCase()
-      .replace(/[^a-z0-9\-]/g, '-')     // Replace invalid chars
-      .replace(/-+/g, '-')              // Collapse multiple hyphens
-      .replace(/^-+|-+$/g, '')          // Trim hyphens
-      .substring(0, 50);                // Limit length
+      .replace(/[^a-z0-9\-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
 
     console.log('📤 Deploying to GitHub:', { sessionId, repoName });
 
-    // Create repo
     const { data: repo } = await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       description: `Auto-generated site for ${businessName}`,
@@ -163,15 +162,13 @@ app.post('/deploy-github', async (req, res) => {
       private: false
     });
 
-    // Create main branch if needed
     await octokit.git.createRef({
       owner: GITHUB_USERNAME,
       repo: repoName,
       ref: 'refs/heads/main',
       sha: repo.default_branch
-    }).catch(() => {}); // Ignore if branch exists
+    }).catch(() => {});
 
-    // Upload HTML pages
     for (let i = 0; i < pages.length; i++) {
       const html = pages[i];
       const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
@@ -185,7 +182,6 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    // Upload additional files
     const extras = [
       { path: 'style.css', content: '/* Custom styles go here */' },
       { path: 'script.js', content: '// Custom scripts go here' },
@@ -220,7 +216,11 @@ app.post('/deploy-github', async (req, res) => {
     res.json({ success: true, pagesUrl, repoUrl });
   } catch (err) {
     console.error('❌ GitHub deploy error:', err);
-    res.status(500).json({ error: 'GitHub deployment failed.' });
+    res.status(500).json({
+      error: 'GitHub deployment failed.',
+      details: err.message,
+      stack: err.stack
+    });
   }
 });
 
@@ -317,5 +317,4 @@ app.post('/generate', async (req, res) => {
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
-
 
