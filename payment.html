@@ -72,33 +72,42 @@
     </div>
   </footer>
 
-<script>
-  async function pay(option) {
-    try {
-      const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ type: option })
-      });
+  <script>
+    async function pay(option) {
+      let sessionId = localStorage.getItem('sessionId');
 
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert('Something went wrong. Please try again.');
-        console.error('Invalid Stripe response:', data);
+      // Generate and save sessionId if not already present
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        localStorage.setItem('sessionId', sessionId);
       }
-    } catch (err) {
-      console.error('Payment error:', err);
-      alert('Failed to initiate payment. Please try again later.');
+
+      try {
+        const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: option,
+            sessionId: sessionId
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert('Something went wrong. Please try again.');
+          console.error('Invalid Stripe response:', data);
+        }
+      } catch (err) {
+        console.error('Payment error:', err);
+        alert('Failed to initiate payment. Please try again later.');
+      }
     }
-  }
-</script>
-
-
+  </script>
 </body>
 </html>
 

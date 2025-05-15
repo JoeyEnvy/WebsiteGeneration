@@ -82,6 +82,15 @@
         localStorage.setItem('sessionId', params.get('sessionId'));
       }
 
+      const sanitizeRepoName = (name) => {
+        return name
+          .toLowerCase()
+          .replace(/[^a-z0-9\-]/g, '-') // Replace invalid chars
+          .replace(/-+/g, '-')          // Collapse hyphens
+          .replace(/^-+|-+$/g, '')      // Trim edges
+          .substring(0, 50);            // Limit length
+      };
+
       const generateZip = (pages) => {
         const zip = new JSZip();
         pages.forEach((html, i) => {
@@ -160,46 +169,61 @@ For help, contact: support@websitegenerator.co.uk
 
       // ✅ GitHub-hosted: Deploy then redirect to github-success.html
       if (purchaseType === 'github-hosted' && sessionId) {
-        const businessName = localStorage.getItem('businessName');
+        const rawBusinessName = localStorage.getItem('businessName');
         const userEmail = localStorage.getItem('email');
 
-        if (!businessName) {
+        if (!rawBusinessName) {
           console.warn('❌ businessName not found in localStorage');
-        } else {
-          fetch('https://websitegeneration.onrender.com/deploy-github', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, businessName })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.pagesUrl && data.repoUrl) {
-              // ✅ Redirect to success page with params
-              const url = new URL('github-success.html', window.location.origin);
-              url.searchParams.set('live', data.pagesUrl);
-              url.searchParams.set('repo', data.repoUrl);
-              window.location.href = url.toString();
-
-              // Email the user as well
-              if (userEmail && savedPages) {
-                fetch('https://websitegeneration.onrender.com/email-zip', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    email: userEmail,
-                    pages: JSON.parse(savedPages),
-                    extraNote: `Here is your live site: ${data.pagesUrl}\nGitHub Repo: ${data.repoUrl}`
-                  })
-                });
-              }
-            } else {
-              console.warn('❌ GitHub deployment failed');
-            }
-          })
-          .catch(err => {
-            console.error('❌ GitHub deploy error:', err);
-          });
+          messageEl.innerText = "⚠️ Missing business name. Please regenerate.";
+          return;
         }
+
+        const businessName = sanitizeRepoName(rawBusinessName);
+        if (!businessName) {
+          console.warn('❌ Sanitized businessName is invalid');
+          messageEl.innerText = "⚠️ Invalid business name. Please try a different one.";
+          return;
+        }
+
+        if (!sessionId) {
+          console.warn('❌ sessionId is missing');
+          messageEl.innerText = "⚠️ Session error. Please regenerate.";
+          return;
+        }
+
+        fetch('https://websitegeneration.onrender.com/deploy-github', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, businessName })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.pagesUrl && data.repoUrl) {
+            const url = new URL('github-success.html', window.location.origin);
+            url.searchParams.set('live', data.pagesUrl);
+            url.searchParams.set('repo', data.repoUrl);
+            window.location.href = url.toString();
+
+            if (userEmail && savedPages) {
+              fetch('https://websitegeneration.onrender.com/email-zip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: userEmail,
+                  pages: JSON.parse(savedPages),
+                  extraNote: `Here is your live site: ${data.pagesUrl}\nGitHub Repo: ${data.repoUrl}`
+                })
+              });
+            }
+          } else {
+            console.warn('❌ GitHub deployment failed', data);
+            messageEl.innerText = "⚠️ GitHub deployment failed. Please contact support.";
+          }
+        })
+        .catch(err => {
+          console.error('❌ GitHub deploy error:', err);
+          messageEl.innerText = "⚠️ GitHub deployment crashed. Please contact support.";
+        });
       }
 
       const backLink = document.createElement('a');
