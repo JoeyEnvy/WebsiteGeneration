@@ -138,16 +138,31 @@ app.post('/email-zip', async (req, res) => {
 // GitHub Deployment Route — Upload all pages and base files
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
-  const { sessionId, businessName } = req.body;
-  const pages = tempSessions[sessionId]?.pages || [];
+  const { sessionId, businessName, pages: bodyPages } = req.body;
+
+  // ✅ Use pages from body if available, else from temp memory
+  let pages = bodyPages || tempSessions[sessionId]?.pages || [];
 
   if (!sessionId || !businessName || pages.length === 0) {
-    return res.status(400).json({ error: 'Missing sessionId, businessName, or no pages.' });
+    console.warn('❌ Missing or empty values:', {
+      sessionId,
+      businessName,
+      pagesCount: pages.length
+    });
+    return res.status(400).json({ error: 'Missing sessionId, businessName, or pages.' });
   }
 
   const repoName = businessName.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
 
+  console.log('🚀 Starting GitHub deployment:', {
+    sessionId,
+    businessName,
+    repoName,
+    pagesCount: pages.length
+  });
+
   try {
+    // ✅ Create the GitHub repo
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       description: `Auto-generated site for ${businessName}`,
@@ -155,10 +170,11 @@ app.post('/deploy-github', async (req, res) => {
       private: false
     });
 
-    // Upload HTML pages
+    // ✅ Upload all pages
     for (let i = 0; i < pages.length; i++) {
       const html = pages[i];
       const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
+
       await octokit.repos.createOrUpdateFileContents({
         owner: GITHUB_USERNAME,
         repo: repoName,
@@ -169,16 +185,23 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    // Upload empty CSS, JS, images, videos folders
-    const emptyFiles = [
+    // ✅ Add supporting files
+    const extras = [
       { path: 'style.css', content: '/* Custom styles go here */' },
       { path: 'script.js', content: '// Custom scripts go here' },
       { path: 'assets/images/.gitkeep', content: '' },
       { path: 'assets/videos/.gitkeep', content: '' },
-      { path: 'support.html', content: '<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p></body></html>' }
+      {
+        path: 'support.html',
+        content: `
+<!DOCTYPE html><html><head><title>Support</title></head>
+<body><h1>Need Help?</h1>
+<p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p>
+</body></html>`
+      }
     ];
 
-    for (const file of emptyFiles) {
+    for (const file of extras) {
       await octokit.repos.createOrUpdateFileContents({
         owner: GITHUB_USERNAME,
         repo: repoName,
@@ -189,6 +212,7 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
+    // ✅ Enable GitHub Pages
     await octokit.repos.updateInformationAboutPagesSite({
       owner: GITHUB_USERNAME,
       repo: repoName,
@@ -204,6 +228,7 @@ app.post('/deploy-github', async (req, res) => {
     res.status(500).json({ error: 'GitHub deployment failed.' });
   }
 });
+
 
 // ========================================================================
 // Download Log Endpoint

@@ -105,11 +105,16 @@ For help, contact: support@websitegenerator.co.uk
         if (!businessName) {
           console.warn('❌ businessName not found in localStorage');
         } else {
-          fetch('https://websitegeneration.onrender.com/deploy-github', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, businessName })
-          })
+fetch('https://websitegeneration.onrender.com/deploy-github', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    sessionId,
+    businessName,
+    pages: JSON.parse(savedPages) // ✅ directly include the pages
+  })
+})
+
           .then(res => res.json())
           .then(data => {
             if (data.pagesUrl && data.repoUrl) {
