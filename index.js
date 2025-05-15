@@ -139,15 +139,13 @@ app.post('/email-zip', async (req, res) => {
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
   const { sessionId, businessName, pages: bodyPages } = req.body;
-
-  // ✅ Use pages from body if available, else from temp memory
   let pages = bodyPages || tempSessions[sessionId]?.pages || [];
 
   if (!sessionId || !businessName || pages.length === 0) {
     console.warn('❌ Missing or empty values:', {
       sessionId,
       businessName,
-      pagesCount: pages.length
+      pagesLength: pages.length
     });
     return res.status(400).json({ error: 'Missing sessionId, businessName, or pages.' });
   }
@@ -162,7 +160,7 @@ app.post('/deploy-github', async (req, res) => {
   });
 
   try {
-    // ✅ Create the GitHub repo
+    // ✅ Create GitHub repo
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       description: `Auto-generated site for ${businessName}`,
@@ -170,7 +168,7 @@ app.post('/deploy-github', async (req, res) => {
       private: false
     });
 
-    // ✅ Upload all pages
+    // ✅ Upload HTML pages
     for (let i = 0; i < pages.length; i++) {
       const html = pages[i];
       const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
@@ -185,7 +183,7 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    // ✅ Add supporting files
+    // ✅ Add additional files
     const extras = [
       { path: 'style.css', content: '/* Custom styles go here */' },
       { path: 'script.js', content: '// Custom scripts go here' },
@@ -223,12 +221,12 @@ app.post('/deploy-github', async (req, res) => {
     const repoUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}`;
 
     res.json({ success: true, pagesUrl, repoUrl });
+
   } catch (err) {
     console.error('❌ GitHub deploy error:', err);
     res.status(500).json({ error: 'GitHub deployment failed.' });
   }
 });
-
 
 // ========================================================================
 // Download Log Endpoint

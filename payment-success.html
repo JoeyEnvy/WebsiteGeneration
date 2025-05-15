@@ -111,7 +111,7 @@ fetch('https://websitegeneration.onrender.com/deploy-github', {
   body: JSON.stringify({
     sessionId,
     businessName,
-    pages: JSON.parse(savedPages) // ✅ directly include the pages
+    pages: JSON.parse(savedPages) // ✅ send the actual pages
   })
 })
 
