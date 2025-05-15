@@ -138,37 +138,24 @@ app.post('/email-zip', async (req, res) => {
 // GitHub Deployment Route — Upload all pages and base files
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
+  const { sessionId, businessName } = req.body;
+  const pages = tempSessions[sessionId]?.pages || [];
+
+  if (!sessionId || !businessName || pages.length === 0) {
+    return res.status(400).json({ error: 'Missing sessionId, businessName, or no pages.' });
+  }
+
+  const repoName = businessName.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
+
   try {
-    const { sessionId, businessName } = req.body;
-    const pages = tempSessions[sessionId]?.pages || [];
-
-    if (!sessionId || !businessName || pages.length === 0) {
-      return res.status(400).json({ error: 'Missing sessionId, businessName, or no pages.' });
-    }
-
-    const repoName = businessName
-      .toLowerCase()
-      .replace(/[^a-z0-9\-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 50);
-
-    console.log('📤 Deploying to GitHub:', { sessionId, repoName });
-
-    const { data: repo } = await octokit.repos.createForAuthenticatedUser({
+    await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       description: `Auto-generated site for ${businessName}`,
       homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
       private: false
     });
 
-    await octokit.git.createRef({
-      owner: GITHUB_USERNAME,
-      repo: repoName,
-      ref: 'refs/heads/main',
-      sha: repo.default_branch
-    }).catch(() => {});
-
+    // Upload HTML pages
     for (let i = 0; i < pages.length; i++) {
       const html = pages[i];
       const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
@@ -182,18 +169,16 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    const extras = [
+    // Upload empty CSS, JS, images, videos folders
+    const emptyFiles = [
       { path: 'style.css', content: '/* Custom styles go here */' },
       { path: 'script.js', content: '// Custom scripts go here' },
       { path: 'assets/images/.gitkeep', content: '' },
       { path: 'assets/videos/.gitkeep', content: '' },
-      {
-        path: 'support.html',
-        content: `<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p></body></html>`
-      }
+      { path: 'support.html', content: '<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p></body></html>' }
     ];
 
-    for (const file of extras) {
+    for (const file of emptyFiles) {
       await octokit.repos.createOrUpdateFileContents({
         owner: GITHUB_USERNAME,
         repo: repoName,
@@ -216,11 +201,7 @@ app.post('/deploy-github', async (req, res) => {
     res.json({ success: true, pagesUrl, repoUrl });
   } catch (err) {
     console.error('❌ GitHub deploy error:', err);
-    res.status(500).json({
-      error: 'GitHub deployment failed.',
-      details: err.message,
-      stack: err.stack
-    });
+    res.status(500).json({ error: 'GitHub deployment failed.' });
   }
 });
 
@@ -239,7 +220,7 @@ app.post('/log-download', (req, res) => {
 });
 
 // ========================================================================
-// Site Generation Endpoint
+// Final /generate route with continuation handling
 // ========================================================================
 app.post('/generate', async (req, res) => {
   const prompt = req.body.query;
@@ -254,7 +235,28 @@ app.post('/generate', async (req, res) => {
   const messages = [
     {
       role: 'system',
-      content: `You are a professional website developer...`.trim()
+      content: `You are a professional website developer tasked with generating full standalone HTML5 websites.
+
+🔧 Output Rules:
+- Every page must be a complete HTML5 document (start with <!DOCTYPE html>, end with </html>).
+- All CSS and JavaScript must be inline.
+- You MAY use external assets if they are public, reliable, and required for visuals (e.g., images, icons).
+
+📐 Structure Requirements:
+- Each page must contain a minimum of 5 clearly defined, responsive sections.
+- Use semantic HTML5: <header>, <nav>, <main>, <section>, <footer>, etc.
+
+🖼️ Media & Icons:
+- Embed at least 2–3 royalty-free images per page from **Unsplash**, **Pexels**, or **Pixabay** via direct URLs.
+- Include icons using the **FontAwesome CDN**:
+  https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css
+
+📋 Content Requirements:
+- Do not use 'Lorem Ipsum'.
+- Generate context-aware content using any description provided.
+- Each section should be unique and useful: hero, about, services, testimonials, contact, etc.
+
+🚫 Do not use markdown, placeholder filenames, or non-functional links.`.trim()
     },
     { role: 'user', content: prompt }
   ];
@@ -273,7 +275,7 @@ app.post('/generate', async (req, res) => {
         },
         body: JSON.stringify({
           model: 'gpt-4o',
-          messages,
+          messages: messages,
           max_tokens: 4000,
           temperature: 0.7
         })
@@ -284,7 +286,8 @@ app.post('/generate', async (req, res) => {
       fullContent += '\n' + content.trim();
 
       const htmlCount = (fullContent.match(/<\/html>/gi) || []).length;
-      if (htmlCount >= expectedPageCount) break;
+      const enoughPages = htmlCount >= expectedPageCount;
+      if (enoughPages) break;
 
       messages.push({ role: 'assistant', content });
       messages.push({ role: 'user', content: 'continue' });
@@ -313,8 +316,9 @@ app.post('/generate', async (req, res) => {
 });
 
 // ========================================================================
-// Start Server
+// Server startup
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
+
 

@@ -1,67 +1,53 @@
-class WebsiteGenerator {
-  constructor() {
-    this.form = document.getElementById('websiteGeneratorForm');
-    this.previewFrame = document.getElementById('previewFrame');
-    this.currentPage = 0;
-    this.generatedPages = [];
-    this.currentStep = 1;
-    this.userHasPaid = false;
+// ✅ Clear previous site data on hard refresh
+window.addEventListener('beforeunload', () => {
+  localStorage.removeItem('generatedPages');
+});
 
-    const savedPages = localStorage.getItem('generatedPages');
-    if (savedPages) {
-      this.generatedPages = JSON.parse(savedPages);
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+}
+
+class WebsiteGenerator {
+    constructor() {
+        this.form = document.getElementById('websiteGeneratorForm');
+        this.previewFrame = document.getElementById('previewFrame');
+        this.currentPage = 0;
+        this.generatedPages = [];
+        this.currentStep = 1;
+        this.userHasPaid = false;
+
+        const savedPages = localStorage.getItem('generatedPages');
+        if (savedPages) {
+            this.generatedPages = JSON.parse(savedPages);
+        }
+
+        this.initializeEventListeners();  // <== calling it here
+        this.highlightStep(this.currentStep);
     }
 
-    this.initializeEventListeners();
-    this.highlightStep(this.currentStep);
-  }
-
-  // ✅ Properly separated method
-  saveFormDataToLocalStorage() {
-    const formData = new FormData(this.form);
-
-    const businessName = formData.get('businessName');
-    if (businessName) localStorage.setItem('businessName', businessName.trim());
-
-    const emailInput = document.getElementById('contactEmail');
-    const email = emailInput?.value;
-    if (email) localStorage.setItem('email', email.trim());
-
-    const pageCount = formData.get('pageCount');
-    if (pageCount) localStorage.setItem('pageCount', pageCount);
-  }
-
-  // ✅ Main initializer
-  initializeEventListeners() {
+    // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
+initializeEventListeners() {
     const nextStep4Btn = document.getElementById('nextStep4');
     if (nextStep4Btn) {
-      nextStep4Btn.addEventListener('click', () => {
-        if (this.validateStep('step4')) {
-          this.saveFormDataToLocalStorage();
-          this.goToStep(5);
-        }
-      });
+        nextStep4Btn.addEventListener('click', () => {
+            if (this.validateStep('step4')) this.goToStep(5);
+        });
     }
 
     document.getElementById('nextStep1')?.addEventListener('click', () => {
-      if (this.validateStep('step1')) {
-        this.saveFormDataToLocalStorage();
-        this.goToStep(2);
-      }
+        if (this.validateStep('step1')) this.goToStep(2);
     });
 
     document.getElementById('nextStep2')?.addEventListener('click', () => {
-      if (this.validateStep('step2')) {
-        this.saveFormDataToLocalStorage();
-        this.goToStep(3);
-      }
+        if (this.validateStep('step2')) this.goToStep(3);
     });
 
     document.getElementById('nextStep3')?.addEventListener('click', () => {
-      if (this.validateStep('step3')) {
-        this.saveFormDataToLocalStorage();
-        this.goToStep(4);
-      }
+        if (this.validateStep('step3')) this.goToStep(4);
     });
 
     document.getElementById('prevStep2')?.addEventListener('click', () => this.goToStep(1));
@@ -69,55 +55,54 @@ class WebsiteGenerator {
     document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
 
     document.querySelectorAll('.preview-controls button')?.forEach(button => {
-      button.addEventListener('click', () => {
-        this.changePreviewDevice(button.id.replace('Preview', ''));
-      });
+        button.addEventListener('click', () => {
+            this.changePreviewDevice(button.id.replace('Preview', ''));
+        });
     });
 
     document.getElementById('prevPage')?.addEventListener('click', () => this.changePage(-1));
     document.getElementById('nextPage')?.addEventListener('click', () => this.changePage(1));
 
     this.form?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.handleSubmit();
+        e.preventDefault();
+        this.handleSubmit();
     });
 
     const purchaseBtn = document.getElementById('purchaseBtn');
     const downloadBtn = document.getElementById('downloadSiteBtn');
 
     if (purchaseBtn) {
-      purchaseBtn.addEventListener('click', () => {
-        const confirmed = confirm("Simulated payment: Proceed to pay £X?");
-        if (confirmed) {
-          this.userHasPaid = true;
-          purchaseBtn.style.display = 'none';
-          if (downloadBtn) downloadBtn.style.display = 'inline-block';
-          alert('Payment successful. You can now download your website.');
-        }
-      });
+        purchaseBtn.addEventListener('click', () => {
+            const confirmed = confirm("Simulated payment: Proceed to pay £X?");
+            if (confirmed) {
+                this.userHasPaid = true;
+                purchaseBtn.style.display = 'none';
+                if (downloadBtn) downloadBtn.style.display = 'inline-block';
+                alert('Payment successful. You can now download your website.');
+            }
+        });
     }
 
     if (downloadBtn) {
-      downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+        downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
     }
 
     // ✅ Stripe Checkout Deployment Options
     document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
-      this.startStripeCheckout('github-instructions');
+        this.startStripeCheckout('github-instructions');
     });
 
     document.getElementById('deployZipOnly')?.addEventListener('click', () => {
-      this.startStripeCheckout('zip-download');
+        this.startStripeCheckout('zip-download');
     });
 
     document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
-      this.startStripeCheckout('github-hosted');
+        this.startStripeCheckout('github-hosted');
     });
 
     document.getElementById('deployFullHosting')?.addEventListener('click', () => {
-      this.startStripeCheckout('full-hosting');
+        this.startStripeCheckout('full-hosting');
     });
-  }
 }
 
 
