@@ -248,67 +248,60 @@ initializeEventListeners() {
         if (errorDiv) errorDiv.remove();
     }
 
-async handleSubmit() {
-  this.goToStep(5);
-  this.showLoading();
+    async handleSubmit() {
+        this.goToStep(5);
+        this.showLoading();
 
- try {
-  const formData = new FormData(this.form);
-  const finalPrompt = this.buildFinalPrompt(formData);
+        try {
+            const formData = new FormData(this.form);
+            const finalPrompt = this.buildFinalPrompt(formData);
 
-  // ✅ Store businessName and email for later GitHub deployment
-  const businessName = formData.get('businessName');
-  const email = formData.get('email'); // optional
-
-  if (businessName) localStorage.setItem('businessName', businessName);
-  if (email) localStorage.setItem('email', email);
-
-  // ✅ Ensure sessionId is created and stored before generation
-  if (!localStorage.getItem('sessionId')) {
+// ✅ Ensure sessionId is created and stored before generation
+if (!localStorage.getItem('sessionId')) {
     localStorage.setItem('sessionId', crypto.randomUUID());
-  }
-
-  const response = await fetch('https://websitegeneration.onrender.com/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      query: finalPrompt,
-      pageCount: formData.get('pageCount') || '1'
-    })
-  });
+}
 
 
-    const data = await response.json();
+            const response = await fetch('https://websitegeneration.onrender.com/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: finalPrompt,
+                    pageCount: formData.get('pageCount') || '1'
+                })
+            });
 
-    if (data.success) {
-      this.generatedPages = data.pages;
-      localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-      this.currentPage = 0;
+            const data = await response.json();
 
-      // ✅ Store generated pages on backend by session ID
-      const sessionId = localStorage.getItem('sessionId');
-      await fetch('https://websitegeneration.onrender.com/store-step', {
+if (data.success) {
+    this.generatedPages = data.pages;
+    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+    this.currentPage = 0;
+
+    // ✅ NEW — Store site data on backend using sessionId
+    const sessionId = localStorage.getItem('sessionId');
+    await fetch('https://websitegeneration.onrender.com/store-step', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: sessionId,
-          step: 'pages',
-          content: data.pages
+            sessionId: sessionId,
+            step: 'pages',
+            content: data.pages
         })
-      });
+    });
 
-      this.updatePreview();
-      this.showSuccess('Website generated successfully!');
-    } else {
-      throw new Error(data.error || 'Unknown error from server.');
-    }
-  } catch (error) {
-    this.showError('Failed to generate website: ' + error.message);
-  } finally {
-    this.hideLoading();
-  }
+    this.updatePreview();
+    this.showSuccess('Website generated successfully!');
 }
-
+ else {
+                throw new Error(data.error || 'Unknown error from server.');
+            }
+        } catch (error) {
+            this.showError('Failed to generate website: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
 
     buildFinalPrompt(formData) {
         const websiteType = formData.get('websiteType');

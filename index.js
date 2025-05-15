@@ -138,53 +138,27 @@ app.post('/email-zip', async (req, res) => {
 // GitHub Deployment Route — Upload all pages and base files
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
-  const { sessionId, businessName, pages: bodyPages } = req.body;
-  let pages = bodyPages || tempSessions[sessionId]?.pages || [];
+  const { sessionId, businessName } = req.body;
+  const pages = tempSessions[sessionId]?.pages || [];
 
   if (!sessionId || !businessName || pages.length === 0) {
-    console.warn('❌ Missing or empty values:', {
-      sessionId,
-      businessName,
-      pagesLength: pages.length
-    });
-    return res.status(400).json({ error: 'Missing sessionId, businessName, or pages.' });
+    return res.status(400).json({ error: 'Missing sessionId, businessName, or no pages.' });
   }
 
   const repoName = businessName.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
 
-  console.log('🚀 Starting GitHub deployment:', {
-    sessionId,
-    businessName,
-    repoName,
-    pagesCount: pages.length
-  });
-
   try {
-    const authTest = await octokit.request('/user');
-    console.log('✅ GitHub Auth Success:', authTest.data.login);
+    await octokit.repos.createForAuthenticatedUser({
+      name: repoName,
+      description: `Auto-generated site for ${businessName}`,
+      homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
+      private: false
+    });
 
-    let repoExists = false;
-    try {
-      await octokit.repos.get({ owner: GITHUB_USERNAME, repo: repoName });
-      repoExists = true;
-      console.warn('⚠️ Repo already exists, skipping creation...');
-    } catch (err) {
-      if (err.status !== 404) throw err;
-    }
-
-    if (!repoExists) {
-      await octokit.repos.createForAuthenticatedUser({
-        name: repoName,
-        description: `Auto-generated site for ${businessName}`,
-        homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
-        private: false
-      });
-    }
-
+    // Upload HTML pages
     for (let i = 0; i < pages.length; i++) {
       const html = pages[i];
       const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
-
       await octokit.repos.createOrUpdateFileContents({
         owner: GITHUB_USERNAME,
         repo: repoName,
@@ -195,18 +169,16 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    const extras = [
+    // Upload empty CSS, JS, images, videos folders
+    const emptyFiles = [
       { path: 'style.css', content: '/* Custom styles go here */' },
       { path: 'script.js', content: '// Custom scripts go here' },
       { path: 'assets/images/.gitkeep', content: '' },
       { path: 'assets/videos/.gitkeep', content: '' },
-      {
-        path: 'support.html',
-        content: `<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href=\"mailto:support@websitegenerator.co.uk\">support@websitegenerator.co.uk</a></p></body></html>`
-      }
+      { path: 'support.html', content: '<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p></body></html>' }
     ];
 
-    for (const file of extras) {
+    for (const file of emptyFiles) {
       await octokit.repos.createOrUpdateFileContents({
         owner: GITHUB_USERNAME,
         repo: repoName,
@@ -217,33 +189,136 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    await octokit.repos.createOrUpdateFileContents({
+    await octokit.repos.updateInformationAboutPagesSite({
       owner: GITHUB_USERNAME,
       repo: repoName,
-      path: '.nojekyll',
-      message: 'Disable Jekyll',
-      content: '',
-      branch: 'main'
-    });
-
-    await octokit.request('POST /repos/{owner}/{repo}/pages', {
-      owner: GITHUB_USERNAME,
-      repo: repoName,
-      source: {
-        branch: 'main',
-        path: '/'
-      }
+      source: { branch: 'main', path: '/' }
     });
 
     const pagesUrl = `https://${GITHUB_USERNAME}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}`;
 
-    console.log('✅ Deployment complete:', { pagesUrl, repoUrl });
-
     res.json({ success: true, pagesUrl, repoUrl });
-
   } catch (err) {
-    console.error('❌ GitHub deploy error:', err.message);
-    res.status(500).json({ error: 'GitHub deployment failed.', details: err.message });
+    console.error('❌ GitHub deploy error:', err);
+    res.status(500).json({ error: 'GitHub deployment failed.' });
   }
 });
+
+// ========================================================================
+// Download Log Endpoint
+// ========================================================================
+app.post('/log-download', (req, res) => {
+  const { sessionId, type, timestamp } = req.body;
+
+  if (!sessionId || !type || !timestamp) {
+    return res.status(400).json({ success: false, error: 'Missing sessionId, type, or timestamp.' });
+  }
+
+  console.log(`[📥 Download Log] Type: ${type} | Session: ${sessionId} | Time: ${timestamp}`);
+  res.json({ success: true });
+});
+
+// ========================================================================
+// Final /generate route with continuation handling
+// ========================================================================
+app.post('/generate', async (req, res) => {
+  const prompt = req.body.query;
+  const expectedPageCount = parseInt(req.body.pageCount || '1');
+
+  if (!prompt || prompt.trim().length === 0) {
+    return res.json({ success: false, error: 'Prompt is empty or invalid.' });
+  }
+
+  console.log('✅ /generate prompt received:', prompt);
+
+  const messages = [
+    {
+      role: 'system',
+      content: `You are a professional website developer tasked with generating full standalone HTML5 websites.
+
+🔧 Output Rules:
+- Every page must be a complete HTML5 document (start with <!DOCTYPE html>, end with </html>).
+- All CSS and JavaScript must be inline.
+- You MAY use external assets if they are public, reliable, and required for visuals (e.g., images, icons).
+
+📐 Structure Requirements:
+- Each page must contain a minimum of 5 clearly defined, responsive sections.
+- Use semantic HTML5: <header>, <nav>, <main>, <section>, <footer>, etc.
+
+🖼️ Media & Icons:
+- Embed at least 2–3 royalty-free images per page from **Unsplash**, **Pexels**, or **Pixabay** via direct URLs.
+- Include icons using the **FontAwesome CDN**:
+  https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css
+
+📋 Content Requirements:
+- Do not use 'Lorem Ipsum'.
+- Generate context-aware content using any description provided.
+- Each section should be unique and useful: hero, about, services, testimonials, contact, etc.
+
+🚫 Do not use markdown, placeholder filenames, or non-functional links.`.trim()
+    },
+    { role: 'user', content: prompt }
+  ];
+
+  let fullContent = '';
+  let retries = 0;
+  const maxRetries = 4;
+
+  try {
+    while (retries < maxRetries) {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: messages,
+          max_tokens: 4000,
+          temperature: 0.7
+        })
+      });
+
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content || '';
+      fullContent += '\n' + content.trim();
+
+      const htmlCount = (fullContent.match(/<\/html>/gi) || []).length;
+      const enoughPages = htmlCount >= expectedPageCount;
+      if (enoughPages) break;
+
+      messages.push({ role: 'assistant', content });
+      messages.push({ role: 'user', content: 'continue' });
+      retries++;
+    }
+
+    const cleanedPages = fullContent
+      .replace(/```html|```/g, '')
+      .split(/(?=<!DOCTYPE html>)/gi)
+      .map(p => p.trim())
+      .filter(p => p.includes('</html>'));
+
+    if (cleanedPages.length === 0) {
+      return res.json({
+        success: false,
+        error: 'No valid HTML documents were extracted.',
+        debug: fullContent
+      });
+    }
+
+    return res.json({ success: true, pages: cleanedPages });
+  } catch (err) {
+    console.error('❌ Generation error:', err);
+    return res.json({ success: false, error: 'Server error: ' + err.toString() });
+  }
+});
+
+// ========================================================================
+// Server startup
+// ========================================================================
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
+
+

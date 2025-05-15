@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Your Site is Live!</title>
   <link rel="stylesheet" href="public/css/styles.css"/>
+
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -74,8 +75,8 @@
     <p><strong>GitHub Repo:</strong><br>
       <a id="repoUrl" href="#" target="_blank">Loading...</a>
     </p>
-    <p>Your website has also been emailed to you as a ZIP file.<br>
-       For help, contact <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
+    <p>Your site has also been emailed to you as a ZIP file.<br>
+       If you need help, email <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
     </p>
 
     <div class="button-row">
@@ -95,23 +96,20 @@
     const repoUrl = params.get('repo');
 
     if (siteUrl) {
-      const el = document.getElementById('liveUrl');
-      el.href = siteUrl;
-      el.textContent = siteUrl;
+      document.getElementById('liveUrl').href = siteUrl;
+      document.getElementById('liveUrl').textContent = siteUrl;
     }
 
     if (repoUrl) {
-      const el = document.getElementById('repoUrl');
-      el.href = repoUrl;
-      el.textContent = repoUrl;
+      document.getElementById('repoUrl').href = repoUrl;
+      document.getElementById('repoUrl').textContent = repoUrl;
     }
 
-    // Allow ZIP re-download
+    // Re-download ZIP
     const savedPages = JSON.parse(localStorage.getItem('generatedPages') || '[]');
-    const zipBtn = document.getElementById('downloadZipBtn');
-    zipBtn.addEventListener('click', () => {
+    document.getElementById('downloadZipBtn').addEventListener('click', () => {
       if (!savedPages.length) {
-        alert('⚠️ No saved pages found. Please regenerate.');
+        alert('⚠️ No saved site found. Please regenerate.');
         return;
       }
 
@@ -121,7 +119,7 @@
       });
 
       zip.generateAsync({ type: 'blob' }).then(blob => {
-        saveAs(blob, 'my-website.zip');
+        saveAs(blob, "my-website.zip");
       });
     });
   </script>
