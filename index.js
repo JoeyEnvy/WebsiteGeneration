@@ -160,15 +160,31 @@ app.post('/deploy-github', async (req, res) => {
   });
 
   try {
-    // ✅ Create GitHub repo
-    await octokit.repos.createForAuthenticatedUser({
-      name: repoName,
-      description: `Auto-generated site for ${businessName}`,
-      homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
-      private: false
-    });
+    // 🛡️ Validate token with GitHub API
+    const authTest = await octokit.request('/user');
+    console.log('✅ GitHub Auth Success:', authTest.data.login);
 
-    // ✅ Upload HTML pages
+    // 🧼 Check if repo already exists
+    let repoExists = false;
+    try {
+      await octokit.repos.get({ owner: GITHUB_USERNAME, repo: repoName });
+      repoExists = true;
+      console.warn('⚠️ Repo already exists, skipping creation...');
+    } catch (err) {
+      if (err.status !== 404) throw err;
+    }
+
+    // ✅ Create repo only if it doesn't exist
+    if (!repoExists) {
+      await octokit.repos.createForAuthenticatedUser({
+        name: repoName,
+        description: `Auto-generated site for ${businessName}`,
+        homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
+        private: false
+      });
+    }
+
+    // ✅ Upload pages
     for (let i = 0; i < pages.length; i++) {
       const html = pages[i];
       const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
@@ -183,7 +199,7 @@ app.post('/deploy-github', async (req, res) => {
       });
     }
 
-    // ✅ Add additional files
+    // ✅ Upload base files
     const extras = [
       { path: 'style.css', content: '/* Custom styles go here */' },
       { path: 'script.js', content: '// Custom scripts go here' },
@@ -220,11 +236,13 @@ app.post('/deploy-github', async (req, res) => {
     const pagesUrl = `https://${GITHUB_USERNAME}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}`;
 
+    console.log('✅ Deployment complete:', { pagesUrl, repoUrl });
+
     res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('❌ GitHub deploy error:', err);
-    res.status(500).json({ error: 'GitHub deployment failed.' });
+    console.error('❌ GitHub deploy error:', err.message);
+    res.status(500).json({ error: 'GitHub deployment failed.', details: err.message });
   }
 });
 
