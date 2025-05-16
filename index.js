@@ -134,6 +134,21 @@ app.post('/email-zip', async (req, res) => {
   }
 });
 
+
+
+
+
+
+function sanitizeRepoName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')    // Replace invalid chars with hyphens
+    .replace(/-+/g, '-')            // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, '')        // Remove leading/trailing hyphens
+    .substring(0, 64);              // Limit to 64 chars (GitHub repo limit)
+}
+
+
 // ========================================================================
 // GitHub Deployment Route — Upload all pages and base files
 // ========================================================================
