@@ -160,89 +160,60 @@ async function retryRequest(fn, retries = 3, delay = 1000) {
 }
 
 // ========================================================================
-// GitHub Deployment Route (via Git clone + static.yml workflow)
+// GitHub Deployment Route - Upload all pages and base files
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
   const { sessionId, businessName } = req.body;
   const pages = tempSessions[sessionId]?.pages || [];
-
-  if (!sessionId || !businessName || pages.length === 0) {
+  
+  // Validation
+  if (!sessionId || !businessName || !pages.length) {
     return res.status(400).json({ error: 'Missing required data' });
   }
 
-  const repoName = `${sanitizeRepoName(businessName)}-${Date.now()}`;
-  const repoUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}.git`;
-  const tempDir = path.join('./temp', repoName);
-
   try {
-    // 1. Create GitHub Repo
-    await octokit.repos.createForAuthenticatedUser({
+    const { data: user } = await octokit.users.getAuthenticated();
+    const owner = user.login;
+    // Make repo name unique to avoid "already exists" error
+    const repoName = `${sanitizeRepoName(businessName)}-${Date.now()}`;
+
+    // Create repo
+    await retryRequest(() => octokit.repos.createForAuthenticatedUser({
       name: repoName,
-      auto_init: true,
       private: false,
-      description: `Website for ${businessName}`
+      auto_init: true // Creates README.md
+    }));
+
+    // Upload pages
+    for (const [index, html] of pages.entries()) {
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: index === 0 ? 'index.html' : `page${index + 1}.html`,
+        content: Buffer.from(html).toString('base64'),
+        message: `Add page ${index + 1}`,
+        branch: 'main'
+      }));
+    }
+
+    // Optionally, add empty folders/files (css, js, images, videos, support.html) here if needed
+
+    res.json({ 
+      success: true,
+      url: `https://${owner}.github.io/${repoName}/`,
+      repo: `https://github.com/${owner}/${repoName}`,
+      repoName // return the unique repo name for reference
     });
-
-    // 2. Clone repo locally
-    await fs.ensureDir(tempDir);
-    const git = simpleGit();
-    await git.clone(repoUrl, tempDir);
-
-    // 3. Write HTML pages
-    for (let i = 0; i < pages.length; i++) {
-      const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
-      await fs.writeFile(path.join(tempDir, filename), pages[i]);
-    }
-
-    // 4. Add empty folders with .gitkeep
-    for (const folder of ['js', 'css', 'images', 'videos']) {
-      const folderPath = path.join(tempDir, folder);
-      await fs.ensureDir(folderPath);
-      await fs.writeFile(path.join(folderPath, '.gitkeep'), '');
-    }
-
-    // 5. Add GitHub Actions static.yml
-    const workflowDir = path.join(tempDir, '.github', 'workflows');
-    await fs.ensureDir(workflowDir);
-    const staticYml = `
-name: Deploy static site to GitHub Pages
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-`;
-    await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYml);
-
-    // 6. Commit and push
-    const repoGit = simpleGit(tempDir);
-    await repoGit.add('.');
-    await repoGit.commit('Initial site upload');
-    await repoGit.push('origin', 'main');
-
-    // 7. Cleanup temp dir
-    await fs.remove(tempDir);
-
-    const liveUrl = `https://${GITHUB_USERNAME}.github.io/${repoName}/`;
-    const repoWebUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}`;
-
-    res.json({ success: true, liveUrl, repoWebUrl, repoName });
   } catch (err) {
-    console.error('❌ GitHub Full Deployment Error:', err);
-    res.status(500).json({ error: 'Deployment failed', message: err.message });
+    console.error('Deployment Error:', err.response?.data || err);
+    res.status(500).json({
+      error: 'Deployment failed',
+      details: err.response?.data?.message || err.message,
+      github: err.response?.data // include full error for debugging
+    });
   }
 });
+
 
 // ========================================================================
 // Download Log Endpoint
