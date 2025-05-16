@@ -140,68 +140,46 @@ app.post('/email-zip', async (req, res) => {
 app.post('/deploy-github', async (req, res) => {
   const { sessionId, businessName } = req.body;
   const pages = tempSessions[sessionId]?.pages || [];
-
-  if (!sessionId || !businessName || pages.length === 0) {
-    return res.status(400).json({ error: 'Missing sessionId, businessName, or no pages.' });
+  
+  // Validation
+  if (!sessionId || !businessName || !pages.length) {
+    return res.status(400).json({ error: 'Missing required data' });
   }
 
-  const repoName = businessName.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
-
   try {
-    await octokit.repos.createForAuthenticatedUser({
+    const { data: user } = await octokit.users.getAuthenticated();
+    const owner = user.login;
+    const repoName = sanitizeRepoName(businessName);
+
+    // Create repo
+    await retryRequest(() => octokit.repos.createForAuthenticatedUser({
       name: repoName,
-      description: `Auto-generated site for ${businessName}`,
-      homepage: `https://${GITHUB_USERNAME}.github.io/${repoName}/`,
-      private: false
-    });
+      private: false,
+      auto_init: true // Creates README.md
+    }));
 
-    // Upload HTML pages
-    for (let i = 0; i < pages.length; i++) {
-      const html = pages[i];
-      const filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
-      await octokit.repos.createOrUpdateFileContents({
-        owner: GITHUB_USERNAME,
+    // Upload pages
+    for (const [index, html] of pages.entries()) {
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
         repo: repoName,
-        path: filename,
-        message: `Add ${filename}`,
+        path: index === 0 ? 'index.html' : `page${index + 1}.html`,
         content: Buffer.from(html).toString('base64'),
+        message: `Add page ${index + 1}`,
         branch: 'main'
-      });
+      }));
     }
 
-    // Upload empty CSS, JS, images, videos folders
-    const emptyFiles = [
-      { path: 'style.css', content: '/* Custom styles go here */' },
-      { path: 'script.js', content: '// Custom scripts go here' },
-      { path: 'assets/images/.gitkeep', content: '' },
-      { path: 'assets/videos/.gitkeep', content: '' },
-      { path: 'support.html', content: '<!DOCTYPE html><html><head><title>Support</title></head><body><h1>Need Help?</h1><p>Email us at <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a></p></body></html>' }
-    ];
-
-    for (const file of emptyFiles) {
-      await octokit.repos.createOrUpdateFileContents({
-        owner: GITHUB_USERNAME,
-        repo: repoName,
-        path: file.path,
-        message: `Add ${file.path}`,
-        content: Buffer.from(file.content).toString('base64'),
-        branch: 'main'
-      });
-    }
-
-    await octokit.repos.updateInformationAboutPagesSite({
-      owner: GITHUB_USERNAME,
-      repo: repoName,
-      source: { branch: 'main', path: '/' }
+    res.json({ 
+      success: true,
+      url: `https://${owner}.github.io/${repoName}/`
     });
-
-    const pagesUrl = `https://${GITHUB_USERNAME}.github.io/${repoName}/`;
-    const repoUrl = `https://github.com/${GITHUB_USERNAME}/${repoName}`;
-
-    res.json({ success: true, pagesUrl, repoUrl });
   } catch (err) {
-    console.error('❌ GitHub deploy error:', err);
-    res.status(500).json({ error: 'GitHub deployment failed.' });
+    console.error('Deployment Error:', err.response?.data || err);
+    res.status(500).json({
+      error: 'Deployment failed',
+      details: err.response?.data?.message || err.message
+    });
   }
 });
 
