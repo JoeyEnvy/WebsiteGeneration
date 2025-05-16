@@ -138,7 +138,7 @@ app.post('/email-zip', async (req, res) => {
 
 
 
-
+// Helper to sanitize GitHub repo names
 function sanitizeRepoName(name) {
   return name
     .toLowerCase()
@@ -159,9 +159,8 @@ async function retryRequest(fn, retries = 3, delay = 1000) {
   }
 }
 
-
 // ========================================================================
-// GitHub Deployment Route — Upload all pages and base files
+// GitHub Deployment Route - Upload all pages and base files
 // ========================================================================
 app.post('/deploy-github', async (req, res) => {
   const { sessionId, businessName } = req.body;
@@ -175,7 +174,8 @@ app.post('/deploy-github', async (req, res) => {
   try {
     const { data: user } = await octokit.users.getAuthenticated();
     const owner = user.login;
-    const repoName = sanitizeRepoName(businessName);
+    // Make repo name unique to avoid "already exists" error
+    const repoName = `${sanitizeRepoName(businessName)}-${Date.now()}`;
 
     // Create repo
     await retryRequest(() => octokit.repos.createForAuthenticatedUser({
@@ -196,18 +196,24 @@ app.post('/deploy-github', async (req, res) => {
       }));
     }
 
+    // Optionally, add empty folders/files (css, js, images, videos, support.html) here if needed
+
     res.json({ 
       success: true,
-      url: `https://${owner}.github.io/${repoName}/`
+      url: `https://${owner}.github.io/${repoName}/`,
+      repo: `https://github.com/${owner}/${repoName}`,
+      repoName // return the unique repo name for reference
     });
   } catch (err) {
     console.error('Deployment Error:', err.response?.data || err);
     res.status(500).json({
       error: 'Deployment failed',
-      details: err.response?.data?.message || err.message
+      details: err.response?.data?.message || err.message,
+      github: err.response?.data // include full error for debugging
     });
   }
 });
+
 
 // ========================================================================
 // Download Log Endpoint

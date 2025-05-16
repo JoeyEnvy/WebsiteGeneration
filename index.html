@@ -552,7 +552,10 @@
     }
   }
 
-  document.getElementById('testButton').addEventListener('click', testAPIConnection);
+const testBtn = document.getElementById('testButton');
+if (testBtn) {
+  testBtn.addEventListener('click', testAPIConnection);
+}
 
 
 
