@@ -148,6 +148,17 @@ function sanitizeRepoName(name) {
     .substring(0, 64);              // Limit to 64 chars (GitHub repo limit)
 }
 
+// Helper to retry a promise-returning function
+async function retryRequest(fn, retries = 3, delay = 1000) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (retries <= 0) throw err;
+    await new Promise(res => setTimeout(res, delay));
+    return retryRequest(fn, retries - 1, delay * 2);
+  }
+}
+
 
 // ========================================================================
 // GitHub Deployment Route — Upload all pages and base files
