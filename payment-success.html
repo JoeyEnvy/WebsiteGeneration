@@ -190,11 +190,13 @@ For help, contact: support@websitegenerator.co.uk
             const liveUrl = data.pagesUrl || data.url;
             const repoUrl = data.repoUrl || data.repo;
 
-            if (liveUrl && repoUrl) {
-              const url = new URL('github-success.html', window.location.origin);
-              url.searchParams.set('live', liveUrl);
-              url.searchParams.set('repo', repoUrl);
-              window.location.href = url.toString();
+if (liveUrl && repoUrl) {
+  const url = new URL('/WebsiteGeneration/github-success.html', window.location.origin);
+  url.searchParams.set('live', liveUrl);
+  url.searchParams.set('repo', repoUrl);
+  window.location.href = url.toString();
+}
+
 
               if (userEmail && savedPages) {
                 fetch('https://websitegeneration.onrender.com/email-zip', {
