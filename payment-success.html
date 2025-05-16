@@ -115,10 +115,11 @@ For help, contact: support@websitegenerator.co.uk
         generateZip(pages)
           .then(blob => {
             saveAs(blob, "my-website.zip");
+if (['github-instructions', 'full-hosting'].includes(purchaseType)) {
+  setTimeout(generateTextInstructions, 800);
+}
 
-            if (['github-instructions', 'github-hosted', 'full-hosting'].includes(purchaseType)) {
-              setTimeout(generateTextInstructions, 800);
-            }
+          
 
             if (purchaseType !== 'github-hosted') {
               messageEl.innerText = "✅ Your files are ready. Redirecting...";
@@ -172,50 +173,64 @@ For help, contact: support@websitegenerator.co.uk
         console.warn('❌ businessName not found in localStorage');
       } else {
         messageEl.innerText = "⏳ Deploying your website to GitHub Pages. Please wait...";
-        fetch('https://websitegeneration.onrender.com/deploy-github', {
+       fetch('https://websitegeneration.onrender.com/deploy-github', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ sessionId, businessName })
+})
+  .then(res => res.json())
+  .then(data => {
+    if ((data.pagesUrl && data.repoUrl) || (data.success && data.url && data.repo)) {
+      // Use the available field names for URLs
+      const liveUrl = data.pagesUrl || data.url;
+      const repoUrl = data.repoUrl || data.repo;
+
+      // ✅ Redirect to success page with params
+      const url = new URL('github-success.html', window.location.origin);
+      url.searchParams.set('live', liveUrl);
+      url.searchParams.set('repo', repoUrl);
+      window.location.href = url.toString();
+
+      // Email the user as well
+      if (userEmail && savedPages) {
+        fetch('https://websitegeneration.onrender.com/email-zip', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, businessName })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.pagesUrl && data.repoUrl) {
-            // ✅ Redirect to success page with params
-            const url = new URL('github-success.html', window.location.origin);
-            url.searchParams.set('live', data.pagesUrl);
-            url.searchParams.set('repo', data.repoUrl);
-            window.location.href = url.toString();
-
-            // Email the user as well
-            if (userEmail && savedPages) {
-              fetch('https://websitegeneration.onrender.com/email-zip', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: userEmail,
-                  pages: JSON.parse(savedPages),
-                  extraNote: `Here is your live site: ${data.pagesUrl}\nGitHub Repo: ${data.repoUrl}`
-                })
-              });
-            }
-          } else {
-            messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
-            console.warn('❌ GitHub deployment failed', data);
-          }
-        })
-        .catch(err => {
-          messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
-          console.error('❌ GitHub deploy error:', err);
+          body: JSON.stringify({
+            email: userEmail,
+            pages: JSON.parse(savedPages),
+            extraNote: `Here is your live site: ${liveUrl}\nGitHub Repo: ${repoUrl}`
+          })
         });
       }
-    }
+    } else {
+      messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
+      console.warn('❌ GitHub deployment failed', data);
 
-    const backLink = document.createElement('a');
-    backLink.href = "index.html";
-    backLink.className = "btn btn-outline";
-    backLink.innerText = "← Return to Generator";
-    actionButtons.appendChild(backLink);
+      // Add "Return to Generator" button if actionButtons exists
+      if (typeof actionButtons !== 'undefined' && actionButtons) {
+        const backLink = document.createElement('a');
+        backLink.href = "index.html";
+        backLink.className = "btn btn-outline";
+        backLink.innerText = "← Return to Generator";
+        actionButtons.appendChild(backLink);
+      }
+    }
+  })
+  .catch(err => {
+    messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
+    console.error('❌ GitHub deploy error:', err);
+
+    // Add "Return to Generator" button if actionButtons exists
+    if (typeof actionButtons !== 'undefined' && actionButtons) {
+      const backLink = document.createElement('a');
+      backLink.href = "index.html";
+      backLink.className = "btn btn-outline";
+      backLink.innerText = "← Return to Generator";
+      actionButtons.appendChild(backLink);
+    }
   });
+
 </script>
 
 </body>
