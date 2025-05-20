@@ -175,10 +175,16 @@ async function retryRequest(fn, retries = 3, delay = 1000) {
 // ========================================================================
 // GitHub Deployment Route - Upload all pages and base files
 // ========================================================================
+// GitHub Deployment Route - Upload all pages and base files
+// ========================================================================
 app.post('/deploy-github', async (req, res) => {
-  const { sessionId, businessName } = req.body;
-  const pages = tempSessions[sessionId]?.pages || [];
-  
+  const { sessionId } = req.body;
+
+  // Retrieve saved data from session
+  const sessionData = tempSessions[sessionId];
+  const businessName = sessionData?.businessName;
+  const pages = sessionData?.pages || [];
+
   // Validation
   if (!sessionId || !businessName || !pages.length) {
     return res.status(400).json({ error: 'Missing required data' });
@@ -279,6 +285,42 @@ try {
     });
   }
 });
+
+// ========================================================================
+// Full Hosting + Custom Domain Deployment Route
+// ========================================================================
+app.post('/deploy-full-hosting', async (req, res) => {
+  const { sessionId, domain } = req.body;
+
+  if (!sessionId || !domain) {
+    return res.status(400).json({ error: 'Missing session ID or domain name.' });
+  }
+
+  const sessionData = tempSessions[sessionId];
+  if (!sessionData || !sessionData.pages || !sessionData.businessName) {
+    return res.status(400).json({ error: 'Incomplete session data.' });
+  }
+
+  try {
+    // TODO: Add domain purchase logic via registrar API (e.g., GoDaddy, Namecheap, etc.)
+
+    // TODO: Deploy to GitHub (or another host) using sessionData.pages
+    // Could reuse the /deploy-github logic and add DNS config
+
+    // TODO: Configure DNS to point domain to hosted site
+
+    // Placeholder response for now
+    res.json({
+      success: true,
+      message: `Domain ${domain} will be configured and deployed.`,
+      hostedUrl: `https://www.${domain}`
+    });
+  } catch (err) {
+    console.error('❌ Full Hosting Deployment Error:', err);
+    res.status(500).json({ error: 'Full hosting deployment failed', details: err.message });
+  }
+});
+
 
 
 // ========================================================================
