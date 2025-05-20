@@ -453,14 +453,18 @@ async startStripeCheckout(type) {
       localStorage.setItem('sessionId', sessionId);
     }
 
-    const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        sessionId // ✅ pass sessionId in body
-      })
-    });
+const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
+
+const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    type,
+    sessionId,
+    businessName  // ✅ now sending business name to backend
+  })
+});
+
 
     const data = await response.json();
     if (data.url) {

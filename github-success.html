@@ -24,6 +24,7 @@
       border-radius: 12px;
       max-width: 650px;
       box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      z-index: 1;
     }
 
     h1 {
@@ -71,15 +72,30 @@
       margin-top: 10px;
     }
 
-    .spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ccc;
-      border-top: 2px solid #28a745;
+    /* Fullscreen Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.4rem;
+      color: #333;
+    }
+
+    .loader {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #28a745;
+      border-top: 6px solid transparent;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-left: 5px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
     }
 
     @keyframes spin {
@@ -88,11 +104,17 @@
   </style>
 </head>
 <body>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loader"></div>
+    <div>Publishing your website... Please wait</div>
+  </div>
+
   <div class="container">
     <h1>🎉 Your Website is Live!</h1>
     <p><strong>Live URL:</strong><br>
       <a id="liveUrl" href="#" target="_blank" rel="noopener noreferrer">Loading...</a>
-      <div class="status-msg" id="statusMessage">Publishing in progress. Your site may take up to 1 minute to go live. <span class="spinner"></span></div>
+      <div class="status-msg" id="statusMessage">Publishing in progress. Your site may take up to 1 minute to go live.</div>
     </p>
     <p><strong>GitHub Repo:</strong><br>
       <a id="repoUrl" href="#" target="_blank" rel="noopener noreferrer">Loading...</a>
@@ -119,6 +141,7 @@
 
     const liveUrlEl = document.getElementById('liveUrl');
     const statusMsgEl = document.getElementById('statusMessage');
+    const loadingOverlay = document.getElementById('loadingOverlay');
 
     if (repoUrl) {
       document.getElementById('repoUrl').href = repoUrl;
@@ -149,6 +172,7 @@
       liveUrlEl.removeAttribute('href');
 
       waitForSiteLive(siteUrl).then(isLive => {
+        loadingOverlay.style.display = 'none'; // Hide overlay
         if (isLive) {
           liveUrlEl.href = siteUrl;
           liveUrlEl.textContent = siteUrl;
@@ -162,6 +186,7 @@
     } else {
       liveUrlEl.textContent = 'URL not available';
       liveUrlEl.removeAttribute('href');
+      loadingOverlay.style.display = 'none'; // Hide overlay immediately
     }
     // END POLLING FOR LIVE URL
 
@@ -185,3 +210,4 @@
   </script>
 </body>
 </html>
+

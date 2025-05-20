@@ -54,7 +54,19 @@ app.get('/get-steps/:sessionId', (req, res) => {
 // Stripe Checkout Payment Endpoint
 // ========================================================================
 app.post('/create-checkout-session', async (req, res) => {
-  const { type, sessionId } = req.body;
+  const { type, sessionId, businessName } = req.body;
+
+  if (!type || !sessionId) {
+    return res.status(400).json({ error: 'Missing deployment type or session ID.' });
+  }
+
+  // Initialize session storage if needed
+  if (!tempSessions[sessionId]) tempSessions[sessionId] = {};
+
+  // Save business name if provided
+  if (businessName) {
+    tempSessions[sessionId].businessName = businessName;
+  }
 
   const priceMap = {
     'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
@@ -92,6 +104,7 @@ app.post('/create-checkout-session', async (req, res) => {
     res.status(500).json({ error: 'Failed to create Stripe session' });
   }
 });
+
 
 // ========================================================================
 // Email ZIP File Endpoint (SendGrid)
