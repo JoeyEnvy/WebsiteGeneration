@@ -185,40 +185,48 @@ app.post('/deploy-github', async (req, res) => {
     }));
 
     // Upload pages
-// Upload pages
-for (const [index, html] of pages.entries()) {
-  await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-    owner,
-    repo: repoName,
-    path: index === 0 ? 'index.html' : `page${index + 1}.html`,
-    content: Buffer.from(html).toString('base64'),
-    message: `Add page ${index + 1}`,
-    branch: 'main'
-  }));
-}
+    for (const [index, html] of pages.entries()) {
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: index === 0 ? 'index.html' : `page${index + 1}.html`,
+        content: Buffer.from(html).toString('base64'),
+        message: `Add page ${index + 1}`,
+        branch: 'main'
+      }));
+    }
 
-// Add static.yml for auto-deployment (adjust content as needed for your platform)
-await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-  owner,
-  repo: repoName,
-  path: 'static.yml',
-  content: Buffer.from(`publish: index.html\n`).toString('base64'),
-  message: 'Add static.yml for automatic deployment',
-  branch: 'main'
-}));
+    // Add static.yml for auto-deployment (adjust content as needed for your platform)
+    await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo: repoName,
+      path: 'static.yml',
+      content: Buffer.from(`publish: index.html\n`).toString('base64'),
+      message: 'Add static.yml for automatic deployment',
+      branch: 'main'
+    }));
 
-// Add empty images/ and videos/ folders (with .gitkeep to ensure they exist in git)
-for (const folder of ['images', 'videos']) {
-  await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-    owner,
-    repo: repoName,
-    path: `${folder}/.gitkeep`,
-    content: Buffer.from('').toString('base64'),
-    message: `Create empty ${folder}/ folder`,
-    branch: 'main'
-  }));
-}
+    // Add empty images/ and videos/ folders (with .gitkeep to ensure they exist in git)
+    for (const folder of ['images', 'videos']) {
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: `${folder}/.gitkeep`,
+        content: Buffer.from('').toString('base64'),
+        message: `Create empty ${folder}/ folder`,
+        branch: 'main'
+      }));
+    }
 
+    // Enable GitHub Pages for this repo, serving from main branch root
+    await retryRequest(() => octokit.repos.updateInformationAboutPagesSite({
+      owner,
+      repo: repoName,
+      source: {
+        branch: 'main',
+        path: '/'
+      }
+    }));
 
     // Optionally, add empty folders/files (css, js, images, videos, support.html) here if needed
 
@@ -354,5 +362,6 @@ app.post('/generate', async (req, res) => {
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
+
 
 
