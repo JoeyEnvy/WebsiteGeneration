@@ -63,48 +63,48 @@ app.post('/create-checkout-session', async (req, res) => {
   // Initialize session storage if needed
   if (!tempSessions[sessionId]) tempSessions[sessionId] = {};
 
-  // Save business name if provided
-  if (businessName) {
-    tempSessions[sessionId].businessName = businessName;
-  }
+// Save business name if provided
+if (businessName) {
+  tempSessions[sessionId].businessName = businessName;
+}
 
-  const priceMap = {
-    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
-    'zip-download': { price: 5000, name: 'ZIP File Only' },
-    'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { price: 30000, name: 'Full Hosting + Custom Domain' }
-  };
+const priceMap = {
+  'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
+  'zip-download': { price: 5000, name: 'ZIP File Only' },
+  'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
+  'full-hosting': { price: 30000, name: 'Full Hosting + Custom Domain' }
+};
 
-  const product = priceMap[type];
-  if (!product) {
-    return res.status(400).json({ error: 'Invalid deployment option.' });
-  }
+const product = priceMap[type];
+if (!product) {
+  return res.status(400).json({ error: 'Invalid deployment option.' });
+}
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'gbp',
-            product_data: { name: product.name },
-            unit_amount: product.price
-          },
-          quantity: 1
-        }
-      ],
-      success_url: `https://joeyenvy.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
-      cancel_url: 'https://joeyenvy.github.io/WebsiteGeneration/payment-cancelled.html'
-    });
+try {
+  const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
 
-    res.json({ url: session.url });
-  } catch (err) {
-    console.error('❌ Stripe session creation failed:', err);
-    res.status(500).json({ error: 'Failed to create Stripe session' });
-  }
-});
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'payment',
+    line_items: [
+      {
+        price_data: {
+          currency: 'gbp',
+          product_data: { name: product.name },
+          unit_amount: product.price
+        },
+        quantity: 1
+      }
+    ],
+    success_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
+    cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
+  });
 
+  res.json({ url: session.url });
+} catch (err) {
+  console.error('❌ Stripe session creation failed:', err);
+  res.status(500).json({ error: 'Failed to create Stripe session' });
+}
 
 // ========================================================================
 // Email ZIP File Endpoint (SendGrid)
