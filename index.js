@@ -172,6 +172,28 @@ async function retryRequest(fn, retries = 3, delay = 1000) {
   }
 }
 
+
+async function getUniqueRepoName(baseName, owner) {
+  const base = sanitizeRepoName(baseName);
+  let name = base;
+  let counter = 1;
+
+  while (true) {
+    try {
+      await octokit.repos.get({ owner, repo: name });
+      // Repo exists, try next suffix
+      name = `${base}-${counter++}`;
+    } catch (err) {
+      if (err.status === 404) {
+        // Repo does not exist, safe to use
+        return name;
+      }
+      throw err; // Rethrow unexpected error
+    }
+  }
+}
+
+
 // ========================================================================
 // GitHub Deployment Route - Upload all pages and base files
 // ========================================================================
@@ -194,7 +216,8 @@ app.post('/deploy-github', async (req, res) => {
     const { data: user } = await octokit.users.getAuthenticated();
     const owner = user.login;
     // Make repo name unique to avoid "already exists" error
-    const repoName = `${sanitizeRepoName(businessName)}-${Date.now()}`;
+    const repoName = await getUniqueRepoName(businessName, owner);
+
 
     // Create repo
     await retryRequest(() => octokit.repos.createForAuthenticatedUser({
