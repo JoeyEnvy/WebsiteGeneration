@@ -219,6 +219,22 @@ app.post('/deploy-github', async (req, res) => {
     }
 
     // Enable GitHub Pages for this repo, serving from main branch root
+// Wait 2 seconds to ensure GitHub processes the new repo
+await new Promise(resolve => setTimeout(resolve, 2000));
+
+// Try creating GitHub Pages site
+try {
+  await retryRequest(() => octokit.request('POST /repos/{owner}/{repo}/pages', {
+    owner,
+    repo: repoName,
+    source: {
+      branch: 'main',
+      path: '/'
+    }
+  }));
+} catch (err) {
+  // If already exists (409), update instead
+  if (err.status === 409) {
     await retryRequest(() => octokit.repos.updateInformationAboutPagesSite({
       owner,
       repo: repoName,
@@ -227,6 +243,11 @@ app.post('/deploy-github', async (req, res) => {
         path: '/'
       }
     }));
+  } else {
+    throw err; // Re-throw if it's a different error
+  }
+}
+
 
     // Optionally, add empty folders/files (css, js, images, videos, support.html) here if needed
 
