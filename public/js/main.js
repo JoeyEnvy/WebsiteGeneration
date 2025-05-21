@@ -1,3 +1,16 @@
+// ✅ Clear previous site data on hard refresh
+window.addEventListener('beforeunload', () => {
+  localStorage.removeItem('generatedPages');
+});
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+}
+
 class WebsiteGenerator {
     constructor() {
         this.form = document.getElementById('websiteGeneratorForm');
@@ -12,46 +25,87 @@ class WebsiteGenerator {
             this.generatedPages = JSON.parse(savedPages);
         }
 
-        this.initializeEventListeners(); // ✅ Setup all the buttons, inputs etc.
+        this.initializeEventListeners();  // <== calling it here
         this.highlightStep(this.currentStep);
     }
 
-    initializeEventListeners() {
-        const checkDomainBtn = document.getElementById('checkDomainBtn');
-        const domainInput = document.getElementById('customDomain');
-        const domainResult = document.getElementById('domainCheckResult');
-
-        if (checkDomainBtn && domainInput && domainResult) {
-            checkDomainBtn.addEventListener('click', async () => {
-                const domain = domainInput.value.trim();
-                if (!domain) {
-                    domainResult.textContent = 'Please enter a domain name.';
-                    domainResult.style.color = 'orange';
-                    return;
-                }
-
-                try {
-                    const response = await fetch('https://websitegeneration.onrender.com/check-domain', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ domain })
-                    });
-
-                    const result = await response.json();
-                    if (result.available) {
-                        domainResult.textContent = `✅ ${domain} is available!`;
-                        domainResult.style.color = 'green';
-                    } else {
-                        domainResult.textContent = `❌ ${domain} is not available.`;
-                        domainResult.style.color = 'red';
-                    }
-                } catch (err) {
-                    domainResult.textContent = 'Error checking domain availability.';
-                    domainResult.style.color = 'red';
-                }
-            });
-        }
+    // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
+initializeEventListeners() {
+    const nextStep4Btn = document.getElementById('nextStep4');
+    if (nextStep4Btn) {
+        nextStep4Btn.addEventListener('click', () => {
+            if (this.validateStep('step4')) this.goToStep(5);
+        });
     }
+
+    document.getElementById('nextStep1')?.addEventListener('click', () => {
+        if (this.validateStep('step1')) this.goToStep(2);
+    });
+
+    document.getElementById('nextStep2')?.addEventListener('click', () => {
+        if (this.validateStep('step2')) this.goToStep(3);
+    });
+
+    document.getElementById('nextStep3')?.addEventListener('click', () => {
+        if (this.validateStep('step3')) this.goToStep(4);
+    });
+
+    document.getElementById('prevStep2')?.addEventListener('click', () => this.goToStep(1));
+    document.getElementById('prevStep3')?.addEventListener('click', () => this.goToStep(2));
+    document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
+
+    document.querySelectorAll('.preview-controls button')?.forEach(button => {
+        button.addEventListener('click', () => {
+            this.changePreviewDevice(button.id.replace('Preview', ''));
+        });
+    });
+
+    document.getElementById('prevPage')?.addEventListener('click', () => this.changePage(-1));
+    document.getElementById('nextPage')?.addEventListener('click', () => this.changePage(1));
+
+    this.form?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleSubmit();
+    });
+
+    const purchaseBtn = document.getElementById('purchaseBtn');
+    const downloadBtn = document.getElementById('downloadSiteBtn');
+
+    if (purchaseBtn) {
+        purchaseBtn.addEventListener('click', () => {
+            const confirmed = confirm("Simulated payment: Proceed to pay £X?");
+            if (confirmed) {
+                this.userHasPaid = true;
+                purchaseBtn.style.display = 'none';
+                if (downloadBtn) downloadBtn.style.display = 'inline-block';
+                alert('Payment successful. You can now download your website.');
+            }
+        });
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+    }
+
+    // ✅ Stripe Checkout Deployment Options
+    document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
+        this.startStripeCheckout('github-instructions');
+    });
+
+    document.getElementById('deployZipOnly')?.addEventListener('click', () => {
+        this.startStripeCheckout('zip-download');
+    });
+
+    document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
+        this.startStripeCheckout('github-hosted');
+    });
+
+    document.getElementById('deployFullHosting')?.addEventListener('click', () => {
+        this.startStripeCheckout('full-hosting');
+    });
+}
+
+
 
     updatePreview() {
         if (this.generatedPages.length === 0) return;
@@ -74,6 +128,7 @@ class WebsiteGenerator {
         iframe.onload = () => {
             const doc = iframe.contentDocument || iframe.contentWindow.document;
 
+            // Inject dynamic style
             const style = doc.createElement('style');
             style.innerHTML = `
                 .single-column {
@@ -100,14 +155,15 @@ class WebsiteGenerator {
             `;
             doc.head.appendChild(style);
 
+            // ✅ INIT customization only once iframe is ready
             const panel = document.getElementById('customizationPanel');
-            if (panel) panel.style.display = 'none';
-            this.initializeCustomizationPanel?.();
+            if (panel) panel.style.display = 'none'; // ✅ Hide customization tools initially
+            this.initializeCustomizationPanel();
         };
 
         window.scrollTo({ top: scrollY, behavior: 'auto' });
         this.updatePageNavigation();
-        this.showPostGenerationOptions?.();
+        this.showPostGenerationOptions();
     }
 
     updatePageNavigation() {
@@ -200,9 +256,11 @@ class WebsiteGenerator {
             const formData = new FormData(this.form);
             const finalPrompt = this.buildFinalPrompt(formData);
 
-            if (!localStorage.getItem('sessionId')) {
-                localStorage.setItem('sessionId', crypto.randomUUID());
-            }
+// ✅ Ensure sessionId is created and stored before generation
+if (!localStorage.getItem('sessionId')) {
+    localStorage.setItem('sessionId', crypto.randomUUID());
+}
+
 
             const response = await fetch('https://websitegeneration.onrender.com/generate', {
                 method: 'POST',
@@ -215,25 +273,27 @@ class WebsiteGenerator {
 
             const data = await response.json();
 
-            if (data.success) {
-                this.generatedPages = data.pages;
-                localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-                this.currentPage = 0;
+if (data.success) {
+    this.generatedPages = data.pages;
+    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+    this.currentPage = 0;
 
-                const sessionId = localStorage.getItem('sessionId');
-                await fetch('https://websitegeneration.onrender.com/store-step', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId,
-                        step: 'pages',
-                        content: data.pages
-                    })
-                });
+    // ✅ NEW — Store site data on backend using sessionId
+    const sessionId = localStorage.getItem('sessionId');
+    await fetch('https://websitegeneration.onrender.com/store-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sessionId: sessionId,
+            step: 'pages',
+            content: data.pages
+        })
+    });
 
-                this.updatePreview();
-                this.showSuccess('Website generated successfully!');
-            } else {
+    this.updatePreview();
+    this.showSuccess('Website generated successfully!');
+}
+ else {
                 throw new Error(data.error || 'Unknown error from server.');
             }
         } catch (error) {
@@ -383,37 +443,39 @@ Do not explain or comment anything.
         });
     }
 
-    async startStripeCheckout(type) {
-        try {
-            let sessionId = localStorage.getItem('sessionId');
-            if (!sessionId) {
-                sessionId = crypto.randomUUID();
-                localStorage.setItem('sessionId', sessionId);
-            }
-
-            const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
-
-            const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type,
-                    sessionId,
-                    businessName
-                })
-            });
-
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                alert('Failed to start checkout session.');
-            }
-        } catch (err) {
-            console.error('Stripe Checkout error:', err);
-            alert('Something went wrong with payment.');
-        }
+// ✅ Start Stripe Checkout session — FIXED to include sessionId
+async startStripeCheckout(type) {
+  try {
+    // ✅ Ensure sessionId exists and store it in localStorage if missing
+    let sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', sessionId);
     }
+
+const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
+
+const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    type,
+    sessionId,
+    businessName  // ✅ now sending business name to backend
+  })
+});
+
+
+    const data = await response.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Failed to start checkout session.');
+    }
+  } catch (err) {
+    console.error('Stripe Checkout error:', err);
+    alert('Something went wrong with payment.');
+  }
 }
 
 
@@ -585,72 +647,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new WebsiteGenerator();
 });
-
-
-
-// ------------------------------
-// Full Hosting + Custom Domain Deployment Handler
-// ------------------------------
-
-// Listen for click on the Full Hosting button
-document.getElementById('deployFullHosting').addEventListener('click', async () => {
-  // Get the custom domain input value
-  const domainInput = document.getElementById('customDomain');
-  const domain = domainInput.value.trim();
-
-  // Basic domain validation (non-empty, contains dot, simple regex)
-  if (!domain || !/^[a-z0-9-]+\.[a-z]{2,}$/i.test(domain)) {
-    alert('Please enter a valid domain name, e.g., mybusiness.co.uk');
-    domainInput.focus();
-    return;
-  }
-
-  // Ensure sessionId and pages are available before deploying
-  // Adjust according to your app - this example assumes you have sessionId and generated pages stored in variables
-  if (!window.sessionId) {
-    alert('Session ID not found. Please start by generating your website first.');
-    return;
-  }
-  if (!window.generatedPages || !Array.isArray(window.generatedPages) || window.generatedPages.length === 0) {
-    alert('No generated pages found. Please generate your website first.');
-    return;
-  }
-
-  try {
-    // Show a loading or disable button to prevent multiple clicks (optional)
-    const btn = document.getElementById('deployFullHosting');
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
-
-    // Send POST request to backend to trigger full hosting deployment
-    const response = await fetch('/deploy-full-hosting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: window.sessionId,
-        domain: domain
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      alert(`Success! Your website will be hosted at: ${data.hostedUrl}\nWe will configure the domain and deployment.`);
-      // Optionally, redirect or update UI with hosted URL info
-      // window.location.href = data.hostedUrl;
-    } else {
-      alert(`Deployment failed: ${data.error || 'Unknown error'}`);
-    }
-  } catch (error) {
-    console.error('Full hosting deployment error:', error);
-    alert('An error occurred during deployment. Please try again later.');
-  } finally {
-    // Re-enable button and reset text
-    const btn = document.getElementById('deployFullHosting');
-    btn.disabled = false;
-    btn.textContent = 'Buy Full Hosting + URL';
-  }
-});
-
-
-
