@@ -151,6 +151,38 @@ app.post('/email-zip', async (req, res) => {
 });
 
 
+// ========================================================================
+// Check Domain Availability (GoDaddy API)
+// ========================================================================
+app.post('/check-domain', async (req, res) => {
+  const { domain } = req.body;
+  if (!domain) {
+    return res.status(400).json({ error: 'No domain provided.' });
+  }
+
+  const apiKey = process.env.GODADDY_API_KEY;
+  const apiSecret = process.env.GODADDY_API_SECRET;
+
+  try {
+    const response = await fetch(`https://api.godaddy.com/v1/domains/available?domain=${domain}`, {
+      headers: {
+        Authorization: `sso-key ${apiKey}:${apiSecret}`,
+        Accept: 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (data?.available) {
+      res.json({ available: true, price: data.price / 1000000 }); // returns price in standard currency
+    } else {
+      res.json({ available: false, reason: data.reason || 'Unavailable' });
+    }
+  } catch (err) {
+    console.error('❌ Domain check error:', err);
+    res.status(500).json({ error: 'Domain availability check failed' });
+  }
+});
 
 
 

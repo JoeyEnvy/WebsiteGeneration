@@ -103,7 +103,42 @@ initializeEventListeners() {
     document.getElementById('deployFullHosting')?.addEventListener('click', () => {
         this.startStripeCheckout('full-hosting');
     });
-}
+
+    // ✅ Custom Domain Availability Check
+    const checkDomainBtn = document.getElementById('checkDomainBtn');
+    const domainInput = document.getElementById('customDomain');
+    const domainResult = document.getElementById('domainCheckResult');
+
+    if (checkDomainBtn && domainInput && domainResult) {
+        checkDomainBtn.addEventListener('click', async () => {
+            const domain = domainInput.value.trim();
+            if (!domain) {
+                domainResult.textContent = 'Please enter a domain name.';
+                domainResult.style.color = 'orange';
+                return;
+            }
+
+            try {
+                const response = await fetch('https://websitegeneration.onrender.com/check-domain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain })
+                });
+
+                const result = await response.json();
+                if (result.available) {
+                    domainResult.textContent = `✅ ${domain} is available!`;
+                    domainResult.style.color = 'green';
+                } else {
+                    domainResult.textContent = `❌ ${domain} is not available.`;
+                    domainResult.style.color = 'red';
+                }
+            } catch (err) {
+                domainResult.textContent = 'Error checking domain availability.';
+                domainResult.style.color = 'red';
+            }
+        });
+    }
 
 
 
@@ -647,3 +682,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new WebsiteGenerator();
 });
+
+
+
+// ------------------------------
+// Full Hosting + Custom Domain Deployment Handler
+// ------------------------------
+
+// Listen for click on the Full Hosting button
+document.getElementById('deployFullHosting').addEventListener('click', async () => {
+  // Get the custom domain input value
+  const domainInput = document.getElementById('customDomain');
+  const domain = domainInput.value.trim();
+
+  // Basic domain validation (non-empty, contains dot, simple regex)
+  if (!domain || !/^[a-z0-9-]+\.[a-z]{2,}$/i.test(domain)) {
+    alert('Please enter a valid domain name, e.g., mybusiness.co.uk');
+    domainInput.focus();
+    return;
+  }
+
+  // Ensure sessionId and pages are available before deploying
+  // Adjust according to your app - this example assumes you have sessionId and generated pages stored in variables
+  if (!window.sessionId) {
+    alert('Session ID not found. Please start by generating your website first.');
+    return;
+  }
+  if (!window.generatedPages || !Array.isArray(window.generatedPages) || window.generatedPages.length === 0) {
+    alert('No generated pages found. Please generate your website first.');
+    return;
+  }
+
+  try {
+    // Show a loading or disable button to prevent multiple clicks (optional)
+    const btn = document.getElementById('deployFullHosting');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    // Send POST request to backend to trigger full hosting deployment
+    const response = await fetch('/deploy-full-hosting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: window.sessionId,
+        domain: domain
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert(`Success! Your website will be hosted at: ${data.hostedUrl}\nWe will configure the domain and deployment.`);
+      // Optionally, redirect or update UI with hosted URL info
+      // window.location.href = data.hostedUrl;
+    } else {
+      alert(`Deployment failed: ${data.error || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Full hosting deployment error:', error);
+    alert('An error occurred during deployment. Please try again later.');
+  } finally {
+    // Re-enable button and reset text
+    const btn = document.getElementById('deployFullHosting');
+    btn.disabled = false;
+    btn.textContent = 'Buy Full Hosting + URL';
+  }
+});
+
+
+
