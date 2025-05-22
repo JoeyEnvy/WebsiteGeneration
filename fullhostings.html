@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Hosting Purchase - Website Generator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="main.js"></script>
+</head>
+<body>
+  <div class="container" style="max-width: 800px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+    <h1>🌐 Full Hosting + Custom Domain</h1>
+    <p>Thank you for choosing the full hosting option. We're setting everything up for you.</p>
+
+    <div class="status-box" style="margin-top: 24px; padding: 16px; background: #f0f8ff; border-left: 4px solid #007bff;">
+      <strong>✅ Your payment was successful.</strong> Your website is being deployed, and your domain is being registered.
+    </div>
+
+    <div id="hostingDetails" style="margin-top: 30px; display: none;">
+      <h2>🔗 Your Custom Domain</h2>
+      <p><strong>Live URL:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a></p>
+      <p><strong>GitHub Repo:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a></p>
+      <p class="domain-term-info">📅 Domain will be registered in your name for <strong>1 year</strong>. You may request renewal for 2 or 3 years via support.</p>
+    </div>
+
+    <div id="loadingBox" style="margin-top: 40px; font-size: 1.1rem;">
+      ⏳ Setting up your custom domain and deploying your website. Please wait...
+    </div>
+
+    <div style="margin-top: 30px; font-size: 0.9rem;">
+      <p>If you need help or want to check the status of your domain, contact us at <strong>support@websitegenerator.co.uk</strong></p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('sessionId');
+      const domain = localStorage.getItem('customDomain');
+
+      if (!sessionId || !domain) {
+        document.getElementById('loadingBox').innerText = '⚠️ Missing session or domain data. Please try again.';
+        return;
+      }
+
+      try {
+        const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, domain })
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Deployment failed');
+
+        document.getElementById('hostedLink').href = data.hostedUrl;
+        document.getElementById('hostedLink').textContent = data.hostedUrl;
+
+        if (data.repo) {
+          document.getElementById('repoLink').href = data.repo;
+          document.getElementById('repoLink').textContent = data.repo;
+        } else {
+          document.getElementById('repoLink').textContent = 'Unavailable';
+        }
+
+        document.getElementById('loadingBox').style.display = 'none';
+        document.getElementById('hostingDetails').style.display = 'block';
+      } catch (err) {
+        document.getElementById('loadingBox').innerText = '❌ Deployment failed: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

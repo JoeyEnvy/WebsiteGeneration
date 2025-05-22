@@ -665,6 +665,24 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
+  // ✅ Add this live feedback listener
+  domainInput.addEventListener('input', () => {
+    const domain = domainInput.value.trim().toLowerCase();
+    if (!domain) {
+      resultDisplay.textContent = '';
+      return;
+    }
+
+    if (!isValidDomain(domain)) {
+      resultDisplay.textContent = '❌ Invalid domain format';
+      resultDisplay.style.color = 'red';
+      buyButton.disabled = true;
+    } else {
+      resultDisplay.textContent = '✅ Valid format. Click "Check Availability"';
+      resultDisplay.style.color = 'blue';
+    }
+  });
+
   checkBtn.addEventListener('click', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     resultDisplay.textContent = '';
