@@ -469,19 +469,26 @@ app.post('/check-domain', async (req, res) => {
   const { domain } = req.body;
 
   if (!domain || typeof domain !== 'string') {
-    return res.status(400).json({ error: 'Invalid domain format' });
+    return res.status(400).json({ error: 'Invalid domain format.' });
   }
 
   try {
-    const response = await fetch(`https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(domain)}`, {
+    const apiBase =
+      process.env.GODADDY_ENV === 'production'
+        ? 'https://api.godaddy.com'
+        : 'https://api.ote-godaddy.com'; // OTE = test mode
+
+    const response = await fetch(`${apiBase}/v1/domains/available?domain=${encodeURIComponent(domain)}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
         Accept: 'application/json',
-      }
+      },
     });
 
     if (!response.ok) {
-      throw new Error(`GoDaddy API responded with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(`❌ GoDaddy API error [${response.status}]:`, errorText);
+      return res.status(502).json({ error: 'GoDaddy API error', detail: errorText });
     }
 
     const data = await response.json();
@@ -491,8 +498,6 @@ app.post('/check-domain', async (req, res) => {
     res.status(500).json({ error: 'Domain availability check failed.' });
   }
 });
-
-
 
 
 // ========================================================================
