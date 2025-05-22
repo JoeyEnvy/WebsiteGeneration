@@ -648,6 +648,15 @@ function isValidDomain(domain) {
          !domain.endsWith('.');
 }
 
+function isValidDomain(domain) {
+  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain) &&
+         domain.length <= 253 &&
+         !domain.includes(' ') &&
+         !domain.startsWith('.') &&
+         !domain.endsWith('.');
+}
+
 function setupDomainChecker() {
   const domainInput = document.getElementById('customDomain');
   const checkBtn = document.getElementById('checkDomainBtn');
@@ -677,6 +686,8 @@ function setupDomainChecker() {
         body: JSON.stringify({ domain })
       });
 
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
       const data = await res.json();
 
       if (data.available) {
@@ -692,11 +703,12 @@ function setupDomainChecker() {
       resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
       resultDisplay.style.color = 'orange';
       buyButton.disabled = true;
+      console.error('Domain check error:', err);
     }
   });
 }
 
-// ✅ DOMContentLoaded block — NOW includes setupDomainChecker()
+// ✅ DOMContentLoaded block — NOW includes setupDomainChecker
 document.addEventListener('DOMContentLoaded', () => {
   const customizationPanel = document.getElementById('customizationPanel');
   if (customizationPanel) customizationPanel.style.display = 'none';
