@@ -648,51 +648,49 @@ function setupDomainChecker() {
   const domainInput = document.getElementById('customDomain');
   const checkBtn = document.getElementById('checkDomainBtn');
   const resultDisplay = document.getElementById('domainCheckResult');
+  const buyButton = document.getElementById('deployFullHosting');
 
-  if (!domainInput || !checkBtn || !resultDisplay) return;
+  if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
- const buyButton = document.getElementById('deployFullHosting');
-if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
-
-checkBtn.addEventListener('click', async () => {
-  const domain = domainInput.value.trim().toLowerCase();
-  resultDisplay.textContent = '';
-  resultDisplay.style.color = 'black';
-  buyButton.disabled = true;
-
-  if (!isValidDomain(domain)) {
-    resultDisplay.textContent = '❌ Please enter a valid domain name.';
-    resultDisplay.style.color = 'red';
-    return;
-  }
-
-  resultDisplay.textContent = 'Checking...';
-
-  try {
-    const res = await fetch('/check-domain', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ domain })
-    });
-
-    const data = await res.json();
-
-    if (data.available) {
-      resultDisplay.textContent = `✅ "${domain}" is available!`;
-      resultDisplay.style.color = 'green';
-      buyButton.disabled = false; // <-- enable button
-    } else {
-      resultDisplay.textContent = `❌ "${domain}" is already taken.`;
-      resultDisplay.style.color = 'red';
-      buyButton.disabled = true; // <-- keep disabled
-    }
-  } catch (err) {
-    resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
-    resultDisplay.style.color = 'orange';
+  checkBtn.addEventListener('click', async () => {
+    const domain = domainInput.value.trim().toLowerCase();
+    resultDisplay.textContent = '';
+    resultDisplay.style.color = 'black';
     buyButton.disabled = true;
-  }
-});
 
+    if (!isValidDomain(domain)) {
+      resultDisplay.textContent = '❌ Please enter a valid domain name.';
+      resultDisplay.style.color = 'red';
+      return;
+    }
+
+    resultDisplay.textContent = 'Checking...';
+
+    try {
+      const res = await fetch('/check-domain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+
+      const data = await res.json();
+
+      if (data.available) {
+        resultDisplay.textContent = `✅ "${domain}" is available!`;
+        resultDisplay.style.color = 'green';
+        buyButton.disabled = false;
+      } else {
+        resultDisplay.textContent = `❌ "${domain}" is already taken.`;
+        resultDisplay.style.color = 'red';
+        buyButton.disabled = true;
+      }
+    } catch (err) {
+      resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
+      resultDisplay.style.color = 'orange';
+      buyButton.disabled = true;
+    }
+  });
+}
 
 // ✅ DOMContentLoaded block — NOW includes setupDomainChecker()
 document.addEventListener('DOMContentLoaded', () => {
@@ -702,6 +700,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const tools = customizationPanel?.querySelector('.custom-tools');
   if (tools) tools.style.display = 'none';
 
-  setupDomainChecker(); // ✅ ← This line is the missing piece
+  setupDomainChecker();
   new WebsiteGenerator();
 });
