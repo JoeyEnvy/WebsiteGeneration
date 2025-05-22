@@ -667,7 +667,7 @@ function setupDomainChecker() {
     resultDisplay.textContent = 'Checking...';
 
     try {
-      const res = await fetch('/check-domain', {
+      const res = await fetch('https://websitegeneration.onrender.com/check-domain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain })
