@@ -640,8 +640,12 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
 
 // ✅ Domain Checker Handler
 function isValidDomain(domain) {
-  const domainRegex = /^(?!\-)(?:[a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain);
+  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain) &&
+         domain.length <= 253 &&
+         !domain.includes(' ') &&
+         !domain.startsWith('.') &&
+         !domain.endsWith('.');
 }
 
 function setupDomainChecker() {
