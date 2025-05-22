@@ -638,12 +638,64 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
     }
 }
 
+// ✅ Domain Checker Handler
+function isValidDomain(domain) {
+  const domainRegex = /^(?!\-)(?:[a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain);
+}
+
+function setupDomainChecker() {
+  const domainInput = document.getElementById('customDomain');
+  const checkBtn = document.getElementById('checkDomainBtn');
+  const resultDisplay = document.getElementById('domainCheckResult');
+
+  if (!domainInput || !checkBtn || !resultDisplay) return;
+
+  checkBtn.addEventListener('click', async () => {
+    const domain = domainInput.value.trim().toLowerCase();
+
+    resultDisplay.textContent = '';
+    resultDisplay.style.color = 'black';
+
+    if (!isValidDomain(domain)) {
+      resultDisplay.textContent = '❌ Please enter a valid domain name.';
+      resultDisplay.style.color = 'red';
+      return;
+    }
+
+    resultDisplay.textContent = 'Checking...';
+
+    try {
+      const res = await fetch('/check-domain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+
+      const data = await res.json();
+
+      if (data.available) {
+        resultDisplay.textContent = `✅ "${domain}" is available!`;
+        resultDisplay.style.color = 'green';
+      } else {
+        resultDisplay.textContent = `❌ "${domain}" is already taken.`;
+        resultDisplay.style.color = 'red';
+      }
+    } catch (err) {
+      resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
+      resultDisplay.style.color = 'orange';
+    }
+  });
+}
+
+// ✅ DOMContentLoaded block — NOW includes setupDomainChecker()
 document.addEventListener('DOMContentLoaded', () => {
-    const customizationPanel = document.getElementById('customizationPanel');
-    if (customizationPanel) customizationPanel.style.display = 'none';
+  const customizationPanel = document.getElementById('customizationPanel');
+  if (customizationPanel) customizationPanel.style.display = 'none';
 
-    const tools = customizationPanel?.querySelector('.custom-tools');
-    if (tools) tools.style.display = 'none'; // ✅ Hide button grid just in case
+  const tools = customizationPanel?.querySelector('.custom-tools');
+  if (tools) tools.style.display = 'none';
 
-    new WebsiteGenerator();
+  setupDomainChecker(); // ✅ ← This line is the missing piece
+  new WebsiteGenerator();
 });

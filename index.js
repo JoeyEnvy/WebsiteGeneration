@@ -459,6 +459,42 @@ app.post('/generate', async (req, res) => {
   }
 });
 
+
+
+
+// ========================================================================
+// Domain Availability Checker (GoDaddy API)
+// ========================================================================
+app.post('/check-domain', async (req, res) => {
+  const { domain } = req.body;
+
+  if (!domain || typeof domain !== 'string') {
+    return res.status(400).json({ error: 'Invalid domain format' });
+  }
+
+  try {
+    const response = await fetch(`https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(domain)}`, {
+      headers: {
+        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+        Accept: 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`GoDaddy API responded with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json({ available: data.available });
+  } catch (err) {
+    console.error('❌ Domain check failed:', err.message);
+    res.status(500).json({ error: 'Domain availability check failed.' });
+  }
+});
+
+
+
+
 // ========================================================================
 // Server startup
 // ========================================================================
