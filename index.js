@@ -126,7 +126,7 @@ try {
   res.status(500).json({ error: 'Failed to create Stripe session' });
 }
 
-
+});
 
 // ========================================================================
 // Email ZIP File Endpoint (SendGrid)
