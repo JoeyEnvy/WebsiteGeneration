@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Full Hosting Purchase - Website Generator</title>
-<link rel="stylesheet" href="public/css/styles.css">
+  <!-- ✅ Fixed relative path to CSS -->
+  <link rel="stylesheet" href="./public/css/styles.css">
 </head>
 <body>
   <div class="container" style="max-width: 800px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -62,7 +63,6 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Deployment failed');
 
-        // Update domain and repo info
         document.getElementById('hostedLink').href = `https://${domain}`;
         document.getElementById('hostedLink').textContent = `https://${domain}`;
 
@@ -82,8 +82,8 @@
     });
   </script>
 
-
-<script src="public/js/main.js"></script>
-
+  <!-- ✅ Fixed relative path to JS -->
+  <script src="./public/js/main.js"></script>
 </body>
 </html>
+
