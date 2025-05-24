@@ -54,30 +54,35 @@ app.get('/get-steps/:sessionId', (req, res) => {
 // Stripe Checkout Payment Endpoint
 // ========================================================================
 app.post('/create-checkout-session', async (req, res) => {
-  const { type, sessionId, businessName } = req.body;
+  const { type, sessionId, businessName, domain, duration } = req.body;
 
   if (!type || !sessionId) {
     return res.status(400).json({ error: 'Missing deployment type or session ID.' });
   }
 
-  // Initialize session storage if needed
+  // Initialize session if needed
   if (!tempSessions[sessionId]) tempSessions[sessionId] = {};
-
-  // Save business name if provided
-  if (businessName) {
-    tempSessions[sessionId].businessName = businessName;
-  }
+  if (businessName) tempSessions[sessionId].businessName = businessName;
+  if (domain) tempSessions[sessionId].domain = domain;
+  if (duration) tempSessions[sessionId].domainDuration = duration;
 
   const priceMap = {
-    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
     'zip-download': { price: 5000, name: 'ZIP File Only' },
+    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
     'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { price: 30000, name: 'Full Hosting + Custom Domain' }
+    'full-hosting': { name: 'Full Hosting + Custom Domain' } // price depends on duration
   };
 
   const product = priceMap[type];
   if (!product) {
     return res.status(400).json({ error: 'Invalid deployment option.' });
+  }
+
+  let finalPrice = 0;
+  if (type === 'full-hosting') {
+    finalPrice = duration === '3' ? 45000 : 30000; // £450 for 3 years, £300 for 1 year
+  } else {
+    finalPrice = product.price;
   }
 
   try {
@@ -86,20 +91,23 @@ app.post('/create-checkout-session', async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'gbp',
-            product_data: { name: product.name },
-            unit_amount: product.price
-          },
-          quantity: 1
-        }
-      ],
-success_url: type === 'full-hosting'
-  ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
-  : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
-
+      line_items: [{
+        price_data: {
+          currency: 'gbp',
+          product_data: { name: product.name },
+          unit_amount: finalPrice
+        },
+        quantity: 1
+      }],
+      metadata: {
+        sessionId,
+        type,
+        domain: domain || '',
+        duration: duration || '1'
+      },
+      success_url: type === 'full-hosting'
+        ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
+        : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
       cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
     });
 

@@ -425,8 +425,7 @@
         <button class="btn btn-primary" id="deployGithubHosted">Buy GitHub Hosting + Support</button>
       </div>
 
-      <!-- Option 4: Custom Domain --><!-- Option 4: Custom Domain -->
-<!-- ✅ Updated Deployment Modal with Domain Info -->
+<!-- ✅ Updated Deployment Modal with Domain Info + Duration Option -->
 <div class="deploy-option-card">
   <h4>🌐 Full Hosting + Custom Domain</h4>
   <p>Let us register and host your website on a proper domain of your choice.</p>
@@ -435,14 +434,23 @@
     <li>GitHub deployment</li>
     <li>Support included via <strong>support@websitegenerator.co.uk</strong></li>
   </ul>
+
   <label for="customDomain">Check domain availability:</label>
   <input type="text" id="customDomain" placeholder="e.g. mybusiness.co.uk" />
   <button id="checkDomainBtn">Check Availability</button>
   <p id="domainCheckResult"></p>
+
+  <label for="domainDuration" style="margin-top: 10px; display: block;">Choose domain duration:</label>
+  <select id="domainDuration" style="margin: 8px 0 12px;">
+    <option value="1">1 Year (Included)</option>
+    <option value="3">3 Years (+£150)</option>
+  </select>
+
   <p class="domain-term-info" style="font-size: 0.9rem; color: #666;">
-    📅 Domain will be registered in your name for <strong>1 year</strong>.<br>
-    You may request renewal for 2 or 3 years via <a href="mailto:support@websitegenerator.co.uk">support</a>.
+    📅 Domain will be registered in your name for the selected period.<br>
+    You may request additional years via <a href="mailto:support@websitegenerator.co.uk">support</a>.
   </p>
+
   <button id="deployFullHosting" class="btn btn-primary" disabled>Buy Full Hosting + URL</button>
 </div>
 

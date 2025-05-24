@@ -638,25 +638,17 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
     }
 }
 
+// ✅ Domain Validator
+function isValidDomain(domain) {
+  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain) &&
+         domain.length <= 253 &&
+         !domain.includes(' ') &&
+         !domain.startsWith('.') &&
+         !domain.endsWith('.');
+}
+
 // ✅ Domain Checker Handler
-function isValidDomain(domain) {
-  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain) &&
-         domain.length <= 253 &&
-         !domain.includes(' ') &&
-         !domain.startsWith('.') &&
-         !domain.endsWith('.');
-}
-
-function isValidDomain(domain) {
-  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain) &&
-         domain.length <= 253 &&
-         !domain.includes(' ') &&
-         !domain.startsWith('.') &&
-         !domain.endsWith('.');
-}
-
 function setupDomainChecker() {
   const domainInput = document.getElementById('customDomain');
   const checkBtn = document.getElementById('checkDomainBtn');
@@ -665,7 +657,6 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
-  // ✅ Add this live feedback listener
   domainInput.addEventListener('input', () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!domain) {
@@ -726,7 +717,52 @@ function setupDomainChecker() {
   });
 }
 
-// ✅ DOMContentLoaded block — NOW includes setupDomainChecker
+// ✅ Full Hosting Button Handler
+const deployFullHostingBtn = document.getElementById('deployFullHosting');
+if (deployFullHostingBtn) {
+  deployFullHostingBtn.addEventListener('click', async () => {
+    const domain = document.getElementById('customDomain')?.value?.trim().toLowerCase();
+    const duration = document.getElementById('domainDuration')?.value || '1';
+
+    if (!domain || !isValidDomain(domain)) {
+      alert('❌ Please enter a valid domain.');
+      return;
+    }
+
+    localStorage.setItem('customDomain', domain);
+    localStorage.setItem('domainDuration', duration);
+
+    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
+    localStorage.setItem('sessionId', sessionId);
+
+    try {
+      const res = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'full-hosting',
+          sessionId,
+          domain,
+          duration
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('⚠️ Failed to create checkout session.');
+        console.error(data);
+      }
+    } catch (err) {
+      alert('❌ Error creating Stripe session. Check console.');
+      console.error('Stripe checkout error:', err);
+    }
+  });
+}
+
+// ✅ DOMContentLoaded block
 document.addEventListener('DOMContentLoaded', () => {
   const customizationPanel = document.getElementById('customizationPanel');
   if (customizationPanel) customizationPanel.style.display = 'none';
