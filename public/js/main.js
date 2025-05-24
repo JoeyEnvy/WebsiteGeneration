@@ -455,14 +455,21 @@ async startStripeCheckout(type) {
 
 const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
 
+const payload = {
+  type,
+  sessionId,
+  businessName
+};
+
+if (type === 'full-hosting') {
+  payload.domain = localStorage.getItem('customDomain');
+  payload.duration = localStorage.getItem('domainDuration') || '1';
+}
+
 const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    type,
-    sessionId,
-    businessName  // ✅ now sending business name to backend
-  })
+  body: JSON.stringify(payload)
 });
 
 
