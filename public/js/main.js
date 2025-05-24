@@ -729,6 +729,9 @@ if (deployFullHostingBtn) {
       return;
     }
 
+    // ✅ Debug logging — confirm values going to backend
+    console.log('🛰️ Sending to backend:', { domain, duration });
+
     localStorage.setItem('customDomain', domain);
     localStorage.setItem('domainDuration', duration);
 

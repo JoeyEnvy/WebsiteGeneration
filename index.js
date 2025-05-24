@@ -85,38 +85,46 @@ app.post('/create-checkout-session', async (req, res) => {
     finalPrice = product.price;
   }
 
-  try {
-    const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
+try {
+  const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [{
-        price_data: {
-          currency: 'gbp',
-          product_data: { name: product.name },
-          unit_amount: finalPrice
-        },
-        quantity: 1
-      }],
-      metadata: {
-        sessionId,
-        type,
-        domain: domain || '',
-        duration: duration || '1'
+  // ✅ LOGGING for debug
+  console.log('💳 Stripe Checkout:', {
+    sessionId,
+    type,
+    domain,
+    duration,
+    finalPrice
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'payment',
+    line_items: [{
+      price_data: {
+        currency: 'gbp',
+        product_data: { name: product.name },
+        unit_amount: finalPrice
       },
-      success_url: type === 'full-hosting'
-        ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
-        : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
-      cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
-    });
+      quantity: 1
+    }],
+    metadata: {
+      sessionId,
+      type,
+      domain: domain || '',
+      duration: duration || '1'
+    },
+    success_url: type === 'full-hosting'
+      ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
+      : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
+    cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
+  });
 
-    res.json({ url: session.url });
-  } catch (err) {
-    console.error('❌ Stripe session creation failed:', err);
-    res.status(500).json({ error: 'Failed to create Stripe session' });
-  }
-});
+  res.json({ url: session.url });
+} catch (err) {
+  console.error('❌ Stripe session creation failed:', err);
+  res.status(500).json({ error: 'Failed to create Stripe session' });
+}
 
 
 
