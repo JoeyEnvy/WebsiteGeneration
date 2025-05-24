@@ -170,6 +170,43 @@ app.post('/email-zip', async (req, res) => {
 });
 
 
+// ========================================================================
+// DNS Helper for GoDaddy (GitHub Pages A Records)
+// ========================================================================
+async function setGitHubDNS(domain) {
+  const records = [
+    { type: 'A', name: '@', data: '185.199.108.153', ttl: 600 },
+    { type: 'A', name: '@', data: '185.199.109.153', ttl: 600 },
+    { type: 'A', name: '@', data: '185.199.110.153', ttl: 600 },
+    { type: 'A', name: '@', data: '185.199.111.153', ttl: 600 }
+  ];
+
+  const GODADDY_ENV = process.env.GODADDY_ENV || 'ote';
+  const apiBase = GODADDY_ENV === 'production'
+    ? 'https://api.godaddy.com'
+    : 'https://api.ote-godaddy.com';
+
+  const url = `${apiBase}/v1/domains/${domain}/records/A/@`;
+
+  const headers = {
+    'Authorization': `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(records)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`❌ DNS update failed: ${errText}`);
+  }
+
+  console.log(`✅ DNS A records set for ${domain}`);
+}
 
 
 
@@ -260,6 +297,17 @@ app.post('/deploy-github', async (req, res) => {
       }));
     }
 
+// Upload CNAME file to tell GitHub Pages to use the custom domain
+await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+  owner,
+  repo: repoName,
+  path: 'CNAME',
+  content: Buffer.from(domain).toString('base64'),
+  message: 'Add CNAME file for GitHub Pages custom domain',
+  branch: 'main'
+}));
+
+
     // Add static.yml for auto-deployment (adjust content as needed for your platform)
     await retryRequest(() => octokit.repos.createOrUpdateFileContents({
       owner,
@@ -331,38 +379,156 @@ try {
   }
 });
 
-// ========================================================================
-// Full Hosting + Custom Domain Deployment Route
-// ========================================================================
 app.post('/deploy-full-hosting', async (req, res) => {
-  const { sessionId, domain } = req.body;
+  const { sessionId, domain, duration } = req.body;
 
-  if (!sessionId || !domain) {
-    return res.status(400).json({ error: 'Missing session ID or domain name.' });
+  if (!sessionId || !domain || !duration) {
+    return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const sessionData = tempSessions[sessionId];
-  if (!sessionData || !sessionData.pages || !sessionData.businessName) {
-    return res.status(400).json({ error: 'Incomplete session data.' });
+  const session = tempSessions[sessionId];
+  if (!session || !session.pages || !session.businessName) {
+    return res.status(400).json({ error: 'Invalid session data' });
   }
 
+  const GITHUB_REPO = `${sanitizeRepoName(session.businessName)}-${Date.now()}`;
+  const GODADDY_API_KEY = process.env.GODADDY_API_KEY;
+  const GODADDY_API_SECRET = process.env.GODADDY_API_SECRET;
+  const GODADDY_ENV = process.env.GODADDY_ENV || 'ote';
+
+  // Step 1: Simulate domain purchase via GoDaddy OTE
   try {
-    // TODO: Add domain purchase logic via registrar API (e.g., GoDaddy, Namecheap, etc.)
+    const headers = {
+      'Authorization': `sso-key ${GODADDY_API_KEY}:${GODADDY_API_SECRET}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
 
-    // TODO: Deploy to GitHub (or another host) using sessionData.pages
-    // Could reuse the /deploy-github logic and add DNS config
+    const contact = {
+      nameFirst: "Joe",
+      nameLast: "Mort",
+      email: "your@email.com",
+      phone: "+441234567890",
+      addressMailing: {
+        address1: "123 Test St",
+        city: "London",
+        state: "London",
+        postalCode: "SW1A1AA",
+        country: "GB"
+      }
+    };
 
-    // TODO: Configure DNS to point domain to hosted site
+    const purchasePayload = {
+      consent: {
+        agreedAt: new Date().toISOString(),
+        agreedBy: req.ip || '127.0.0.1',
+        agreementKeys: ["DNRA"]
+      },
+      contactAdmin: contact,
+      contactRegistrant: contact,
+      contactTech: contact,
+      contactBilling: contact,
+      period: parseInt(duration),
+      privacy: true,
+      autoRenew: true
+    };
 
-    // Placeholder response for now
-    res.json({
+    const response = await fetch(`https://api.${GODADDY_ENV === 'production' ? '' : 'ote.'}godaddy.com/v1/domains/purchase/${domain}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(purchasePayload)
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      console.error('❌ GoDaddy purchase failed:', errData);
+      return res.status(500).json({ error: 'Domain purchase failed', details: errData });
+    }
+
+
+await setGitHubDNS(domain);
+
+
+
+  } catch (err) {
+    console.error('❌ GoDaddy request error:', err.message);
+    return res.status(500).json({ error: 'GoDaddy API error' });
+  }
+
+  // Step 2: Deploy to GitHub (same logic reused)
+  try {
+    const { pages, businessName } = session;
+    const { data: user } = await octokit.users.getAuthenticated();
+    const owner = user.login;
+    const repoName = await getUniqueRepoName(businessName, owner);
+
+    await retryRequest(() => octokit.repos.createForAuthenticatedUser({
+      name: repoName,
+      private: false,
+      auto_init: true
+    }));
+
+    for (const [index, html] of pages.entries()) {
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: index === 0 ? 'index.html' : `page${index + 1}.html`,
+        content: Buffer.from(html).toString('base64'),
+        message: `Add page ${index + 1}`,
+        branch: 'main'
+      }));
+    }
+
+    await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo: repoName,
+      path: 'static.yml',
+      content: Buffer.from(`publish: index.html\n`).toString('base64'),
+      message: 'Add static.yml for automatic deployment',
+      branch: 'main'
+    }));
+
+    for (const folder of ['images', 'videos']) {
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: `${folder}/.gitkeep`,
+        content: Buffer.from('').toString('base64'),
+        message: `Create empty ${folder}/ folder`,
+        branch: 'main'
+      }));
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      await retryRequest(() => octokit.request('POST /repos/{owner}/{repo}/pages', {
+        owner,
+        repo: repoName,
+        source: { branch: 'main', path: '/' }
+      }));
+    } catch (err) {
+      if (err.status === 409) {
+        await retryRequest(() => octokit.repos.updateInformationAboutPagesSite({
+          owner,
+          repo: repoName,
+          source: { branch: 'main', path: '/' }
+        }));
+      } else throw err;
+    }
+
+    const repoUrl = `https://github.com/${owner}/${repoName}`;
+    const pagesUrl = `https://${owner}.github.io/${repoName}/`;
+
+    return res.json({
       success: true,
-      message: `Domain ${domain} will be configured and deployed.`,
-      hostedUrl: `https://www.${domain}`
+      domain,
+      domainStatus: `Simulated purchase successful (${duration} years)`,
+      pagesUrl,
+      repoUrl
     });
   } catch (err) {
-    console.error('❌ Full Hosting Deployment Error:', err);
-    res.status(500).json({ error: 'Full hosting deployment failed', details: err.message });
+    console.error('❌ GitHub deploy error:', err.message);
+    return res.status(500).json({ error: 'GitHub deployment failed', details: err.message });
   }
 });
 

@@ -10,27 +10,27 @@
 <body>
   <div class="container" style="max-width: 800px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
     <h1>🌐 Full Hosting + Custom Domain</h1>
-    <p>Thank you for choosing the full hosting option. We're setting everything up for you.</p>
+    <p>Thank you for choosing our full hosting package. Your domain and website are being set up automatically.</p>
 
     <div class="status-box" style="margin-top: 24px; padding: 16px; background: #f0f8ff; border-left: 4px solid #007bff;">
-      <strong>✅ Your payment was successful.</strong> Your website is being deployed, and your domain is being registered.
+      <strong>✅ Payment successful.</strong> We're registering your domain, configuring DNS, and deploying your website now.
     </div>
 
     <div id="hostingDetails" style="margin-top: 30px; display: none;">
-      <h2>🔗 Your Custom Domain</h2>
-      <p><strong>Live URL:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a></p>
+      <h2>🔗 Your Website is Live</h2>
+      <p><strong>Custom Domain:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a></p>
       <p><strong>GitHub Repo:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a></p>
       <p class="domain-term-info" id="termDisplay">
-        📅 Domain will be registered in your name for <strong>1 year</strong>. You may request renewal via support.
+        📅 Domain will be registered for <strong>1 year</strong>. Renewal available via support.
       </p>
     </div>
 
     <div id="loadingBox" style="margin-top: 40px; font-size: 1.1rem;">
-      ⏳ Setting up your custom domain and deploying your website. Please wait...
+      ⏳ Setting up your domain and website. This may take up to a minute...
     </div>
 
     <div style="margin-top: 30px; font-size: 0.9rem;">
-      <p>If you need help or want to check the status of your domain, contact us at <strong>support@websitegenerator.co.uk</strong></p>
+      <p>Need help? Email us at <strong>support@websitegenerator.co.uk</strong></p>
     </div>
   </div>
 
@@ -45,11 +45,11 @@
       const termDisplay = document.getElementById('termDisplay');
 
       if (duration === '3') {
-        termDisplay.innerHTML = '📅 Domain will be registered in your name for <strong>3 years</strong>. Renewal handled via support.';
+        termDisplay.innerHTML = '📅 Domain will be registered for <strong>3 years</strong>. Renewal handled via support.';
       }
 
       if (!sessionId || !domain) {
-        loadingBox.innerText = '⚠️ Missing session or domain data. Please try again.';
+        loadingBox.innerText = '⚠️ Missing session or domain data. Please go back and try again.';
         return;
       }
 
@@ -63,12 +63,13 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Deployment failed');
 
-        document.getElementById('hostedLink').href = data.hostedUrl;
-        document.getElementById('hostedLink').textContent = data.hostedUrl;
+        // Update domain and repo info
+        document.getElementById('hostedLink').href = `https://${domain}`;
+        document.getElementById('hostedLink').textContent = `https://${domain}`;
 
-        if (data.repo) {
-          document.getElementById('repoLink').href = data.repo;
-          document.getElementById('repoLink').textContent = data.repo;
+        if (data.repoUrl) {
+          document.getElementById('repoLink').href = data.repoUrl;
+          document.getElementById('repoLink').textContent = data.repoUrl;
         } else {
           document.getElementById('repoLink').textContent = 'Unavailable';
         }
@@ -76,10 +77,10 @@
         loadingBox.style.display = 'none';
         document.getElementById('hostingDetails').style.display = 'block';
       } catch (err) {
-        loadingBox.innerText = '❌ Deployment failed: ' + err.message;
+        console.error(err);
+        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
       }
     });
   </script>
 </body>
 </html>
-
