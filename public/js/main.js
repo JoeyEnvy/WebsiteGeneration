@@ -106,7 +106,6 @@ initializeEventListeners() {
 }
 
 
-
     updatePreview() {
         if (this.generatedPages.length === 0) return;
 
@@ -639,8 +638,6 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
             });
         }
     } // ✅ Only one closing brace – ends method, not class
-
-}
 
 // ✅ Domain Validator
 function isValidDomain(domain) {
