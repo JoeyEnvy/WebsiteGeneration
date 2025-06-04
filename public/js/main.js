@@ -680,49 +680,114 @@ function setupDomainChecker() {
       resultDisplay.style.color = 'blue';
     }
   });
+checkBtn.addEventListener('click', async () => {
+  const domain = domainInput.value.trim().toLowerCase();
+  resultDisplay.textContent = '';
+  resultDisplay.style.color = 'black';
+  buyButton.disabled = true;
 
-  checkBtn.addEventListener('click', async () => {
-    const domain = domainInput.value.trim().toLowerCase();
-    resultDisplay.textContent = '';
-    resultDisplay.style.color = 'black';
-    buyButton.disabled = true;
+  const priceDisplay = document.getElementById('domainPriceDisplay');
+  if (priceDisplay) priceDisplay.textContent = ''; // clear old price
 
-    if (!isValidDomain(domain)) {
-      resultDisplay.textContent = '❌ Please enter a valid domain name.';
+  if (!isValidDomain(domain)) {
+    resultDisplay.textContent = '❌ Please enter a valid domain name.';
+    resultDisplay.style.color = 'red';
+    return;
+  }
+
+  resultDisplay.textContent = 'Checking...';
+
+  try {
+    const res = await fetch('https://websitegeneration.onrender.com/check-domain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain })
+    });
+
+    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+    const data = await res.json();
+
+    if (data.available) {
+      resultDisplay.textContent = `✅ "${domain}" is available!`;
+      resultDisplay.style.color = 'green';
+      buyButton.disabled = false;
+
+      // 🔄 Now fetch live price from backend
+      try {
+        const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            domain,
+            duration: document.getElementById('domainDuration')?.value || '1'
+          })
+        });
+
+        if (!priceRes.ok) throw new Error(`Estimate failed: ${priceRes.status}`);
+        const priceData = await priceRes.json();
+
+        const final = (priceData.domainPrice || 0).toFixed(2);
+        if (priceDisplay) {
+          priceDisplay.textContent = `💷 Estimated Price: £${final} + £150 service = £${(parseFloat(final) + 150).toFixed(2)}`;
+          priceDisplay.style.color = 'black';
+        }
+      } catch (err) {
+        console.error('Price estimate error:', err);
+        if (priceDisplay) {
+          priceDisplay.textContent = '⚠️ Could not retrieve domain price.';
+          priceDisplay.style.color = 'orange';
+        }
+      }
+
+    } else {
+      resultDisplay.textContent = `❌ "${domain}" is already taken.`;
       resultDisplay.style.color = 'red';
-      return;
+      buyButton.disabled = true;
     }
 
-    resultDisplay.textContent = 'Checking...';
+  } catch (err) {
+    resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
+    resultDisplay.style.color = 'orange';
+    buyButton.disabled = true;
+    console.error('Domain check error:', err);
+  }
+});
+
+const durationSelect = document.getElementById('domainDuration');
+if (durationSelect) {
+  durationSelect.addEventListener('change', async () => {
+    const domain = domainInput.value.trim().toLowerCase();
+    const priceDisplay = document.getElementById('domainPriceDisplay');
+    if (!isValidDomain(domain)) return;
 
     try {
-      const res = await fetch('https://websitegeneration.onrender.com/check-domain', {
+      const res = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain })
+        body: JSON.stringify({
+          domain,
+          duration: durationSelect.value
+        })
       });
 
-      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+      if (!res.ok) throw new Error('Estimate failed');
+      const { domainPrice } = await res.json();
 
-      const data = await res.json();
-
-      if (data.available) {
-        resultDisplay.textContent = `✅ "${domain}" is available!`;
-        resultDisplay.style.color = 'green';
-        buyButton.disabled = false;
-      } else {
-        resultDisplay.textContent = `❌ "${domain}" is already taken.`;
-        resultDisplay.style.color = 'red';
-        buyButton.disabled = true;
+      const base = parseFloat(domainPrice || 0);
+      if (priceDisplay) {
+        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${(base + 150).toFixed(2)}`;
+        priceDisplay.style.color = 'black';
       }
     } catch (err) {
-      resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
-      resultDisplay.style.color = 'orange';
-      buyButton.disabled = true;
-      console.error('Domain check error:', err);
+      console.error('Price recheck error:', err);
+      if (priceDisplay) {
+        priceDisplay.textContent = '⚠️ Could not re-estimate price.';
+        priceDisplay.style.color = 'orange';
+      }
     }
   });
 }
+
 
 // ✅ Full Hosting Button Handler
 const deployFullHostingBtn = document.getElementById('deployFullHosting');

@@ -119,7 +119,7 @@ app.post('/create-checkout-session', async (req, res) => {
     'zip-download': { price: 5000, name: 'ZIP File Only' },
     'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
     'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { name: 'Full Hosting + Custom Domain' } // price depends on duration
+    'full-hosting': { name: 'Full Hosting + Custom Domain' } // dynamic price
   };
 
   const product = priceMap[type];
@@ -127,80 +127,86 @@ app.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid deployment option.' });
   }
 
-let finalPrice = 0;
-if (type === 'full-hosting') {
-  const apiBase = process.env.GODADDY_ENV === 'production'
-    ? 'https://api.godaddy.com'
-    : 'https://api.ote-godaddy.com';
+  let finalPrice = 0;
 
-  const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
-    method: 'POST',
-    headers: {
-      Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      domain,
-      period: parseInt(duration) || 1,
-      privacy: false
-    })
-  });
+  if (type === 'full-hosting') {
+    const apiBase = process.env.GODADDY_ENV === 'production'
+      ? 'https://api.godaddy.com'
+      : 'https://api.ote-godaddy.com';
 
-  if (!estimateRes.ok) {
-    const errText = await estimateRes.text();
-    console.error('❌ Failed to get GoDaddy estimate:', errText);
-    return res.status(500).json({ error: 'Domain price fetch failed' });
+    const period = parseInt(duration) || 1;
+    let domainPrice = 10.00; // default fallback if estimate fails
+
+    try {
+      const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
+        method: 'POST',
+        headers: {
+          Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          domain,
+          period,
+          privacy: false
+        })
+      });
+
+      if (!estimateRes.ok) {
+        const errText = await estimateRes.text();
+        console.warn('⚠️ GoDaddy estimate failed, using fallback price:', errText);
+      } else {
+        const estimate = await estimateRes.json();
+        domainPrice = estimate.price / 100;
+      }
+    } catch (err) {
+      console.warn('⚠️ GoDaddy estimate error (network or JSON):', err.message);
+    }
+
+    finalPrice = Math.round((domainPrice + 150) * 100); // GBP to pence
+  } else {
+    finalPrice = product.price;
   }
 
-  const { price } = await estimateRes.json();
-  const domainPrice = price / 100;
-  finalPrice = Math.round((domainPrice + 0) * 100); // £GBP to pence
-} else {
-  finalPrice = product.price;
-}
+  try {
+    const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
 
-try {
-  const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
-
-  // ✅ LOGGING for debug
-  console.log('💳 Stripe Checkout:', {
-    sessionId,
-    type,
-    domain,
-    duration,
-    finalPrice
-  });
-
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'payment',
-    line_items: [{
-      price_data: {
-        currency: 'gbp',
-        product_data: { name: product.name },
-        unit_amount: finalPrice
-      },
-      quantity: 1
-    }],
-    metadata: {
+    console.log('💳 Stripe Checkout:', {
       sessionId,
       type,
-      domain: domain || '',
-      duration: duration || '1'
-    },
-    success_url: type === 'full-hosting'
-      ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
-      : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
-    cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
-  });
+      domain,
+      duration,
+      finalPrice
+    });
 
-  res.json({ url: session.url });
-} catch (err) {
-  console.error('❌ Stripe session creation failed:', err);
-  res.status(500).json({ error: 'Failed to create Stripe session' });
-}
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'gbp',
+          product_data: { name: product.name },
+          unit_amount: finalPrice
+        },
+        quantity: 1
+      }],
+      metadata: {
+        sessionId,
+        type,
+        domain: domain || '',
+        duration: duration || '1'
+      },
+      success_url: type === 'full-hosting'
+        ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
+        : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
+      cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
+    });
 
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('❌ Stripe session creation failed:', err);
+    res.status(500).json({ error: 'Failed to create Stripe session' });
+  }
 });
 
 // ========================================================================
