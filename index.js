@@ -50,6 +50,55 @@ app.get('/get-steps/:sessionId', (req, res) => {
   res.json({ success: true, steps: sessionData });
 });
 
+
+// ========================================================================
+// Get domain price estimate from GoDaddy (for 1 or 3 years)
+// ========================================================================
+app.post('/get-domain-price', async (req, res) => {
+  const { domain, duration } = req.body;
+
+  if (!domain || typeof domain !== 'string') {
+    return res.status(400).json({ error: 'Invalid domain format.' });
+  }
+
+  try {
+    const apiBase =
+      process.env.GODADDY_ENV === 'production'
+        ? 'https://api.godaddy.com'
+        : 'https://api.ote-godaddy.com';
+
+    const response = await fetch(`${apiBase}/v1/domains/estimate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        domain,
+        period: parseInt(duration) || 1,
+        privacy: false
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ GoDaddy estimate error [${response.status}]:`, errorText);
+      return res.status(502).json({ error: 'GoDaddy estimate error', detail: errorText });
+    }
+
+    const data = await response.json();
+    const domainPrice = data.price / 100; // convert pennies to GBP
+
+    res.json({ domainPrice });
+  } catch (err) {
+    console.error('❌ Domain price fetch failed:', err.message);
+    res.status(500).json({ error: 'Failed to fetch domain price.' });
+  }
+});
+
+
+
 // ========================================================================
 // Stripe Checkout Payment Endpoint
 // ========================================================================
@@ -78,12 +127,38 @@ app.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid deployment option.' });
   }
 
-  let finalPrice = 0;
-  if (type === 'full-hosting') {
-    finalPrice = duration === '3' ? 45000 : 30000; // £450 for 3 years, £300 for 1 year
-  } else {
-    finalPrice = product.price;
+let finalPrice = 0;
+if (type === 'full-hosting') {
+  const apiBase = process.env.GODADDY_ENV === 'production'
+    ? 'https://api.godaddy.com'
+    : 'https://api.ote-godaddy.com';
+
+  const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
+    method: 'POST',
+    headers: {
+      Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      domain,
+      period: parseInt(duration) || 1,
+      privacy: false
+    })
+  });
+
+  if (!estimateRes.ok) {
+    const errText = await estimateRes.text();
+    console.error('❌ Failed to get GoDaddy estimate:', errText);
+    return res.status(500).json({ error: 'Domain price fetch failed' });
   }
+
+  const { price } = await estimateRes.json();
+  const domainPrice = price / 100;
+  finalPrice = Math.round((domainPrice + 0) * 100); // £GBP to pence
+} else {
+  finalPrice = product.price;
+}
 
 try {
   const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
