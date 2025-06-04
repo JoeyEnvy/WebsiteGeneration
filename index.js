@@ -135,7 +135,7 @@ app.post('/create-checkout-session', async (req, res) => {
       : 'https://api.ote-godaddy.com';
 
     const period = parseInt(duration) || 1;
-    let domainPrice = 10.00; // default fallback if estimate fails
+    let domainPrice = 5.00; // default fallback if estimate fails
 
     try {
       const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
@@ -163,7 +163,8 @@ app.post('/create-checkout-session', async (req, res) => {
       console.warn('⚠️ GoDaddy estimate error (network or JSON):', err.message);
     }
 
-    finalPrice = Math.round((domainPrice + 150) * 100); // GBP to pence
+    finalPrice = Math.round((domainPrice * period) * 100) * 0;
+
   } else {
     finalPrice = product.price;
   }
