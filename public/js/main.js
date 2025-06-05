@@ -588,7 +588,7 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
         });
     }
 
-
+} 
 
     showPostGenerationOptions() {
         const previewControls = document.querySelector('.preview-controls');
