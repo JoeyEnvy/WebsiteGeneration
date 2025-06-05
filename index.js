@@ -83,17 +83,17 @@ app.post('/get-domain-price', async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ GoDaddy estimate error [${response.status}]:`, errorText);
-      return res.status(502).json({ error: 'GoDaddy estimate error', detail: errorText });
+      console.warn(`⚠️ GoDaddy estimate fallback [${response.status}]: ${errorText}`);
+      return res.json({ domainPrice: 5 }); // fallback to £5
     }
 
     const data = await response.json();
-    const domainPrice = data.price / 100; // convert pennies to GBP
+    const domainPrice = data.price / 100;
 
     res.json({ domainPrice });
   } catch (err) {
-    console.error('❌ Domain price fetch failed:', err.message);
-    res.status(500).json({ error: 'Failed to fetch domain price.' });
+    console.warn('⚠️ GoDaddy estimate error (network):', err.message);
+    return res.json({ domainPrice: 5 }); // fallback on error too
   }
 });
 
@@ -102,6 +102,8 @@ app.post('/get-domain-price', async (req, res) => {
 // ========================================================================
 // Stripe Checkout Payment Endpoint
 // ========================================================================
+
+
 app.post('/create-checkout-session', async (req, res) => {
   const { type, sessionId, businessName, domain, duration } = req.body;
 
@@ -109,7 +111,6 @@ app.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Missing deployment type or session ID.' });
   }
 
-  // Initialize session if needed
   if (!tempSessions[sessionId]) tempSessions[sessionId] = {};
   if (businessName) tempSessions[sessionId].businessName = businessName;
   if (domain) tempSessions[sessionId].domain = domain;
@@ -119,7 +120,7 @@ app.post('/create-checkout-session', async (req, res) => {
     'zip-download': { price: 5000, name: 'ZIP File Only' },
     'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
     'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { name: 'Full Hosting + Custom Domain' } // dynamic price
+    'full-hosting': { name: 'Full Hosting + Custom Domain' }
   };
 
   const product = priceMap[type];
@@ -135,7 +136,7 @@ app.post('/create-checkout-session', async (req, res) => {
       : 'https://api.ote-godaddy.com';
 
     const period = parseInt(duration) || 1;
-    let domainPrice = 5.00; // default fallback if estimate fails
+    let domainPrice = 5.00;
 
     try {
       const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
@@ -145,11 +146,7 @@ app.post('/create-checkout-session', async (req, res) => {
           Accept: 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          domain,
-          period,
-          privacy: false
-        })
+        body: JSON.stringify({ domain, period, privacy: false })
       });
 
       if (!estimateRes.ok) {
@@ -163,7 +160,8 @@ app.post('/create-checkout-session', async (req, res) => {
       console.warn('⚠️ GoDaddy estimate error (network or JSON):', err.message);
     }
 
-    finalPrice = Math.round((domainPrice * period) * 100) * 0;
+    finalPrice = Math.round((domainPrice * period) * 100);
+    if (isNaN(finalPrice) || finalPrice < 100) finalPrice = 500;
 
   } else {
     finalPrice = product.price;
@@ -172,13 +170,7 @@ app.post('/create-checkout-session', async (req, res) => {
   try {
     const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
 
-    console.log('💳 Stripe Checkout:', {
-      sessionId,
-      type,
-      domain,
-      duration,
-      finalPrice
-    });
+    console.log('💳 Stripe Checkout:', { sessionId, type, domain, duration, finalPrice });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

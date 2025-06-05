@@ -3,6 +3,17 @@ window.addEventListener('beforeunload', () => {
   localStorage.removeItem('generatedPages');
 });
 
+// ✅ Domain Validator
+function isValidDomain(domain) {
+  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain) &&
+         domain.length <= 253 &&
+         !domain.includes(' ') &&
+         !domain.startsWith('.') &&
+         !domain.endsWith('.');
+}
+
+
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -104,6 +115,7 @@ initializeEventListeners() {
         this.startStripeCheckout('full-hosting');
     });
 }
+
 
 
     updatePreview() {
@@ -575,6 +587,9 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
             });
         });
     }
+
+
+
     showPostGenerationOptions() {
         const previewControls = document.querySelector('.preview-controls');
         if (!previewControls || document.getElementById('postGenActions')) return;
@@ -639,15 +654,6 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
         }
     } // ✅ Only one closing brace – ends method, not class
 
-// ✅ Domain Validator
-function isValidDomain(domain) {
-  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain) &&
-         domain.length <= 253 &&
-         !domain.includes(' ') &&
-         !domain.startsWith('.') &&
-         !domain.endsWith('.');
-}
 
 // ✅ Domain Checker Handler
 function setupDomainChecker() {
