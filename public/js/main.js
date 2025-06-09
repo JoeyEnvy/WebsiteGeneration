@@ -844,6 +844,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tools) tools.style.display = 'none';
   }
 
-  setupDomainChecker();
   new WebsiteGenerator();
 });
