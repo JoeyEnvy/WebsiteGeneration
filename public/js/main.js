@@ -1,6 +1,3 @@
-
-
-
 // ✅ Clear previous site data on hard refresh
 window.addEventListener('beforeunload', () => {
   localStorage.removeItem('generatedPages');
@@ -28,86 +25,88 @@ class WebsiteGenerator {
             this.generatedPages = JSON.parse(savedPages);
         }
 
-        this.initializeEventListeners();  // <== calling it here
+        this.initializeEventListeners();  // ✅ call event listeners
+        this.initializeDeploymentButtons(); // ✅ call deployment listeners
         this.highlightStep(this.currentStep);
     }
 
-    // ✅ ADD THIS FULL METHOD BELOW THE CONSTRUCTOR:
-initializeEventListeners() {
-    const nextStep4Btn = document.getElementById('nextStep4');
-    if (nextStep4Btn) {
-        nextStep4Btn.addEventListener('click', () => {
-            if (this.validateStep('step4')) this.goToStep(5);
+    // ✅ Event Listeners
+    initializeEventListeners() {
+        const nextStep4Btn = document.getElementById('nextStep4');
+        if (nextStep4Btn) {
+            nextStep4Btn.addEventListener('click', () => {
+                if (this.validateStep('step4')) this.goToStep(5);
+            });
+        }
+
+        document.getElementById('nextStep1')?.addEventListener('click', () => {
+            if (this.validateStep('step1')) this.goToStep(2);
         });
+
+        document.getElementById('nextStep2')?.addEventListener('click', () => {
+            if (this.validateStep('step2')) this.goToStep(3);
+        });
+
+        document.getElementById('nextStep3')?.addEventListener('click', () => {
+            if (this.validateStep('step3')) this.goToStep(4);
+        });
+
+        document.getElementById('prevStep2')?.addEventListener('click', () => this.goToStep(1));
+        document.getElementById('prevStep3')?.addEventListener('click', () => this.goToStep(2));
+        document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
+
+        document.querySelectorAll('.preview-controls button')?.forEach(button => {
+            button.addEventListener('click', () => {
+                this.changePreviewDevice(button.id.replace('Preview', ''));
+            });
+        });
+
+        document.getElementById('prevPage')?.addEventListener('click', () => this.changePage(-1));
+        document.getElementById('nextPage')?.addEventListener('click', () => this.changePage(1));
+
+        this.form?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
+
+        const purchaseBtn = document.getElementById('purchaseBtn');
+        const downloadBtn = document.getElementById('downloadSiteBtn');
+
+        if (purchaseBtn) {
+            purchaseBtn.addEventListener('click', () => {
+                const confirmed = confirm("Simulated payment: Proceed to pay £X?");
+                if (confirmed) {
+                    this.userHasPaid = true;
+                    purchaseBtn.style.display = 'none';
+                    if (downloadBtn) downloadBtn.style.display = 'inline-block';
+                    alert('Payment successful. You can now download your website.');
+                }
+            });
+        }
+
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+        }
     }
 
-    document.getElementById('nextStep1')?.addEventListener('click', () => {
-        if (this.validateStep('step1')) this.goToStep(2);
-    });
-
-    document.getElementById('nextStep2')?.addEventListener('click', () => {
-        if (this.validateStep('step2')) this.goToStep(3);
-    });
-
-    document.getElementById('nextStep3')?.addEventListener('click', () => {
-        if (this.validateStep('step3')) this.goToStep(4);
-    });
-
-    document.getElementById('prevStep2')?.addEventListener('click', () => this.goToStep(1));
-    document.getElementById('prevStep3')?.addEventListener('click', () => this.goToStep(2));
-    document.getElementById('prevStep4')?.addEventListener('click', () => this.goToStep(3));
-
-    document.querySelectorAll('.preview-controls button')?.forEach(button => {
-        button.addEventListener('click', () => {
-            this.changePreviewDevice(button.id.replace('Preview', ''));
+    // ✅ Stripe Deployment Buttons
+    initializeDeploymentButtons() {
+        document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
+            this.startStripeCheckout('github-instructions');
         });
-    });
 
-    document.getElementById('prevPage')?.addEventListener('click', () => this.changePage(-1));
-    document.getElementById('nextPage')?.addEventListener('click', () => this.changePage(1));
+        document.getElementById('deployZipOnly')?.addEventListener('click', () => {
+            this.startStripeCheckout('zip-download');
+        });
 
-    this.form?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        this.handleSubmit();
-    });
+        document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
+            this.startStripeCheckout('github-hosted');
+        });
 
-    const purchaseBtn = document.getElementById('purchaseBtn');
-    const downloadBtn = document.getElementById('downloadSiteBtn');
-
-    if (purchaseBtn) {
-        purchaseBtn.addEventListener('click', () => {
-            const confirmed = confirm("Simulated payment: Proceed to pay £X?");
-            if (confirmed) {
-                this.userHasPaid = true;
-                purchaseBtn.style.display = 'none';
-                if (downloadBtn) downloadBtn.style.display = 'inline-block';
-                alert('Payment successful. You can now download your website.');
-            }
+        document.getElementById('deployFullHosting')?.addEventListener('click', () => {
+            this.startStripeCheckout('full-hosting');
         });
     }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
-    }
-
-initializeDeploymentButtons() {
-  document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
-    this.startStripeCheckout('github-instructions');
-  });
-
-  document.getElementById('deployZipOnly')?.addEventListener('click', () => {
-    this.startStripeCheckout('zip-download');
-  });
-
-  document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
-    this.startStripeCheckout('github-hosted');
-  });
-
-  document.getElementById('deployFullHosting')?.addEventListener('click', () => {
-    this.startStripeCheckout('full-hosting');
-  });
-}
-
 
     updatePreview() {
         if (this.generatedPages.length === 0) return;
