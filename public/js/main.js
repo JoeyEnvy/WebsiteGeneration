@@ -645,7 +645,8 @@ const response = await fetch('https://websitegeneration.onrender.com/create-chec
 
 // ✅ Domain Validator
 function isValidDomain(domain) {
-  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  const domainRegex = /^(?!\-)(?!.*\-$)(?!.*?\.\.)([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}$
+/;
   return domainRegex.test(domain) &&
          domain.length <= 253 &&
          !domain.includes(' ') &&
@@ -725,7 +726,9 @@ function setupDomainChecker() {
           if (!priceRes.ok) throw new Error(`Estimate failed: ${priceRes.status}`);
           const priceData = await priceRes.json();
 
-          const final = (priceData.domainPrice || 0).toFixed(2);
+         const price = parseFloat(priceData.domainPrice || 0);
+const final = price.toFixed(2);
+
           if (priceDisplay) {
             priceDisplay.textContent = `💷 Estimated Price: £${final} + £150 service = £${(parseFloat(final) + 150).toFixed(2)}`;
             priceDisplay.style.color = 'black';
@@ -752,40 +755,48 @@ function setupDomainChecker() {
   });
 
   const durationSelect = document.getElementById('domainDuration');
-  if (durationSelect) {
-    durationSelect.addEventListener('change', async () => {
-      const domain = domainInput.value.trim().toLowerCase();
-      const priceDisplay = document.getElementById('domainPriceDisplay');
-      if (!isValidDomain(domain)) return;
+if (durationSelect) {
+  durationSelect.addEventListener('change', async () => {
+    const domain = domainInput.value.trim().toLowerCase();
+    const priceDisplay = document.getElementById('domainPriceDisplay');
+    const resultDisplay = document.getElementById('domainCheckResult');
 
-      try {
-        const res = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            domain,
-            duration: durationSelect.value
-          })
-        });
+    if (!isValidDomain(domain)) return;
 
-        if (!res.ok) throw new Error('Estimate failed');
-        const { domainPrice } = await res.json();
+    // ✅ Save new duration
+    localStorage.setItem('domainDuration', durationSelect.value);
 
-        const base = parseFloat(domainPrice || 0);
-        if (priceDisplay) {
-          priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${(base + 150).toFixed(2)}`;
-          priceDisplay.style.color = 'black';
-        }
-      } catch (err) {
-        console.error('Price recheck error:', err);
-        if (priceDisplay) {
-          priceDisplay.textContent = '⚠️ Could not re-estimate price.';
-          priceDisplay.style.color = 'orange';
-        }
+    // ✅ Only proceed if domain is already marked as available
+    if (!resultDisplay.textContent.includes('available')) return;
+
+    try {
+      const res = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain,
+          duration: durationSelect.value
+        })
+      });
+
+      if (!res.ok) throw new Error('Estimate failed');
+      const { domainPrice } = await res.json();
+
+      const base = parseFloat(domainPrice || 0);
+      if (priceDisplay) {
+        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${(base + 150).toFixed(2)}`;
+        priceDisplay.style.color = 'black';
       }
-    });
-  }
+    } catch (err) {
+      console.error('Price recheck error:', err);
+      if (priceDisplay) {
+        priceDisplay.textContent = '⚠️ Could not re-estimate price.';
+        priceDisplay.style.color = 'orange';
+      }
+    }
+  });
 }
+
 
 
 // ✅ Full Hosting Button Handler
@@ -803,8 +814,10 @@ if (deployFullHostingBtn) {
     // ✅ Debug logging — confirm values going to backend
     console.log('🛰️ Sending to backend:', { domain, duration });
 
-    localStorage.setItem('customDomain', domain);
-    localStorage.setItem('domainDuration', duration);
+localStorage.setItem('customDomain', domain);
+localStorage.setItem('domainDuration', document.getElementById('domainDuration')?.value || '1');
+localStorage.setItem('domainPrice', final);
+
 
     const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
     localStorage.setItem('sessionId', sessionId);

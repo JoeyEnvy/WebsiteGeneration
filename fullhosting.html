@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Full Hosting Purchase - Website Generator</title>
-  <!-- ✅ Fixed relative path to CSS -->
   <link rel="stylesheet" href="./public/css/styles.css">
 </head>
 <body>
@@ -38,7 +37,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
       const sessionId = params.get('sessionId');
-      const domain = localStorage.getItem('customDomain');
+      let domain = localStorage.getItem('customDomain') || params.get('domain');
       const duration = localStorage.getItem('domainDuration') || '1';
 
       const loadingBox = document.getElementById('loadingBox');
@@ -63,27 +62,29 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Deployment failed');
 
-        document.getElementById('hostedLink').href = `https://${domain}`;
-        document.getElementById('hostedLink').textContent = `https://${domain}`;
+        console.log('✅ Deployment result:', data);
+
+        const hostedUrl = `https://${domain}`;
+        document.getElementById('hostedLink').href = hostedUrl;
+        document.getElementById('hostedLink').textContent = hostedUrl;
 
         if (data.repoUrl) {
           document.getElementById('repoLink').href = data.repoUrl;
           document.getElementById('repoLink').textContent = data.repoUrl;
         } else {
           document.getElementById('repoLink').textContent = 'Unavailable';
+          console.warn('⚠️ repoUrl missing despite success:', data);
         }
 
         loadingBox.style.display = 'none';
         document.getElementById('hostingDetails').style.display = 'block';
       } catch (err) {
-        console.error(err);
+        console.error('❌ Full hosting deployment error:', err);
         loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
       }
     });
   </script>
 
-  <!-- ✅ Fixed relative path to JS -->
   <script src="./public/js/main.js"></script>
 </body>
 </html>
-
