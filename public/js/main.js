@@ -107,7 +107,7 @@ class WebsiteGenerator {
       this.startStripeCheckout('full-hosting');
     });
   }
-}
+
 
 
     updatePreview() {
