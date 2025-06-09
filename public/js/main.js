@@ -90,22 +90,22 @@ initializeEventListeners() {
         downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
     }
 
-    // ✅ Stripe Checkout Deployment Options
-    document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
-        this.startStripeCheckout('github-instructions');
-    });
+initializeDeploymentButtons() {
+  document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
+    this.startStripeCheckout('github-instructions');
+  });
 
-    document.getElementById('deployZipOnly')?.addEventListener('click', () => {
-        this.startStripeCheckout('zip-download');
-    });
+  document.getElementById('deployZipOnly')?.addEventListener('click', () => {
+    this.startStripeCheckout('zip-download');
+  });
 
-    document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
-        this.startStripeCheckout('github-hosted');
-    });
+  document.getElementById('deployGithubHosted')?.addEventListener('click', () => {
+    this.startStripeCheckout('github-hosted');
+  });
 
-    document.getElementById('deployFullHosting')?.addEventListener('click', () => {
-        this.startStripeCheckout('full-hosting');
-    });
+  document.getElementById('deployFullHosting')?.addEventListener('click', () => {
+    this.startStripeCheckout('full-hosting');
+  });
 }
 
 
@@ -844,5 +844,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tools) tools.style.display = 'none';
   }
 
+  setupDomainChecker(); // ✅ this handles the check button and price
   new WebsiteGenerator();
 });
