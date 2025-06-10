@@ -874,4 +874,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupDomainChecker(); // ✅ this handles the check button and price
   new WebsiteGenerator();
-});
+}
+
