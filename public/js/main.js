@@ -811,16 +811,22 @@ if (deployFullHostingBtn) {
       return;
     }
 
-    // ✅ Debug logging — confirm values going to backend
-    console.log('🛰️ Sending to backend:', { domain, duration });
-
-localStorage.setItem('customDomain', domain);
-localStorage.setItem('domainDuration', document.getElementById('domainDuration')?.value || '1');
-localStorage.setItem('domainPrice', final);
-
-
     const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
     localStorage.setItem('sessionId', sessionId);
+    localStorage.setItem('customDomain', domain);
+    localStorage.setItem('domainDuration', duration);
+
+    // ✅ Try to extract price from display
+    const priceDisplay = document.getElementById('domainPriceDisplay');
+if (priceDisplay) {
+  const match = priceDisplay.textContent.match(/£(\d+(\.\d+)?)/);
+  if (match) {
+    localStorage.setItem('domainPrice', match[1]);
+  }
+}
+
+
+    console.log('🛰️ Sending to backend:', { domain, duration, sessionId });
 
     try {
       const res = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
@@ -848,6 +854,7 @@ localStorage.setItem('domainPrice', final);
     }
   });
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const customizationPanel = document.getElementById('customizationPanel');

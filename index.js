@@ -72,28 +72,26 @@ app.post('/get-domain-price', async (req, res) => {
         ? 'https://api.godaddy.com'
         : 'https://api.ote-godaddy.com';
 
-    const response = await fetch(`${apiBase}/v1/domains/estimate`, {
-      method: 'POST',
-      headers: {
-        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        domain: trimmedDomain,
-        period: parseInt(duration) || 1,
-        privacy: false
-      })
-    });
+    const tld = trimmedDomain.split('.').pop(); // e.g., "co.uk" → "uk"
+    const response = await fetch(
+      `${apiBase}/v1/domains/price/${tld}?currency=GBP&action=register&period=${parseInt(duration) || 1}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+          Accept: 'application/json'
+        }
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ GoDaddy estimate error [${response.status}]:`, errorText);
-      return res.status(502).json({ error: 'GoDaddy estimate error', detail: errorText });
+      console.warn(`⚠️ GoDaddy estimate failed, using fallback price:`, errorText);
+      return res.status(502).json({ domainPrice: 15.99 }); // fallback estimate
     }
 
     const data = await response.json();
-    const domainPrice = data.price / 100; // Convert to GBP
+    const domainPrice = data.price / 1000000; // GoDaddy price is in micros
 
     res.json({ domainPrice });
   } catch (err) {
@@ -101,7 +99,6 @@ app.post('/get-domain-price', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch domain price.' });
   }
 });
-
 
 
 
