@@ -25,12 +25,11 @@ class WebsiteGenerator {
       this.generatedPages = JSON.parse(savedPages);
     }
 
-    this.initializeEventListeners();  // ✅ call event listeners
-    this.initializeDeploymentButtons(); // ✅ call deployment listeners
+    this.initializeEventListeners();
+    this.initializeDeploymentButtons();
     this.highlightStep(this.currentStep);
   }
 
-  // ✅ Event Listeners
   initializeEventListeners() {
     const nextStep4Btn = document.getElementById('nextStep4');
     if (nextStep4Btn) {
@@ -89,7 +88,6 @@ class WebsiteGenerator {
     }
   }
 
-  // ✅ Stripe Deployment Buttons
   initializeDeploymentButtons() {
     document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
       this.startStripeCheckout('github-instructions');
@@ -107,6 +105,46 @@ class WebsiteGenerator {
       this.startStripeCheckout('full-hosting');
     });
   }
+
+  async startStripeCheckout(type) {
+    try {
+      let sessionId = localStorage.getItem('sessionId');
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        localStorage.setItem('sessionId', sessionId);
+      }
+
+      const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
+
+      const payload = {
+        type,
+        sessionId,
+        businessName
+      };
+
+      if (type === 'full-hosting') {
+        payload.domain = localStorage.getItem('customDomain');
+        payload.duration = localStorage.getItem('domainDuration') || '1';
+      }
+
+      const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Failed to start checkout session.');
+      }
+    } catch (err) {
+      console.error('Stripe Checkout error:', err);
+      alert('Something went wrong with payment.');
+    }
+  }
+
 
   updatePreview() {
     if (this.generatedPages.length === 0) return;
@@ -443,144 +481,6 @@ Do not explain or comment anything.
             saveAs(blob, "my-website.zip");
         });
     }
-
-// ✅ Start Stripe Checkout session — FIXED to include sessionId
-async startStripeCheckout(type) {
-  try {
-    // ✅ Ensure sessionId exists and store it in localStorage if missing
-    let sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) {
-      sessionId = crypto.randomUUID();
-      localStorage.setItem('sessionId', sessionId);
-    }
-
-const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
-
-const payload = {
-  type,
-  sessionId,
-  businessName
-};
-
-if (type === 'full-hosting') {
-  payload.domain = localStorage.getItem('customDomain');
-  payload.duration = localStorage.getItem('domainDuration') || '1';
-}
-
-const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload)
-});
-
-
-    const data = await response.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert('Failed to start checkout session.');
-    }
-  } catch (err) {
-    console.error('Stripe Checkout error:', err);
-    alert('Something went wrong with payment.');
-  }
-}
-
-
-    initializeCustomizationPanel() {
-        const iframe = this.previewFrame.querySelector('iframe');
-        if (!iframe) return;
-
-        const getIframeDoc = () => iframe.contentDocument || iframe.contentWindow.document;
-
-        const attachHandler = (id, handler) => {
-            const btn = document.getElementById(id);
-            if (btn) btn.addEventListener('click', handler);
-        };
-
-        attachHandler('randomFontBtn', () => {
-            const fonts = ['Arial', 'Georgia', 'Verdana', 'Courier New', 'Trebuchet MS'];
-            const selected = fonts[Math.floor(Math.random() * fonts.length)];
-            getIframeDoc().body.style.fontFamily = selected;
-        });
-
-        attachHandler('randomNavBtn', () => {
-            const nav = getIframeDoc().querySelector('nav');
-            if (nav) {
-                const styles = [
-                    'background: #000; color: white; padding: 10px;',
-                    'background: #f8f9fa; color: #333; padding: 20px;',
-                    'background: linear-gradient(to right, #4b6cb7, #182848); color: white; padding: 15px;'
-                ];
-                nav.style.cssText = styles[Math.floor(Math.random() * styles.length)];
-            }
-        });
-
-        attachHandler('randomColorsBtn', () => {
-            const colors = ['#f0f8ff', '#fffbe6', '#e3fcef', '#f9e2e2', '#e8f0fe'];
-            getIframeDoc().querySelectorAll('section').forEach(sec => {
-                sec.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            });
-        });
-
-        attachHandler('toggleLayoutBtn', () => {
-            const main = getIframeDoc().querySelector('main');
-            if (main) main.classList.toggle('single-column');
-        });
-
-        attachHandler('editTextBtn', () => {
-            const doc = getIframeDoc();
-            const textEls = doc.querySelectorAll('h1, h2, h3, p');
-            document.getElementById('editNotice').style.display = 'block';
-            textEls.forEach(el => {
-                el.contentEditable = true;
-                el.style.outline = '1px dashed #00b894';
-            });
-            doc.body.addEventListener('click', () => {
-                document.getElementById('editNotice').style.display = 'none';
-            }, { once: true });
-        });
-
-        attachHandler('swapHeroImageBtn', () => {
-            document.getElementById('imageModal').style.display = 'block';
-        });
-
-        attachHandler('applyHeroImageBtn', () => {
-            const url = document.getElementById('newHeroImageUrl').value;
-            const img = getIframeDoc().querySelector('section img, header img');
-            if (img && url) {
-                img.src = url;
-                document.getElementById('imageModal').style.display = 'none';
-            }
-        });
-
-        attachHandler('closeImageModal', () => {
-            document.getElementById('imageModal').style.display = 'none';
-        });
-
-        attachHandler('addBackToTopBtn', () => {
-            const doc = getIframeDoc();
-            if (!doc.getElementById('backToTop')) {
-                const btn = doc.createElement('button');
-                btn.id = 'backToTop';
-                btn.textContent = '⬆️ Top';
-                btn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer;';
-                btn.onclick = () => doc.documentElement.scrollTop = 0;
-                doc.body.appendChild(btn);
-            }
-        });
-
-        attachHandler('insertLinksBtn', () => {
-            getIframeDoc().querySelectorAll('a[href^=\"#\"], button').forEach((el, i) => {
-                if (el.tagName === 'A') el.href = `https://example.com/link-${i}`;
-                el.textContent += ' 🔗';
-            });
-        });
-    }
-
-
-
-
 
 
     showPostGenerationOptions() {
