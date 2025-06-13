@@ -546,8 +546,6 @@ Do not explain or comment anything.
             });
         }
     } // ✅ end of showPostGenerationOptions
-} // ✅ end of WebsiteGenerator class
-
 
 
 // ✅ Domain Validator
@@ -559,6 +557,7 @@ function isValidDomain(domain) {
          !domain.startsWith('.') &&
          !domain.endsWith('.');
 }
+
 
 
 // ✅ Domain Checker Handler
@@ -706,6 +705,15 @@ if (durationSelect) {
 
 
 
+
+
+
+
+} // ✅ end of WebsiteGenerator class
+
+  } // ✅ end of WebsiteGenerator class
+
+
 // ✅ Full Hosting Button Handler
 const deployFullHostingBtn = document.getElementById('deployFullHosting');
 if (deployFullHostingBtn) {
@@ -761,6 +769,9 @@ if (priceDisplay) {
     }
   });
 }
+
+
+
 
 
 document.addEventListener('DOMContentLoaded', () => {
