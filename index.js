@@ -53,6 +53,9 @@ app.get('/get-steps/:sessionId', (req, res) => {
 // ========================================================================
 // Get domain price estimate from GoDaddy (for 1 or 3 years)
 // ========================================================================
+// ========================================================================
+// Get domain price estimate from GoDaddy (fixed implementation)
+// ========================================================================
 app.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
 
@@ -67,33 +70,28 @@ app.post('/get-domain-price', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
-  // ✅ Debug log before fetch
-  console.log('📦 Estimating domain price with GoDaddy');
+  // ✅ Extract TLD for the GoDaddy price endpoint
+  const tld = cleanedDomain.split('.').slice(1).join('.'); // e.g., "co.uk"
+
+  const apiBase = process.env.GODADDY_ENV === 'production'
+    ? 'https://api.godaddy.com'
+    : 'https://api.ote-godaddy.com';
+
+  const priceUrl = `${apiBase}/v1/domains/price/${tld}?domain=${encodeURIComponent(cleanedDomain)}&forTransfer=false`;
+
+  console.log('📦 Requesting domain price from GoDaddy');
   console.log('🌐 Domain:', cleanedDomain);
+  console.log('🔤 TLD:', tld);
   console.log('📅 Period:', period);
-  console.log('🧾 Payload:', {
-    domain: cleanedDomain,
-    period,
-    privacy: false
-  });
+  console.log('🔗 URL:', priceUrl);
 
   try {
-    const apiBase = process.env.GODADDY_ENV === 'production'
-      ? 'https://api.godaddy.com'
-      : 'https://api.ote-godaddy.com';
-
-    const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
-      method: 'POST',
+    const estimateRes = await fetch(priceUrl, {
+      method: 'GET',
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        domain: cleanedDomain,
-        period,
-        privacy: false
-      })
+        Accept: 'application/json'
+      }
     });
 
     if (!estimateRes.ok) {
@@ -102,8 +100,10 @@ app.post('/get-domain-price', async (req, res) => {
       return res.status(502).json({ domainPrice: 15.99 }); // fallback
     }
 
-    const estimate = await estimateRes.json();
-    const domainPrice = estimate.price / 100;
+    const priceData = await estimateRes.json();
+    const domainPrice = priceData.currency === 'GBP'
+      ? priceData.renew / 100
+      : priceData.renew / 100; // Fallback still works
 
     console.log(`💰 Estimated domain price for "${cleanedDomain}": £${domainPrice.toFixed(2)}`);
     res.json({ domainPrice });
