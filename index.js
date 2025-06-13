@@ -123,7 +123,7 @@ app.post('/get-domain-price', async (req, res) => {
 app.post('/create-checkout-session', async (req, res) => {
   const { type, sessionId, businessName, domain, duration, email } = req.body;
 
-  // ✅ Log incoming request for debugging (only in dev mode)
+  // ✅ Debug logging (only in development mode)
   if (process.env.NODE_ENV !== 'production') {
     console.log('📥 Incoming Stripe checkout request:', {
       type,
@@ -135,28 +135,28 @@ app.post('/create-checkout-session', async (req, res) => {
     });
   }
 
-  // ❌ Reject if no type or session ID
+  // ❌ Validate essential fields
   if (!type || !sessionId) {
     return res.status(400).json({ error: 'Missing deployment type or session ID.' });
   }
 
-  // ❌ Reject full-hosting requests without a domain
+  // ❌ Domain required for full-hosting
   if (type === 'full-hosting' && !domain) {
     return res.status(400).json({ error: 'Domain is required for full-hosting option.' });
   }
 
-  // ✅ Initialize or update the temporary session store
+  // ✅ Save session data
   if (!tempSessions[sessionId]) tempSessions[sessionId] = {};
   if (businessName) tempSessions[sessionId].businessName = businessName;
   if (domain) tempSessions[sessionId].domain = domain.trim().toLowerCase();
   if (duration) tempSessions[sessionId].domainDuration = duration;
 
-  // ✅ Pricing map — TEST MODE: all options are set to £0
+  // ✅ Price definitions for test mode
   const priceMap = {
     'zip-download': { price: 0, name: 'ZIP File Only (TEST)' },
     'github-instructions': { price: 0, name: 'GitHub Self-Deployment Instructions (TEST)' },
     'github-hosted': { price: 0, name: 'GitHub Hosting + Support (TEST)' },
-    'full-hosting': { name: 'Full Hosting + Custom Domain (TEST)' }
+    'full-hosting': { name: 'Full Hosting + Custom Domain (TEST)' } // price is dynamic
   };
 
   const product = priceMap[type];
@@ -164,78 +164,45 @@ app.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid deployment option.' });
   }
 
-  let finalPrice = 0;
+  let finalPrice = 0; // in GBP (we’ll convert to pence below)
 
-  // ✅ Full-hosting logic: simulate price check but override to £0
   if (type === 'full-hosting') {
-    const apiBase = process.env.GODADDY_ENV === 'production'
-      ? 'https://api.godaddy.com'
-      : 'https://api.ote-godaddy.com';
-
     const period = parseInt(duration) || 1;
-    let domainPrice = 5.00; // fallback default for logs
     const cleanedDomain = domain.trim().toLowerCase();
 
-    // ❌ Reject if domain format is clearly invalid
+    // ❌ Basic domain format check
     if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
-      console.warn('❌ Invalid domain structure provided:', cleanedDomain);
-      return res.status(400).json({ error: 'Invalid domain structure for price estimation.' });
+      console.warn('❌ Invalid domain format:', cleanedDomain);
+      return res.status(400).json({ error: 'Invalid domain structure.' });
     }
 
+    // 🔧 Fallback domain price logic (no real fetch in test mode)
+    let domainPrice = 5.00; // fallback
     try {
       if (process.env.NODE_ENV !== 'production') {
-        console.log('🌐 Fetching GoDaddy domain estimate:', { domain: cleanedDomain, period });
+        console.log('🌐 [TEST] Simulating GoDaddy price estimate for:', cleanedDomain);
       }
-
-      // 🟡 Fetch price estimate from GoDaddy (still logged for info)
-      const estimateRes = await fetch(`${apiBase}/v1/domains/estimate`, {
-        method: 'POST',
-        headers: {
-          Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          domain: cleanedDomain,
-          period,
-          privacy: false
-        })
-      });
-
-      if (!estimateRes.ok) {
-        const errText = await estimateRes.text();
-        console.warn('⚠️ GoDaddy estimate failed, using fallback price:', errText);
-      } else {
-        const estimate = await estimateRes.json();
-        domainPrice = estimate.price / 100;
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`💡 Estimated domain price for ${cleanedDomain}: £${domainPrice.toFixed(2)}`);
-        }
-      }
+      // ⛔️ Skipping actual GoDaddy fetch in test mode
     } catch (err) {
-      console.warn('⚠️ GoDaddy estimate error (network or JSON):', err.message);
+      console.warn('⚠️ Estimate simulation failed:', err.message);
     }
 
-    // ✅ FORCE final price to £0 for testing (regardless of domainPrice)
+    // 🔐 Force to 0 in test, but Stripe needs at least 50p to proceed
     finalPrice = 0;
   } else {
     finalPrice = product.price;
   }
 
-  // ❌ Prevent underpriced or invalid Stripe charges
-  if (!finalPrice || isNaN(finalPrice)) {
-    console.error('❌ Invalid final price for Stripe:', finalPrice);
-    return res.status(400).json({ error: 'Final price is too low or invalid.' });
-  }
+  // 💳 Stripe needs at least 50p to work, enforce minimum
+  const stripePrice = (finalPrice <= 0 || isNaN(finalPrice)) ? 50 : Math.round(finalPrice * 100);
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log('💳 Final Stripe price in pence:', finalPrice);
+    console.log('💳 Final Stripe charge (pence):', stripePrice);
   }
 
   try {
     const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
 
-    // ✅ Create Stripe Checkout Session with test/final price
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -244,7 +211,7 @@ app.post('/create-checkout-session', async (req, res) => {
         price_data: {
           currency: 'gbp',
           product_data: { name: product.name },
-          unit_amount: finalPrice
+          unit_amount: stripePrice
         },
         quantity: 1
       }],
@@ -260,7 +227,6 @@ app.post('/create-checkout-session', async (req, res) => {
       cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
     });
 
-    // ✅ Respond with Stripe URL
     res.json({ url: session.url });
   } catch (err) {
     console.error('❌ Stripe session creation failed:', err.message || err);
