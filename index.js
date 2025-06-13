@@ -67,6 +67,16 @@ app.post('/get-domain-price', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
+  // ✅ Debug log before fetch
+  console.log('📦 Estimating domain price with GoDaddy');
+  console.log('🌐 Domain:', cleanedDomain);
+  console.log('📅 Period:', period);
+  console.log('🧾 Payload:', {
+    domain: cleanedDomain,
+    period,
+    privacy: false
+  });
+
   try {
     const apiBase = process.env.GODADDY_ENV === 'production'
       ? 'https://api.godaddy.com'
@@ -93,15 +103,15 @@ app.post('/get-domain-price', async (req, res) => {
     }
 
     const estimate = await estimateRes.json();
-    const domainPrice = estimate.price / 100; // ← price is in cents
+    const domainPrice = estimate.price / 100;
 
+    console.log(`💰 Estimated domain price for "${cleanedDomain}": £${domainPrice.toFixed(2)}`);
     res.json({ domainPrice });
   } catch (err) {
     console.error('❌ Domain price fetch failed:', err.message);
     res.status(500).json({ error: 'Failed to fetch domain price.' });
   }
 });
-
 
 
 // ========================================================================
@@ -138,12 +148,13 @@ app.post('/create-checkout-session', async (req, res) => {
   if (domain) tempSessions[sessionId].domain = domain.trim().toLowerCase();
   if (duration) tempSessions[sessionId].domainDuration = duration;
 
-  const priceMap = {
-    'zip-download': { price: 5000, name: 'ZIP File Only' },
-    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
-    'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { name: 'Full Hosting + Custom Domain' } // dynamic price
-  };
+const priceMap = {
+  'zip-download': { price: 0, name: 'ZIP File Only (TEST)' },
+  'github-instructions': { price: 0, name: 'GitHub Self-Deployment Instructions (TEST)' },
+  'github-hosted': { price: 0, name: 'GitHub Hosting + Support (TEST)' },
+  'full-hosting': { name: 'Full Hosting + Custom Domain (TEST)' }
+};
+
 
   const product = priceMap[type];
   if (!product) {
