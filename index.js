@@ -62,9 +62,9 @@ app.post('/get-domain-price', async (req, res) => {
 
   // ✅ Clean and validate domain format
   const trimmedDomain = domain.trim().toLowerCase();
-  if (!/^[a-z0-9\-]+\.[a-z]{2,}$/.test(trimmedDomain)) {
-    return res.status(400).json({ error: 'Invalid domain structure.' });
-  }
+if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(trimmedDomain)) {
+  return res.status(400).json({ error: 'Invalid domain structure.' });
+}
 
   try {
     const apiBase =
@@ -160,10 +160,10 @@ app.post('/create-checkout-session', async (req, res) => {
     const cleanedDomain = domain.trim().toLowerCase();
 
     // Validate domain format
-    if (!/^[a-z0-9\-]+\.[a-z]{2,}$/.test(cleanedDomain)) {
-      console.warn('❌ Invalid domain structure provided:', cleanedDomain);
-      return res.status(400).json({ error: 'Invalid domain structure for price estimation.' });
-    }
+if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
+  console.warn('❌ Invalid domain structure provided:', cleanedDomain);
+  return res.status(400).json({ error: 'Invalid domain structure for price estimation.' });
+}
 
     try {
       if (process.env.NODE_ENV !== 'production') {

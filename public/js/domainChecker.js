@@ -50,50 +50,41 @@ function setupDomainChecker() {
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
 
-      if (data.available) {
-        resultDisplay.textContent = `✅ "${domain}" is available!`;
-        resultDisplay.style.color = 'green';
-        buyButton.disabled = false;
+if (data.available) {
+  resultDisplay.textContent = `✅ "${domain}" is available!`;
+  resultDisplay.style.color = 'green';
+  buyButton.disabled = false;
 
-        try {
-          const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              domain,
-              duration: document.getElementById('domainDuration')?.value || '1'
-            })
-          });
+  // ✅ Store domain for checkout
+  localStorage.setItem('customDomain', domain);
 
-          if (!priceRes.ok) throw new Error(`Estimate failed: ${priceRes.status}`);
-          const priceData = await priceRes.json();
-          const price = parseFloat(priceData.domainPrice || 0);
-          const final = price.toFixed(2);
+  try {
+    const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        domain,
+        duration: document.getElementById('domainDuration')?.value || '1'
+      })
+    });
 
-          if (priceDisplay) {
-            priceDisplay.textContent = `💷 Estimated Price: £${final} + £150 service = £${(price + 150).toFixed(2)}`;
-            priceDisplay.style.color = 'black';
-          }
-        } catch (err) {
-          console.error('Price estimate error:', err);
-          if (priceDisplay) {
-            priceDisplay.textContent = '⚠️ Could not retrieve domain price.';
-            priceDisplay.style.color = 'orange';
-          }
-        }
-      } else {
-        resultDisplay.textContent = `❌ "${domain}" is already taken.`;
-        resultDisplay.style.color = 'red';
-        buyButton.disabled = true;
-      }
+    if (!priceRes.ok) throw new Error(`Estimate failed: ${priceRes.status}`);
+    const priceData = await priceRes.json();
+    const price = parseFloat(priceData.domainPrice || 0);
+    const final = price.toFixed(2);
 
-    } catch (err) {
-      resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
-      resultDisplay.style.color = 'orange';
-      buyButton.disabled = true;
-      console.error('Domain check error:', err);
+    if (priceDisplay) {
+      priceDisplay.textContent = `💷 Estimated Price: £${final} + £150 service = £${(price + 150).toFixed(2)}`;
+      priceDisplay.style.color = 'black';
     }
-  });
+  } catch (err) {
+    console.error('Price estimate error:', err);
+    if (priceDisplay) {
+      priceDisplay.textContent = '⚠️ Could not retrieve domain price.';
+      priceDisplay.style.color = 'orange';
+    }
+  }
+}
 
   const durationSelect = document.getElementById('domainDuration');
   if (durationSelect) {
