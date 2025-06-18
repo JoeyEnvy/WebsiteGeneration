@@ -50,10 +50,7 @@ app.get('/get-steps/:sessionId', (req, res) => {
   res.json({ success: true, steps: sessionData });
 });
 
-// ========================================================================
-// Get domain price estimate from GoDaddy (for 1 or 3 years)
-// ========================================================================
-// ========================================================================
+
 // ========================================================================
 // Get domain price estimate from GoDaddy (final implementation)
 // ========================================================================
@@ -67,15 +64,16 @@ app.post('/get-domain-price', async (req, res) => {
   const cleanedDomain = domain.trim().toLowerCase();
   const period = parseInt(duration, 10) || 1;
 
-  // Basic domain structure validation
+  // Basic domain structure validation (e.g. "example.com")
   if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
   const tld = cleanedDomain.split('.').slice(1).join('.'); // e.g., "co.uk"
-  const apiBase = process.env.GODADDY_ENV === 'production'
-    ? 'https://api.godaddy.com'
-    : 'https://api.ote-godaddy.com';
+  const apiBase =
+    process.env.GODADDY_ENV === 'production'
+      ? 'https://api.godaddy.com'
+      : 'https://api.ote-godaddy.com';
 
   const priceUrl = `${apiBase}/v1/domains/price/${tld}?domain=${encodeURIComponent(cleanedDomain)}&forTransfer=false`;
 
@@ -95,35 +93,41 @@ app.post('/get-domain-price', async (req, res) => {
     });
 
     if (!estimateRes.ok) {
-      const errText = await estimateRes.text();
-      console.warn('⚠️ GoDaddy estimate failed:', errText);
-      return res.status(502).json({
+      const errorText = await estimateRes.text();
+      console.warn(`⚠️ GoDaddy pricing error [${estimateRes.status}]:`, errorText);
+      return res.status(estimateRes.status).json({
         error: 'GoDaddy pricing API failed',
-        fallbackPrice: 15.99
+        fallbackPrice: 15.99,
+        status: estimateRes.status,
+        raw: errorText
       });
     }
 
     const priceData = await estimateRes.json();
+    const rawPrice = priceData.renew || priceData.current || priceData.price || 1599; // fallback in cents
+    const currency = priceData.currency || 'GBP';
 
-    const rawPrice = priceData.renew || priceData.current || priceData.price;
-    if (!rawPrice || isNaN(rawPrice)) {
-      console.warn('⚠️ Unexpected pricing structure:', priceData);
+    if (isNaN(rawPrice)) {
+      console.warn('⚠️ Unexpected price structure:', priceData);
       return res.status(502).json({
-        error: 'Unexpected pricing data format.',
+        error: 'Invalid price format received from GoDaddy',
         fallbackPrice: 15.99
       });
     }
 
-    const domainPrice = parseFloat((rawPrice / 100).toFixed(2));
-    const currency = priceData.currency || 'GBP';
+    // Multiply by duration
+    const pricePerYear = rawPrice / 100;
+    const domainPrice = parseFloat((pricePerYear * period).toFixed(2));
 
-    console.log(`💰 Estimated domain price for "${cleanedDomain}": £${domainPrice} ${currency}`);
+    console.log(`💰 Estimated domain price for "${cleanedDomain}": £${domainPrice} (${currency}) for ${period} year(s)`);
+
     res.json({ domainPrice });
   } catch (err) {
     console.error('❌ Domain price fetch failed:', err.message);
     res.status(500).json({
       error: 'Failed to fetch domain price',
-      fallbackPrice: 15.99
+      fallbackPrice: 15.99,
+      detail: err.message
     });
   }
 });
@@ -802,13 +806,20 @@ app.post('/check-domain', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain format.' });
   }
 
-  try {
-    const apiBase =
-      process.env.GODADDY_ENV === 'production'
-        ? 'https://api.godaddy.com'
-        : 'https://api.ote-godaddy.com'; // OTE = test mode
+  const cleanedDomain = domain.trim().toLowerCase();
+  const apiBase =
+    process.env.GODADDY_ENV === 'production'
+      ? 'https://api.godaddy.com'
+      : 'https://api.ote-godaddy.com'; // OTE = test mode
 
-    const response = await fetch(`${apiBase}/v1/domains/available?domain=${encodeURIComponent(domain)}`, {
+  const checkUrl = `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}`;
+
+  try {
+    console.log('🔍 Checking domain availability for:', cleanedDomain);
+    console.log('🌍 GoDaddy API URL:', checkUrl);
+
+    const response = await fetch(checkUrl, {
+      method: 'GET',
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
         Accept: 'application/json',
@@ -817,17 +828,24 @@ app.post('/check-domain', async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ GoDaddy API error [${response.status}]:`, errorText);
-      return res.status(502).json({ error: 'GoDaddy API error', detail: errorText });
+      console.error(`❌ GoDaddy /check-domain API error [${response.status}]:`, errorText);
+
+      return res.status(response.status).json({
+        error: 'GoDaddy domain availability API failed.',
+        status: response.status,
+        raw: errorText,
+      });
     }
 
     const data = await response.json();
+    console.log(`✅ Domain availability for "${cleanedDomain}":`, data.available);
     res.json({ available: data.available });
   } catch (err) {
-    console.error('❌ Domain check failed:', err.message);
-    res.status(500).json({ error: 'Domain availability check failed.' });
+    console.error('❌ Domain availability check failed:', err.message);
+    res.status(500).json({ error: 'Domain availability check failed.', detail: err.message });
   }
 });
+
 
 
 // ========================================================================
