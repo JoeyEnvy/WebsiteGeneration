@@ -54,7 +54,8 @@ app.get('/get-steps/:sessionId', (req, res) => {
 // Get domain price estimate from GoDaddy (for 1 or 3 years)
 // ========================================================================
 // ========================================================================
-// Get domain price estimate from GoDaddy (fixed implementation)
+// ========================================================================
+// Get domain price estimate from GoDaddy (final implementation)
 // ========================================================================
 app.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
@@ -64,15 +65,14 @@ app.post('/get-domain-price', async (req, res) => {
   }
 
   const cleanedDomain = domain.trim().toLowerCase();
-  const period = parseInt(duration) || 1;
+  const period = parseInt(duration, 10) || 1;
 
+  // Basic domain structure validation
   if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
-  // ✅ Extract TLD for the GoDaddy price endpoint
   const tld = cleanedDomain.split('.').slice(1).join('.'); // e.g., "co.uk"
-
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
@@ -97,19 +97,34 @@ app.post('/get-domain-price', async (req, res) => {
     if (!estimateRes.ok) {
       const errText = await estimateRes.text();
       console.warn('⚠️ GoDaddy estimate failed:', errText);
-      return res.status(502).json({ domainPrice: 15.99 }); // fallback
+      return res.status(502).json({
+        error: 'GoDaddy pricing API failed',
+        fallbackPrice: 15.99
+      });
     }
 
     const priceData = await estimateRes.json();
-    const domainPrice = priceData.currency === 'GBP'
-      ? priceData.renew / 100
-      : priceData.renew / 100; // Fallback still works
 
-    console.log(`💰 Estimated domain price for "${cleanedDomain}": £${domainPrice.toFixed(2)}`);
+    const rawPrice = priceData.renew || priceData.current || priceData.price;
+    if (!rawPrice || isNaN(rawPrice)) {
+      console.warn('⚠️ Unexpected pricing structure:', priceData);
+      return res.status(502).json({
+        error: 'Unexpected pricing data format.',
+        fallbackPrice: 15.99
+      });
+    }
+
+    const domainPrice = parseFloat((rawPrice / 100).toFixed(2));
+    const currency = priceData.currency || 'GBP';
+
+    console.log(`💰 Estimated domain price for "${cleanedDomain}": £${domainPrice} ${currency}`);
     res.json({ domainPrice });
   } catch (err) {
     console.error('❌ Domain price fetch failed:', err.message);
-    res.status(500).json({ error: 'Failed to fetch domain price.' });
+    res.status(500).json({
+      error: 'Failed to fetch domain price',
+      fallbackPrice: 15.99
+    });
   }
 });
 
@@ -502,84 +517,85 @@ app.post('/deploy-full-hosting', async (req, res) => {
     return res.status(400).json({ error: 'Invalid session data' });
   }
 
-  const businessName = session.businessName;
-  const pages = session.pages;
-
-
   if (!sessionId || !domain || !duration) {
-   return res.status(400).json({ error: 'Missing sessionId, domain, or duration in deploy-full-hosting' });
-
+    return res.status(400).json({ error: 'Missing sessionId, domain, or duration in deploy-full-hosting' });
   }
 
-  const GITHUB_REPO = `${sanitizeRepoName(session.businessName)}-${Date.now()}`;
+  const businessName = session.businessName;
+  const pages = session.pages;
+  const GITHUB_REPO = `${sanitizeRepoName(businessName)}-${Date.now()}`;
   const GODADDY_API_KEY = process.env.GODADDY_API_KEY;
   const GODADDY_API_SECRET = process.env.GODADDY_API_SECRET;
   const GODADDY_ENV = process.env.GODADDY_ENV || 'ote';
 
-  // Step 1: Simulate domain purchase via GoDaddy OTE
-let domainPurchaseSuccessful = false;
+  const apiBase = GODADDY_ENV === 'production'
+    ? 'https://api.godaddy.com'
+    : 'https://api.ote-godaddy.com';
 
-try {
-  const headers = {
-    'Authorization': `sso-key ${GODADDY_API_KEY}:${GODADDY_API_SECRET}`,
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  };
+  // Step 1: Buy domain from GoDaddy
+  try {
+    const headers = {
+      Authorization: `sso-key ${GODADDY_API_KEY}:${GODADDY_API_SECRET}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
 
-  const contact = {
-    nameFirst: "Joe",
-    nameLast: "Mort",
-    email: "your@email.com",
-    phone: "+441234567890",
-    addressMailing: {
-      address1: "123 Test St",
-      city: "London",
-      state: "London",
-      postalCode: "SW1A1AA",
-      country: "GB"
+    const contact = {
+      nameFirst: "Joe",
+      nameLast: "Mort",
+      email: "your@email.com",
+      phone: "+441234567890",
+      addressMailing: {
+        address1: "123 Test St",
+        city: "London",
+        state: "London",
+        postalCode: "SW1A1AA",
+        country: "GB"
+      }
+    };
+
+    const purchasePayload = {
+      consent: {
+        agreedAt: new Date().toISOString(),
+        agreedBy: req.ip || '127.0.0.1',
+        agreementKeys: ["DNRA"]
+      },
+      contactAdmin: contact,
+      contactRegistrant: contact,
+      contactTech: contact,
+      contactBilling: contact,
+      period: parseInt(duration, 10),
+      privacy: false,
+      autoRenew: true
+    };
+
+    const purchaseUrl = `${apiBase}/v1/domains/purchase/${domain}`;
+    console.log('🛒 Purchasing domain:', domain);
+    console.log('🔗 URL:', purchaseUrl);
+    console.log('📦 Payload:', JSON.stringify(purchasePayload));
+
+    const response = await fetch(purchaseUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(purchasePayload)
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      console.error('❌ GoDaddy purchase failed:', errData);
+      return res.status(500).json({ error: 'Domain purchase failed', details: errData });
     }
-  };
 
-  const purchasePayload = {
-    consent: {
-      agreedAt: new Date().toISOString(),
-      agreedBy: req.ip || '127.0.0.1',
-      agreementKeys: ["DNRA"]
-    },
-    contactAdmin: contact,
-    contactRegistrant: contact,
-    contactTech: contact,
-    contactBilling: contact,
-    period: parseInt(duration),
-    privacy: true,
-    autoRenew: true
-  };
+    // Step 1b: Set DNS
+    await setGitHubDNS(domain);
 
-  const response = await fetch(`https://api.${GODADDY_ENV === 'production' ? '' : 'ote.'}godaddy.com/v1/domains/purchase/${domain}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(purchasePayload)
-  });
-
-  if (!response.ok) {
-    const errData = await response.json();
-    console.error('❌ GoDaddy purchase failed:', errData);
-    return res.status(500).json({ error: 'Domain purchase failed', details: errData });
+  } catch (err) {
+    console.error('❌ GoDaddy domain request error:', err.message);
+    return res.status(500).json({ error: 'GoDaddy API error', details: err.message });
   }
 
-  domainPurchaseSuccessful = true;
-
-  // ✅ Set GitHub Pages DNS records
-  await setGitHubDNS(domain);
-
-} catch (err) {
-  console.error('❌ GoDaddy request error:', err.message);
-  return res.status(500).json({ error: 'GoDaddy API error', details: err.message });
-}
-
-  // Step 2: Deploy to GitHub (same logic reused)
+  // Step 2: Deploy to GitHub
   try {
-    const { pages, businessName } = session;
     const { data: user } = await octokit.users.getAuthenticated();
     const owner = user.login;
     const repoName = await getUniqueRepoName(businessName, owner);
@@ -590,21 +606,21 @@ try {
       auto_init: true
     }));
 
-for (let index = 0; index < pages.length; index++) {
-  const html = pages[index];
-  const filePath = index === 0 ? 'index.html' : `page${index + 1}.html`;
+    for (let index = 0; index < pages.length; index++) {
+      const html = pages[index];
+      const filePath = index === 0 ? 'index.html' : `page${index + 1}.html`;
 
-  await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-    owner,
-    repo: repoName,
-    path: filePath,
-    content: Buffer.from(html || '').toString('base64'),
-    message: `Add page ${index + 1}`,
-    branch: 'main'
-  }));
-}
+      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: filePath,
+        content: Buffer.from(html || '').toString('base64'),
+        message: `Add page ${index + 1}`,
+        branch: 'main'
+      }));
+    }
 
-
+    // Add static.yml
     await retryRequest(() => octokit.repos.createOrUpdateFileContents({
       owner,
       repo: repoName,
@@ -614,6 +630,7 @@ for (let index = 0; index < pages.length; index++) {
       branch: 'main'
     }));
 
+    // Add empty folders
     for (const folder of ['images', 'videos']) {
       await retryRequest(() => octokit.repos.createOrUpdateFileContents({
         owner,
@@ -625,6 +642,7 @@ for (let index = 0; index < pages.length; index++) {
       }));
     }
 
+    // Enable GitHub Pages
     await new Promise(resolve => setTimeout(resolve, 2000));
     try {
       await retryRequest(() => octokit.request('POST /repos/{owner}/{repo}/pages', {
@@ -642,19 +660,19 @@ for (let index = 0; index < pages.length; index++) {
       } else throw err;
     }
 
-const repoUrl = `https://github.com/${owner}/${repoName}`;
-const pagesUrl = `https://${owner}.github.io/${repoName}/`;
+    const repoUrl = `https://github.com/${owner}/${repoName}`;
+    const pagesUrl = `https://${owner}.github.io/${repoName}/`;
 
-return res.json({
-  success: true,
-  domain,
-  domainStatus: `${process.env.GODADDY_ENV === 'production' ? 'Domain purchase successful' : 'Simulated purchase successful'} (${duration} years)`,
-  pagesUrl,
-  repoUrl
-});
+    return res.json({
+      success: true,
+      domain,
+      domainStatus: `✅ Domain purchased and DNS set (${duration} year${duration > 1 ? 's' : ''})`,
+      pagesUrl,
+      repoUrl
+    });
 
   } catch (err) {
-    console.error('❌ GitHub deploy error:', err.message);
+    console.error('❌ GitHub deployment error:', err.message);
     return res.status(500).json({ error: 'GitHub deployment failed', details: err.message });
   }
 });
