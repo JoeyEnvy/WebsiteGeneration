@@ -27,7 +27,6 @@ const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 // Global session store (in-memory)
 export const tempSessions = {};
-export const thirdParty = { stripe, fetch, sgMail, JSZip, uuidv4, octokit };
 
 // Mount route modules
 app.use('/', sessionRoutes);
@@ -39,5 +38,4 @@ app.use('/', utilityRoutes);
 // Startup
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
-
 

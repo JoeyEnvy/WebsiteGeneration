@@ -1,14 +1,12 @@
-// /routes/deployRoutes.js
-
 import express from 'express';
-import { tempSessions, thirdParty } from '../index.js';
+import fetch from 'node-fetch';
+import { Octokit } from '@octokit/rest';
+import { tempSessions } from '../index.js';
 import { retryRequest, sanitizeRepoName, getUniqueRepoName } from '../utils/githubUtils.js';
 import { setGitHubDNS } from '../utils/dnsUtils.js';
 
 const router = express.Router();
-const octokit = thirdParty.octokit;
-const fetch = thirdParty.fetch;
-
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 // POST /deploy-github
 router.post('/deploy-github', async (req, res) => {
   const { sessionId } = req.body;
