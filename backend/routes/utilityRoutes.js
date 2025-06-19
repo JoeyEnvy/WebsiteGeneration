@@ -1,13 +1,15 @@
 // /routes/utilityRoutes.js
 
 import express from 'express';
-import { tempSessions, thirdParty } from '../index.js';
+import fetch from 'node-fetch';
+import sgMail from '@sendgrid/mail';
+import JSZip from 'jszip';
+import { tempSessions } from '../index.js';
 
 const router = express.Router();
-const fetch = thirdParty.fetch;
-const sgMail = thirdParty.sgMail;
-const JSZip = thirdParty.JSZip;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // POST /generate
 router.post('/generate', async (req, res) => {
@@ -154,3 +156,4 @@ router.post('/log-download', (req, res) => {
 });
 
 export default router;
+
