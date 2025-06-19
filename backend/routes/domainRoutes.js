@@ -1,8 +1,8 @@
 import express from 'express';
-import { thirdParty } from '../index.js';
+import fetch from 'node-fetch'; // ✅ direct import
+import { tempSessions } from '../index.js'; // if needed for other routes
 
 const router = express.Router();
-const fetch = thirdParty.fetch;
 
 // POST /get-domain-price
 router.post('/get-domain-price', async (req, res) => {
