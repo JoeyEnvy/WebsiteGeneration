@@ -43,7 +43,8 @@ router.post('/get-domain-price', async (req, res) => {
 
     if (!estimateRes.ok) {
       const errorText = await estimateRes.text();
-      console.warn(⚠️ GoDaddy pricing error [${estimateRes.status}]:`, errorText);
+console.warn("⚠️ GoDaddy pricing error [" + estimateRes.status + "]:", errorText);
+
       return res.status(estimateRes.status).json({
         error: 'GoDaddy pricing API failed',
         fallbackPrice: 15.99,
