@@ -1,10 +1,12 @@
 // /routes/stripeRoutes.js
 
 import express from 'express';
-import { tempSessions, thirdParty } from '../index.js';
+import Stripe from 'stripe';
+import { tempSessions } from '../index.js';
 
 const router = express.Router();
-const stripe = thirdParty.stripe;
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 
 router.post('/create-checkout-session', async (req, res) => {
   const { type, sessionId, businessName, domain, duration, email } = req.body;
