@@ -7,7 +7,13 @@ import { setGitHubDNS } from '../utils/dnsUtils.js';
 
 const router = express.Router();
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-// POST /deploy-github
+
+// ✅ DEBUG CHECK
+router.get('/debug-check', (req, res) => {
+  res.json({ ok: true, message: '✅ deployRoutes.js is working' });
+});
+
+// ✅ POST /deploy-github — GitHub Hosted (no domain)
 router.post('/deploy-github', async (req, res) => {
   const { sessionId } = req.body;
   const sessionData = tempSessions[sessionId];
@@ -40,214 +46,154 @@ router.post('/deploy-github', async (req, res) => {
       }));
     }
 
-    // If custom domain exists in session, add CNAME
-    if (sessionData.domain) {
-      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo: repoName,
-        path: 'CNAME',
-        content: Buffer.from(sessionData.domain).toString('base64'),
-        message: 'Add CNAME file',
-        branch: 'main'
-      }));
-    }
+    const pagesUrl = `https://${owner}.github.io/${repoName}/`;
+    const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo: repoName,
-      path: 'static.yml',
-      content: Buffer.from(`publish: index.html\n`).toString('base64'),
-      message: 'Add static.yml for deployment',
-      branch: 'main'
-    }));
-
-    for (const folder of ['images', 'videos']) {
-      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo: repoName,
-        path: `${folder}/.gitkeep`,
-        content: Buffer.from('').toString('base64'),
-        message: `Create empty ${folder}/ folder`,
-        branch: 'main'
-      }));
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    try {
-      await retryRequest(() => octokit.request('POST /repos/{owner}/{repo}/pages', {
-        owner,
-        repo: repoName,
-        source: { branch: 'main', path: '/' }
-      }));
-    } catch (err) {
-      if (err.status === 409) {
-        await retryRequest(() => octokit.repos.updateInformationAboutPagesSite({
-          owner,
-          repo: repoName,
-          source: { branch: 'main', path: '/' }
-        }));
-      } else throw err;
-    }
-
-    res.json({
-      success: true,
-      url: `https://${owner}.github.io/${repoName}/`,
-      repo: `https://github.com/${owner}/${repoName}`,
-      repoName
-    });
+    console.log('✅ GitHub deployment complete:', { pagesUrl, repoUrl });
+    res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('Deployment Error:', err);
-    res.status(500).json({ error: 'Deployment failed', details: err.message });
+    console.error('❌ GitHub deploy error:', err.message);
+    res.status(500).json({ error: 'GitHub deployment failed.', detail: err.message });
   }
 });
 
-// POST /deploy-full-hosting
+// ✅ POST /deploy-full-hosting — GoDaddy Domain + GitHub Hosting
 router.post('/deploy-full-hosting', async (req, res) => {
-  const { sessionId, domain, duration } = req.body;
-  const session = tempSessions[sessionId];
+  const { sessionId, domain, duration = 1, businessName } = req.body;
 
-  if (!session || !session.pages || !session.businessName) {
-    return res.status(400).json({ error: 'Invalid session data' });
+  if (!sessionId || !domain || !businessName) {
+    return res.status(400).json({ error: 'Missing required fields.' });
   }
 
-  const businessName = session.businessName;
-  const pages = session.pages;
+  const session = tempSessions[sessionId];
+  if (!session || !session.pages || session.pages.length === 0) {
+    return res.status(404).json({ error: 'Session not found or empty.' });
+  }
+
+  const cleanedDomain = domain.trim().toLowerCase();
+  const period = parseInt(duration, 10) || 1;
+
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
 
+  const contact = {
+    nameFirst: 'Joe',
+    nameLast: 'Mort',
+    email: 'support@websitegeneration.co.uk',
+    phone: '+44.1234567890',
+    addressMailing: {
+      address1: '123 Web Street',
+      city: 'Neath',
+      state: 'Wales',
+      postalCode: 'SA10 6XY',
+      country: 'GB'
+    }
+  };
+
   try {
-    const contact = {
-      nameFirst: 'Joe',
-      nameLast: 'Mort',
-      email: 'your@email.com',
-      phone: '+441234567890',
-      addressMailing: {
-        address1: '123 Test St',
-        city: 'London',
-        state: 'London',
-        postalCode: 'SW1A1AA',
-        country: 'GB'
-      }
-    };
-
-    const purchasePayload = {
-      consent: {
-        agreedAt: new Date().toISOString(),
-        agreedBy: req.ip || '127.0.0.1',
-        agreementKeys: ['DNRA']
-      },
-      contactAdmin: contact,
-      contactRegistrant: contact,
-      contactTech: contact,
-      contactBilling: contact,
-      period: parseInt(duration, 10),
-      privacy: false,
-      autoRenew: true
-    };
-
-    const headers = {
-      Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json'
-    };
-
-    const purchaseUrl = `${apiBase}/v1/domains/purchase/${domain}`;
-    const response = await fetch(purchaseUrl, {
+    const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
-      headers,
-      body: JSON.stringify(purchasePayload)
+      headers: {
+        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        domain: cleanedDomain,
+        consent: {
+          agreedAt: new Date().toISOString(),
+          agreedBy: '127.0.0.1',
+          agreementKeys: ['DNRA']
+        },
+        period,
+        privacy: false,
+        autoRenew: true,
+        contactAdmin: contact,
+        contactRegistrant: contact,
+        contactTech: contact,
+        contactBilling: contact
+      })
     });
 
-    if (!response.ok) {
-      const errData = await response.json();
-      console.error('❌ GoDaddy purchase failed:', errData);
-      return res.status(500).json({ error: 'Domain purchase failed', details: errData });
+    const purchaseData = await purchaseRes.json();
+
+    if (!purchaseRes.ok) {
+      console.error(`❌ Domain purchase failed [${purchaseRes.status}]:`, purchaseData);
+      return res.status(purchaseRes.status).json({
+        error: 'Domain purchase failed',
+        details: purchaseData
+      });
     }
 
-    await setGitHubDNS(domain);
+    console.log(`✅ Domain purchased successfully: ${cleanedDomain}`);
 
-  } catch (err) {
-    console.error('❌ Domain purchase/DNS error:', err.message);
-    return res.status(500).json({ error: 'GoDaddy API error', details: err.message });
-  }
+    const repoName = `site-${Date.now()}`;
+    const owner = process.env.GITHUB_USERNAME;
 
-  try {
-    const { data: user } = await octokit.users.getAuthenticated();
-    const owner = user.login;
-    const repoName = await getUniqueRepoName(businessName, owner);
-
-    await retryRequest(() => octokit.repos.createForAuthenticatedUser({
+    await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
-    }));
+    });
 
-    for (let i = 0; i < pages.length; i++) {
-      const filePath = i === 0 ? 'index.html' : `page${i + 1}.html`;
-      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+    for (let index = 0; index < session.pages.length; index++) {
+      const filePath = index === 0 ? 'index.html' : `page${index + 1}.html`;
+      const content = Buffer.from(session.pages[index] || '').toString('base64');
+
+      await octokit.repos.createOrUpdateFileContents({
         owner,
         repo: repoName,
         path: filePath,
-        content: Buffer.from(pages[i]).toString('base64'),
-        message: `Add page ${i + 1}`,
+        message: `Add page ${index + 1}`,
+        content,
         branch: 'main'
-      }));
+      });
     }
 
-    await retryRequest(() => octokit.repos.createOrUpdateFileContents({
+    await octokit.repos.createOrUpdateFileContents({
       owner,
       repo: repoName,
-      path: 'static.yml',
-      content: Buffer.from(`publish: index.html\n`).toString('base64'),
-      message: 'Add static.yml',
+      path: 'CNAME',
+      message: 'Set custom domain',
+      content: Buffer.from(cleanedDomain).toString('base64'),
       branch: 'main'
-    }));
-
-    for (const folder of ['images', 'videos']) {
-      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo: repoName,
-        path: `${folder}/.gitkeep`,
-        content: Buffer.from('').toString('base64'),
-        message: `Create empty ${folder}/ folder`,
-        branch: 'main'
-      }));
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    try {
-      await retryRequest(() => octokit.request('POST /repos/{owner}/{repo}/pages', {
-        owner,
-        repo: repoName,
-        source: { branch: 'main', path: '/' }
-      }));
-    } catch (err) {
-      if (err.status === 409) {
-        await retryRequest(() => octokit.repos.updateInformationAboutPagesSite({
-          owner,
-          repo: repoName,
-          source: { branch: 'main', path: '/' }
-        }));
-      } else throw err;
-    }
-
-    const pagesUrl = `https://${owner}.github.io/${repoName}/`;
-    const repoUrl = `https://github.com/${owner}/${repoName}`;
-
-    res.json({
-      success: true,
-      domain,
-      domainStatus: `✅ Domain purchased and DNS set (${duration} year${duration > 1 ? 's' : ''})`,
-      pagesUrl,
-      repoUrl
     });
 
+    await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo: repoName,
+      path: '.github/workflows/static.yml',
+      message: 'Enable GitHub Pages',
+      content: Buffer.from(`
+name: Deploy static site
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: \${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./`).toString('base64'),
+      branch: 'main'
+    });
+
+    const pagesUrl = `https://${cleanedDomain}`;
+    const repoUrl = `https://github.com/${owner}/${repoName}`;
+
+    console.log('✅ Full hosting deployed:', { pagesUrl, repoUrl });
+
+    res.json({ success: true, pagesUrl, repoUrl });
+
   } catch (err) {
-    console.error('❌ GitHub deployment error:', err.message);
-    return res.status(500).json({ error: 'GitHub deployment failed', details: err.message });
+    console.error('❌ Full hosting deployment failed:', err.message);
+    res.status(500).json({ error: 'Full hosting deployment failed', detail: err.message });
   }
 });
 
 export default router;
+
