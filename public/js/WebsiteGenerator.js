@@ -35,10 +35,11 @@ class WebsiteGenerator {
       const duration = localStorage.getItem('domainDuration');
       const businessName = localStorage.getItem('businessName');
 
-      if (!domain || !duration || !businessName) {
-        alert(⚠️ Missing domain, duration, or business name. Please confirm domain first.');
-        return;
-      }
+if (!domain || !duration || !businessName) {
+  alert('⚠️ Missing domain, duration, or business name. Please confirm domain first.');
+  return;
+}
+
 
       this.startStripeCheckout('full-hosting');
     });
@@ -89,4 +90,5 @@ class WebsiteGenerator {
   }
 }
 
+window.WebsiteGenerator = WebsiteGenerator;
 
