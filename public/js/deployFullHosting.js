@@ -3,13 +3,19 @@ if (deployFullHostingBtn) {
   deployFullHostingBtn.addEventListener('click', async () => {
     const domain = document.getElementById('customDomain')?.value?.trim().toLowerCase();
     const duration = document.getElementById('domainDuration')?.value || '1';
+    const businessName = localStorage.getItem('businessName');
+    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
 
     if (!domain || !isValidDomain(domain)) {
       alert('❌ Please enter a valid domain.');
       return;
     }
 
-    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
+    if (!businessName) {
+      alert('⚠️ Please complete business info first.');
+      return;
+    }
+
     localStorage.setItem('sessionId', sessionId);
     localStorage.setItem('customDomain', domain);
     localStorage.setItem('domainDuration', duration);
@@ -30,7 +36,8 @@ if (deployFullHostingBtn) {
           type: 'full-hosting',
           sessionId,
           domain,
-          duration
+          duration,
+          businessName // ✅ now included
         })
       });
 

@@ -91,4 +91,11 @@ router.post('/get-domain-price', async (req, res) => {
   }
 });
 
+router.get('/ping-domain-routes', (req, res) => {
+  res.json({ ok: true, message: '✅ domainRoutes.js is live' });
+});
+
 export default router;
+
+
+

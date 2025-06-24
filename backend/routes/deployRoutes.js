@@ -1,79 +1,26 @@
-// deployRoutes.js
-import express from 'express';
-import fetch from 'node-fetch';
-import { Octokit } from '@octokit/rest';
-import { tempSessions } from '../index.js';
-import { retryRequest, sanitizeRepoName, getUniqueRepoName } from '../utils/githubUtils.js';
-import { setGitHubDNS } from '../utils/dnsUtils.js';
-
-const router = express.Router();
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-
-// ✅ DEBUG CHECK
-router.get('/debug-check', (req, res) => {
-  res.json({ ok: true, message: '✅ deployRoutes.js is working' });
-});
-
-// ✅ POST /deploy-github — GitHub Hosted (no domain)
-router.post('/deploy-github', async (req, res) => {
-  const { sessionId } = req.body;
-  const sessionData = tempSessions[sessionId];
-  const businessName = sessionData?.businessName;
-  const pages = sessionData?.pages || [];
-
-  if (!sessionId || !businessName || !pages.length) {
-    return res.status(400).json({ error: 'Missing required data' });
-  }
-
-  try {
-    const { data: user } = await octokit.users.getAuthenticated();
-    const owner = user.login;
-    const repoName = await getUniqueRepoName(businessName, owner);
-
-    await retryRequest(() => octokit.repos.createForAuthenticatedUser({
-      name: repoName,
-      private: false,
-      auto_init: true
-    }));
-
-    for (const [index, html] of pages.entries()) {
-      await retryRequest(() => octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo: repoName,
-        path: index === 0 ? 'index.html' : `page${index + 1}.html`,
-        content: Buffer.from(html).toString('base64'),
-        message: `Add page ${index + 1}`,
-        branch: 'main'
-      }));
-    }
-
-    const pagesUrl = `https://${owner}.github.io/${repoName}/`;
-    const repoUrl = `https://github.com/${owner}/${repoName}`;
-
-    console.log('✅ GitHub deployment complete:', { pagesUrl, repoUrl });
-    res.json({ success: true, pagesUrl, repoUrl });
-
-  } catch (err) {
-    console.error('❌ GitHub deploy error:', err.message);
-    res.status(500).json({ error: 'GitHub deployment failed.', detail: err.message });
-  }
-});
-
-// ✅ POST /deploy-full-hosting — GoDaddy Domain + GitHub Hosting
 router.post('/deploy-full-hosting', async (req, res) => {
-  const { sessionId, domain, duration = 1, businessName } = req.body;
+  console.log('📦 Incoming full-hosting deploy request:', req.body);
+
+  const {
+    sessionId = '',
+    domain = '',
+    duration = '1',
+    businessName = ''
+  } = req.body || {};
 
   if (!sessionId || !domain || !businessName) {
-    return res.status(400).json({ error: 'Missing required fields.' });
-  }
-
-  const session = tempSessions[sessionId];
-  if (!session || !session.pages || session.pages.length === 0) {
-    return res.status(404).json({ error: 'Session not found or empty.' });
+    console.warn('⚠️ Missing required fields:', { sessionId, domain, businessName });
+    return res.status(400).json({ error: '⚠️ Missing session ID, domain, or business name.' });
   }
 
   const cleanedDomain = domain.trim().toLowerCase();
   const period = parseInt(duration, 10) || 1;
+  const session = tempSessions[sessionId];
+
+  if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
+    console.warn(`⚠️ Invalid or empty session: ${sessionId}`);
+    return res.status(404).json({ error: 'Session not found or empty.' });
+  }
 
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
@@ -93,6 +40,25 @@ router.post('/deploy-full-hosting', async (req, res) => {
     }
   };
 
+  // 🔍 Check domain availability again to prevent race condition
+  try {
+    const availabilityRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
+      headers: {
+        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
+      }
+    });
+
+    const availabilityData = await availabilityRes.json();
+    if (!availabilityData.available) {
+      console.warn(`❌ Domain unavailable: ${cleanedDomain}`);
+      return res.status(409).json({ error: 'Domain is no longer available.' });
+    }
+  } catch (checkErr) {
+    console.error('❌ Error checking domain availability:', checkErr.message);
+    return res.status(500).json({ error: 'Failed to verify domain availability.' });
+  }
+
+  // 🛒 Attempt to purchase domain
   try {
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
@@ -123,12 +89,14 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.error(`❌ Domain purchase failed [${purchaseRes.status}]:`, purchaseData);
       return res.status(purchaseRes.status).json({
         error: 'Domain purchase failed',
-        details: purchaseData
+        details: purchaseData?.message || purchaseData,
+        domainPurchaseFailed: true
       });
     }
 
     console.log(`✅ Domain purchased successfully: ${cleanedDomain}`);
 
+    // 🚀 Deploy GitHub repo
     const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
 
@@ -186,6 +154,15 @@ jobs:
     const pagesUrl = `https://${cleanedDomain}`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
+    // 💾 Store deployment status
+    tempSessions[sessionId] = {
+      ...session,
+      deployed: true,
+      domainPurchased: true,
+      repo: repoName,
+      domain: cleanedDomain
+    };
+
     console.log('✅ Full hosting deployed:', { pagesUrl, repoUrl });
 
     res.json({ success: true, pagesUrl, repoUrl });
@@ -195,7 +172,5 @@ jobs:
     res.status(500).json({ error: 'Full hosting deployment failed', detail: err.message });
   }
 });
-
-export default router;
 
 
