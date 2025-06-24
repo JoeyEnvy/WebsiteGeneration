@@ -33,57 +33,59 @@
     </div>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('sessionId');
-      let domain = localStorage.getItem('customDomain') || params.get('domain');
-      const duration = localStorage.getItem('domainDuration') || '1';
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('sessionId');
+    const domain = localStorage.getItem('customDomain') || params.get('domain');
+    const duration = localStorage.getItem('domainDuration') || '1';
+    const businessName = localStorage.getItem('businessName');
 
-      const loadingBox = document.getElementById('loadingBox');
-      const termDisplay = document.getElementById('termDisplay');
+    const loadingBox = document.getElementById('loadingBox');
+    const termDisplay = document.getElementById('termDisplay');
 
-      if (duration === '3') {
-        termDisplay.innerHTML = '📅 Domain will be registered for <strong>3 years</strong>. Renewal handled via support.';
+    if (duration === '3') {
+      termDisplay.innerHTML = '📅 Domain will be registered for <strong>3 years</strong>. Renewal handled via support.';
+    }
+
+    if (!sessionId || !domain || !businessName) {
+      loadingBox.innerText = '⚠️ Missing session, domain, or business name. Please go back and try again.';
+      return;
+    }
+
+    try {
+      const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, domain, duration, businessName })
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Deployment failed');
+
+      console.log('✅ Deployment result:', data);
+
+      const hostedUrl = `https://${domain}`;
+      document.getElementById('hostedLink').href = hostedUrl;
+      document.getElementById('hostedLink').textContent = hostedUrl;
+
+      if (data.repoUrl) {
+        document.getElementById('repoLink').href = data.repoUrl;
+        document.getElementById('repoLink').textContent = data.repoUrl;
+      } else {
+        document.getElementById('repoLink').textContent = 'Unavailable';
+        console.warn('⚠️ repoUrl missing despite success:', data);
       }
 
-      if (!sessionId || !domain) {
-        loadingBox.innerText = '⚠️ Missing session or domain data. Please go back and try again.';
-        return;
-      }
+      loadingBox.style.display = 'none';
+      document.getElementById('hostingDetails').style.display = 'block';
+    } catch (err) {
+      console.error('❌ Full hosting deployment error:', err);
+      loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+    }
+  });
+</script>
 
-      try {
-        const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, domain, duration })
-        });
-
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Deployment failed');
-
-        console.log('✅ Deployment result:', data);
-
-        const hostedUrl = `https://${domain}`;
-        document.getElementById('hostedLink').href = hostedUrl;
-        document.getElementById('hostedLink').textContent = hostedUrl;
-
-        if (data.repoUrl) {
-          document.getElementById('repoLink').href = data.repoUrl;
-          document.getElementById('repoLink').textContent = data.repoUrl;
-        } else {
-          document.getElementById('repoLink').textContent = 'Unavailable';
-          console.warn('⚠️ repoUrl missing despite success:', data);
-        }
-
-        loadingBox.style.display = 'none';
-        document.getElementById('hostingDetails').style.display = 'block';
-      } catch (err) {
-        console.error('❌ Full hosting deployment error:', err);
-        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
-      }
-    });
-  </script>
 
 <script src="public/js/core.js"></script>
 <script src="public/js/domainChecker.js"></script>
