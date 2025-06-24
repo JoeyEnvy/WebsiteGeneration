@@ -1,3 +1,13 @@
+import express from 'express';
+import fetch from 'node-fetch';
+import { Octokit } from '@octokit/rest';
+import { tempSessions } from '../index.js';
+import { retryRequest, sanitizeRepoName, getUniqueRepoName } from '../utils/githubUtils.js';
+import { setGitHubDNS } from '../utils/dnsUtils.js';
+
+const router = express.Router();
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
 router.post('/deploy-full-hosting', async (req, res) => {
   console.log('📦 Incoming full-hosting deploy request:', req.body);
 
@@ -40,7 +50,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
     }
   };
 
-  // 🔍 Check domain availability again to prevent race condition
+  // 🔍 Domain availability check
   try {
     const availabilityRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
@@ -58,7 +68,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
     return res.status(500).json({ error: 'Failed to verify domain availability.' });
   }
 
-  // 🛒 Attempt to purchase domain
+  // 🛒 Attempt to purchase
   try {
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
@@ -96,7 +106,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     console.log(`✅ Domain purchased successfully: ${cleanedDomain}`);
 
-    // 🚀 Deploy GitHub repo
+    // 🚀 GitHub deploy
     const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
 
@@ -154,7 +164,6 @@ jobs:
     const pagesUrl = `https://${cleanedDomain}`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    // 💾 Store deployment status
     tempSessions[sessionId] = {
       ...session,
       deployed: true,
@@ -173,7 +182,6 @@ jobs:
   }
 });
 
-// At the very bottom
 export default router;
 
 
