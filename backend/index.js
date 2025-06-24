@@ -40,7 +40,7 @@ const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 // ========================================================================
 export const tempSessions = {};
 
-// ✅ Export third-party SDKs for use in route modules
+// ✅ Export third-party SDKs for use in route modules (if needed later)
 export const thirdParty = {
   stripe,
   fetch,

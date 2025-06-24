@@ -1,10 +1,8 @@
+// domainRoutes.js
 import express from 'express';
 import fetch from 'node-fetch';
-import { Octokit } from '@octokit/rest';
-import { tempSessions } from '../index.js';
 
 const router = express.Router();
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 // ✅ Domain Availability Checker
 router.post('/check-domain', async (req, res) => {
@@ -46,7 +44,7 @@ router.post('/check-domain', async (req, res) => {
 
 // ✅ Domain Price Estimator
 router.post('/get-domain-price', async (req, res) => {
-  const { domain, duration } = req.body;
+  const { domain, duration = '1' } = req.body;
   const cleanedDomain = domain?.trim().toLowerCase();
   const period = parseInt(duration, 10) || 1;
 
@@ -58,6 +56,7 @@ router.post('/get-domain-price', async (req, res) => {
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
+
   const priceUrl = `${apiBase}/v1/domains/price/${tld}?domain=${encodeURIComponent(cleanedDomain)}&forTransfer=false`;
 
   try {
@@ -93,5 +92,9 @@ router.post('/get-domain-price', async (req, res) => {
     });
   }
 });
+
+export default router;
+
+
 
 export default router;
