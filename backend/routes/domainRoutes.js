@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-// ✅ Domain Availability + Price Checker
+// ✅ Domain Availability Checker
 router.post('/check-domain', async (req, res) => {
   const { domain } = req.body;
   if (!domain || typeof domain !== 'string') {
@@ -53,6 +53,7 @@ router.post('/check-domain', async (req, res) => {
   }
 });
 
+// ✅ Domain Price Estimator (uses stable products endpoint)
 router.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
   const cleanedDomain = domain?.trim().toLowerCase();
@@ -62,19 +63,24 @@ router.post('/get-domain-price', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
-  const tld = cleanedDomain.split('.').pop(); // extract TLD (.com, .ltd, etc.)
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
-  const priceUrl = `${apiBase}/v1/domains/price/${tld}?domain=${cleanedDomain}&forTransfer=false`;
+  const priceUrl = `${apiBase}/v1/products/domains/price`;
 
   try {
     const response = await fetch(priceUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-        Accept: 'application/json'
-      }
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        domain: cleanedDomain,
+        action: 'create',
+        period
+      })
     });
 
     if (!response.ok) {
@@ -88,9 +94,9 @@ router.post('/get-domain-price', async (req, res) => {
     }
 
     const data = await response.json();
-    const rawPrice = data.price;
+    const rawPrice = data.total || data.subtotal || 1599; // safe fallback from GoDaddy
     const priceInPounds = rawPrice / 100;
-    const total = parseFloat((priceInPounds * period).toFixed(2));
+    const total = parseFloat(priceInPounds.toFixed(2));
     const currency = data.currency || 'GBP';
 
     res.json({ domainPrice: total, currency });
@@ -109,3 +115,4 @@ router.get('/ping-domain-routes', (req, res) => {
 });
 
 export default router;
+
