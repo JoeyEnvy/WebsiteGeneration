@@ -9,7 +9,6 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
-  // === Input format validator
   domainInput.addEventListener('input', () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!domain) {
@@ -27,7 +26,6 @@ function setupDomainChecker() {
     }
   });
 
-  // === Check availability + fetch price
   checkBtn.addEventListener('click', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     resultDisplay.textContent = '';
@@ -50,7 +48,7 @@ function setupDomainChecker() {
       });
 
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
-      const { available } = await checkRes.json();
+      const { available, domainPrice, currency } = await checkRes.json();
 
       if (!available) {
         resultDisplay.textContent = `❌ "${domain}" is not available.`;
@@ -58,25 +56,16 @@ function setupDomainChecker() {
         return;
       }
 
-      // ✅ Domain is available
       resultDisplay.textContent = `✅ "${domain}" is available!`;
       resultDisplay.style.color = 'green';
       if (confirmBtn) confirmBtn.disabled = false;
       buyButton.disabled = true;
+
       localStorage.setItem('customDomain', domain);
 
-      // === Get price estimate
       const duration = durationSelect?.value || '1';
       localStorage.setItem('domainDuration', duration);
 
-      const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, duration })
-      });
-
-      if (!priceRes.ok) throw new Error(`Estimate failed: ${priceRes.status}`);
-      const { domainPrice } = await priceRes.json();
       const base = parseFloat(domainPrice || 0);
       const final = (base + 150).toFixed(2);
 
@@ -92,7 +81,6 @@ function setupDomainChecker() {
     }
   });
 
-  // === Handle duration dropdown change
   durationSelect?.addEventListener('change', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!isValidDomain(domain)) return;
@@ -108,7 +96,7 @@ function setupDomainChecker() {
       });
 
       if (!res.ok) throw new Error('Estimate failed');
-      const { domainPrice } = await res.json();
+      const { domainPrice, currency } = await res.json();
       const base = parseFloat(domainPrice || 0);
       const final = (base + 150).toFixed(2);
 
@@ -125,7 +113,6 @@ function setupDomainChecker() {
     }
   });
 
-  // === Confirm domain before enabling full hosting purchase
   if (confirmBtn) {
     confirmBtn.addEventListener('click', () => {
       confirmBtn.textContent = '✅ Domain Confirmed';
@@ -137,3 +124,4 @@ function setupDomainChecker() {
 
 // ✅ Expose to window
 window.setupDomainChecker = setupDomainChecker;
+

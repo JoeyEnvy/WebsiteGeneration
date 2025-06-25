@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-// ✅ Domain Availability Checker
+// ✅ Domain Availability + Price Checker
 router.post('/check-domain', async (req, res) => {
   const { domain } = req.body;
   if (!domain || typeof domain !== 'string') {
@@ -14,7 +14,7 @@ router.post('/check-domain', async (req, res) => {
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
-  const checkUrl = `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}`;
+  const checkUrl = `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}&checkType=FAST&forTransfer=false`;
 
   try {
     const response = await fetch(checkUrl, {
@@ -35,13 +35,20 @@ router.post('/check-domain', async (req, res) => {
     }
 
     const data = await response.json();
-    res.json({ available: data.available });
+    const price = parseFloat((data.price || 1599) / 100).toFixed(2);
+    const currency = data.currency || 'GBP';
+
+    res.json({
+      available: data.available,
+      domainPrice: price,
+      currency
+    });
   } catch (err) {
     res.status(500).json({ error: 'Domain availability check failed.', detail: err.message });
   }
 });
 
-// ✅ Domain Price Estimator
+// ✅ Price Estimator (based on availability endpoint)
 router.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
   const cleanedDomain = domain?.trim().toLowerCase();
@@ -51,14 +58,13 @@ router.post('/get-domain-price', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
-  const tld = cleanedDomain.split('.').slice(1).join('.');
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
-  const priceUrl = `${apiBase}/v1/domains/price/${tld}?domain=${encodeURIComponent(cleanedDomain)}&forTransfer=false`;
+  const checkUrl = `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}&checkType=FAST&forTransfer=false`;
 
   try {
-    const estimateRes = await fetch(priceUrl, {
+    const response = await fetch(checkUrl, {
       method: 'GET',
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
@@ -66,19 +72,9 @@ router.post('/get-domain-price', async (req, res) => {
       }
     });
 
-    if (!estimateRes.ok) {
-      const errorText = await estimateRes.text();
-      return res.status(estimateRes.status).json({
-        error: 'GoDaddy pricing API failed',
-        fallbackPrice: 15.99,
-        status: estimateRes.status,
-        raw: errorText
-      });
-    }
-
-    const priceData = await estimateRes.json();
-    const rawPrice = priceData.renew || priceData.current || priceData.price || 1599;
-    const currency = priceData.currency || 'GBP';
+    const data = await response.json();
+    const rawPrice = data.price || 1599;
+    const currency = data.currency || 'GBP';
     const domainPrice = parseFloat(((rawPrice / 100) * period).toFixed(2));
 
     res.json({ domainPrice, currency });
@@ -91,6 +87,7 @@ router.post('/get-domain-price', async (req, res) => {
   }
 });
 
+// ✅ Health check
 router.get('/ping-domain-routes', (req, res) => {
   res.json({ ok: true, message: '✅ domainRoutes.js is live' });
 });

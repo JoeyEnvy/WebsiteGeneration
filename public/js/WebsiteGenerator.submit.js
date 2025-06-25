@@ -6,6 +6,9 @@ WebsiteGenerator.prototype.handleSubmit = async function() {
     const formData = new FormData(this.form);
     const finalPrompt = this.buildFinalPrompt(formData);
 
+    // ✅ Store businessName for later use (e.g., full-hosting checkout)
+    localStorage.setItem('businessName', formData.get('businessName') || '');
+
     if (!localStorage.getItem('sessionId')) {
       localStorage.setItem('sessionId', crypto.randomUUID());
     }
