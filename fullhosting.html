@@ -43,15 +43,27 @@
 
     const loadingBox = document.getElementById('loadingBox');
     const termDisplay = document.getElementById('termDisplay');
+    const hostedLink = document.getElementById('hostedLink');
+    const repoLink = document.getElementById('repoLink');
+    const hostingDetails = document.getElementById('hostingDetails');
 
-    if (duration === '3') {
+    // Display term text for 3-year selection
+    if (duration === '3' && termDisplay) {
       termDisplay.innerHTML = '📅 Domain will be registered for <strong>3 years</strong>. Renewal handled via support.';
     }
 
+    // Validate required inputs
     if (!sessionId || !domain || !businessName) {
-      loadingBox.innerText = '⚠️ Missing session, domain, or business name. Please go back and try again.';
+      if (loadingBox) {
+        loadingBox.innerText = '⚠️ Missing session, domain, or business name. Please go back and try again.';
+      }
+      console.warn('❌ Missing deployment inputs:', { sessionId, domain, businessName });
       return;
     }
+
+    console.log('🚀 Starting full hosting deployment with:', {
+      sessionId, domain, duration, businessName
+    });
 
     try {
       const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
@@ -61,27 +73,37 @@
       });
 
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Deployment failed');
+
+      if (!data.success) {
+        throw new Error(data.error || 'Deployment failed (unknown reason)');
+      }
 
       console.log('✅ Deployment result:', data);
 
       const hostedUrl = `https://${domain}`;
-      document.getElementById('hostedLink').href = hostedUrl;
-      document.getElementById('hostedLink').textContent = hostedUrl;
-
-      if (data.repoUrl) {
-        document.getElementById('repoLink').href = data.repoUrl;
-        document.getElementById('repoLink').textContent = data.repoUrl;
-      } else {
-        document.getElementById('repoLink').textContent = 'Unavailable';
-        console.warn('⚠️ repoUrl missing despite success:', data);
+      if (hostedLink) {
+        hostedLink.href = hostedUrl;
+        hostedLink.textContent = hostedUrl;
       }
 
-      loadingBox.style.display = 'none';
-      document.getElementById('hostingDetails').style.display = 'block';
+      if (repoLink) {
+        if (data.repoUrl) {
+          repoLink.href = data.repoUrl;
+          repoLink.textContent = data.repoUrl;
+        } else {
+          repoLink.textContent = 'Unavailable';
+          console.warn('⚠️ repoUrl missing despite success:', data);
+        }
+      }
+
+      if (loadingBox) loadingBox.style.display = 'none';
+      if (hostingDetails) hostingDetails.style.display = 'block';
+
     } catch (err) {
       console.error('❌ Full hosting deployment error:', err);
-      loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+      if (loadingBox) {
+        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+      }
     }
   });
 </script>

@@ -1,10 +1,11 @@
 const deployFullHostingBtn = document.getElementById('deployFullHosting');
+
 if (deployFullHostingBtn) {
   deployFullHostingBtn.addEventListener('click', async () => {
     const domain = document.getElementById('customDomain')?.value?.trim().toLowerCase();
     const duration = document.getElementById('domainDuration')?.value || '1';
     const businessName = localStorage.getItem('businessName');
-    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
+    let sessionId = localStorage.getItem('sessionId');
 
     if (!domain || !isValidDomain(domain)) {
       alert('❌ Please enter a valid domain.');
@@ -16,10 +17,17 @@ if (deployFullHostingBtn) {
       return;
     }
 
-    localStorage.setItem('sessionId', sessionId);
+    // Generate and store session ID if not present
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', sessionId);
+    }
+
+    // Persist domain and duration
     localStorage.setItem('customDomain', domain);
     localStorage.setItem('domainDuration', duration);
 
+    // Extract price from UI and store for reference
     const priceDisplay = document.getElementById('domainPriceDisplay');
     if (priceDisplay) {
       const match = priceDisplay.textContent.match(/£(\d+(\.\d+)?)/);
@@ -37,7 +45,7 @@ if (deployFullHostingBtn) {
           sessionId,
           domain,
           duration,
-          businessName // ✅ now included
+          businessName
         })
       });
 

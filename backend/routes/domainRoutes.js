@@ -35,20 +35,25 @@ router.post('/check-domain', async (req, res) => {
     }
 
     const data = await response.json();
-    const price = parseFloat((data.price || 1599) / 100).toFixed(2);
+    const rawPrice = data.price || 50; // fallback 50p for 1 year
     const currency = data.currency || 'GBP';
+    const domainPrice = parseFloat((rawPrice / 100).toFixed(2));
 
     res.json({
       available: data.available,
-      domainPrice: price,
+      domainPrice,
       currency
     });
   } catch (err) {
-    res.status(500).json({ error: 'Domain availability check failed.', detail: err.message });
+    res.status(500).json({
+      error: 'Domain availability check failed.',
+      fallbackPrice: 0.5,
+      detail: err.message
+    });
   }
 });
 
-// ✅ Price Estimator (based on availability endpoint)
+// ✅ Domain Price Estimator (based on availability endpoint)
 router.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
   const cleanedDomain = domain?.trim().toLowerCase();
@@ -72,8 +77,18 @@ router.post('/get-domain-price', async (req, res) => {
       }
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).json({
+        error: 'GoDaddy price check failed',
+        fallbackPrice: 0.5 * period,
+        status: response.status,
+        raw: errorText
+      });
+    }
+
     const data = await response.json();
-    const rawPrice = data.price || 1599;
+    const rawPrice = data.price || 50; // fallback to 50p base price
     const currency = data.currency || 'GBP';
     const domainPrice = parseFloat(((rawPrice / 100) * period).toFixed(2));
 
@@ -81,7 +96,7 @@ router.post('/get-domain-price', async (req, res) => {
   } catch (err) {
     res.status(500).json({
       error: 'Failed to fetch domain price',
-      fallbackPrice: 15.99,
+      fallbackPrice: 0.5 * period,
       detail: err.message
     });
   }
@@ -93,6 +108,3 @@ router.get('/ping-domain-routes', (req, res) => {
 });
 
 export default router;
-
-
-
