@@ -1,25 +1,17 @@
 // /routes/stripeRoutes.js
-
 import express from 'express';
 import Stripe from 'stripe';
 import { tempSessions } from '../index.js';
+import { getDomainPriceInPennies } from '../utils/domainPricing.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 
 router.post('/create-checkout-session', async (req, res) => {
   const { type, sessionId, businessName, domain, duration, email } = req.body;
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log('📥 Incoming Stripe checkout request:', {
-      type,
-      sessionId,
-      businessName,
-      domain,
-      duration,
-      email
-    });
+    console.log('📥 Incoming Stripe checkout request:', { type, sessionId, businessName, domain, duration, email });
   }
 
   if (!type || !sessionId) {
@@ -36,10 +28,10 @@ router.post('/create-checkout-session', async (req, res) => {
   if (duration) tempSessions[sessionId].domainDuration = duration;
 
   const priceMap = {
-    'zip-download': { price: 0, name: 'ZIP File Only (TEST)' },
-    'github-instructions': { price: 0, name: 'GitHub Self-Deployment Instructions (TEST)' },
-    'github-hosted': { price: 0, name: 'GitHub Hosting + Support (TEST)' },
-    'full-hosting': { name: 'Full Hosting + Custom Domain (TEST)' } // price is dynamic
+    'zip-download': { price: 5000, name: 'ZIP File Only' },
+    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
+    'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
+    'full-hosting': { name: 'Full Hosting + Custom Domain' } // price is dynamic
   };
 
   const product = priceMap[type];
@@ -47,34 +39,26 @@ router.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid deployment option.' });
   }
 
-  let finalPrice = 0;
+  let finalPriceInPennies = 0;
 
   if (type === 'full-hosting') {
-    const period = parseInt(duration) || 1;
+    const period = parseInt(duration, 10) || 1;
     const cleanedDomain = domain.trim().toLowerCase();
 
     if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
-      console.warn('❌ Invalid domain format:', cleanedDomain);
-      return res.status(400).json({ error: 'Invalid domain structure.' });
+      return res.status(400).json({ error: 'Invalid domain format.' });
     }
 
-    try {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🌐 [TEST] Simulating GoDaddy price estimate for:', cleanedDomain);
-      }
-    } catch (err) {
-      console.warn('⚠️ Estimate simulation failed:', err.message);
-    }
+const domainCost = getDomainPriceInPennies(cleanedDomain, period);
+// const serviceFee = 15000; // £150 service fee in pennies
+finalPriceInPennies = domainCost; // ← Temporarily using only domain cost for testing
 
-    finalPrice = 0;
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🧮 Pricing breakdown (pence):', { domainCost, serviceFee, total: finalPriceInPennies });
+    }
   } else {
-    finalPrice = product.price;
-  }
-
-  const stripePrice = (finalPrice <= 0 || isNaN(finalPrice)) ? 50 : Math.round(finalPrice * 100);
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('💳 Final Stripe charge (pence):', stripePrice);
+    finalPriceInPennies = product.price;
   }
 
   try {
@@ -88,7 +72,7 @@ router.post('/create-checkout-session', async (req, res) => {
         price_data: {
           currency: 'gbp',
           product_data: { name: product.name },
-          unit_amount: stripePrice
+          unit_amount: finalPriceInPennies
         },
         quantity: 1
       }],
@@ -112,3 +96,4 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 export default router;
+
