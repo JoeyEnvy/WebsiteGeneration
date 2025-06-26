@@ -74,8 +74,13 @@
 
       if (!data.success) {
         let errorMsg = data.error || 'Deployment failed.';
-        if (data.details?.toLowerCase().includes('price') || data.priceReminder) {
-          errorMsg += '\n💸 The domain may have increased in price. Please try again or contact support.';
+        if (
+          data.details?.toLowerCase().includes('price') ||
+          data.details?.toLowerCase().includes('insufficient') ||
+          data.details?.toLowerCase().includes('fund') ||
+          data.priceReminder
+        ) {
+          errorMsg += '\n💸 The domain may have increased in price or exceeded the prepaid amount. Please try again or contact support.';
         }
         throw new Error(errorMsg);
       }
@@ -104,7 +109,18 @@
     } catch (err) {
       console.error('❌ Full hosting deployment error:', err);
       if (loadingBox) {
-        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+        const errMsg = (err.message || '').toLowerCase();
+        if (
+          errMsg.includes('insufficient') ||
+          errMsg.includes('fund') ||
+          errMsg.includes('price') ||
+          errMsg.includes('amount') ||
+          errMsg.includes('mismatch')
+        ) {
+          loadingBox.innerText = '💸 Domain purchase failed due to insufficient funds or pricing issue. Please contact support or try again with a different domain.';
+        } else {
+          loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+        }
       }
     }
   });
