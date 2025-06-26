@@ -86,10 +86,13 @@ router.post('/deploy-full-hosting', async (req, res) => {
     });
 
     const purchaseData = await purchaseRes.json();
+
     if (!purchaseRes.ok) {
+      console.warn('❌ Domain purchase failed:', purchaseData);
       return res.status(purchaseRes.status).json({
         error: 'Domain purchase failed',
-        details: purchaseData?.message || purchaseData
+        details: purchaseData?.message || purchaseData,
+        priceReminder: '💡 Ensure the Stripe payment matches or exceeds the current domain price.'
       });
     }
 
@@ -110,7 +113,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
-    // Add CNAME + GitHub Actions
     await octokit.repos.createOrUpdateFileContents({
       owner,
       repo: repoName,

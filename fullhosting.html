@@ -47,12 +47,10 @@
     const repoLink = document.getElementById('repoLink');
     const hostingDetails = document.getElementById('hostingDetails');
 
-    // Display term text for 3-year selection
     if (duration === '3' && termDisplay) {
       termDisplay.innerHTML = '📅 Domain will be registered for <strong>3 years</strong>. Renewal handled via support.';
     }
 
-    // Validate required inputs
     if (!sessionId || !domain || !businessName) {
       if (loadingBox) {
         loadingBox.innerText = '⚠️ Missing session, domain, or business name. Please go back and try again.';
@@ -75,7 +73,11 @@
       const data = await res.json();
 
       if (!data.success) {
-        throw new Error(data.error || 'Deployment failed (unknown reason)');
+        let errorMsg = data.error || 'Deployment failed.';
+        if (data.details?.toLowerCase().includes('price') || data.priceReminder) {
+          errorMsg += '\n💸 The domain may have increased in price. Please try again or contact support.';
+        }
+        throw new Error(errorMsg);
       }
 
       console.log('✅ Deployment result:', data);
