@@ -1,3 +1,8 @@
+function isValidDomain(domain) {
+  const domainRegex = /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain.trim().toLowerCase());
+}
+
 function setupDomainChecker() {
   const domainInput = document.getElementById('customDomain');
   const checkBtn = document.getElementById('checkDomainBtn');
@@ -48,7 +53,7 @@ function setupDomainChecker() {
       });
 
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
-      const { available, domainPrice, currency } = await checkRes.json();
+      const { available } = await checkRes.json();
 
       if (!available) {
         resultDisplay.textContent = `❌ "${domain}" is not available.`;
@@ -66,26 +71,23 @@ function setupDomainChecker() {
       const duration = durationSelect?.value || '1';
       localStorage.setItem('domainDuration', duration);
 
-// 🔁 NEW backend price request
-const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ domain, duration })
-});
+      // 🔁 Fetch backend-calculated domain price
+      const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, duration })
+      });
 
-if (!priceRes.ok) throw new Error('Price fetch failed');
-const { domainPrice } = await priceRes.json();
-localStorage.setItem('domainPrice', domainPrice);
+      if (!priceRes.ok) throw new Error('Price fetch failed');
+      const priceData = await priceRes.json();
+      const base = parseFloat(priceData.domainPrice || 0);
+      const final = (base + 150).toFixed(2);
+      localStorage.setItem('domainPrice', base);
 
-const base = parseFloat(domainPrice || 0);
-const final = (base + 150).toFixed(2);
-
-if (priceDisplay) {
-  priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
-  priceDisplay.style.color = 'black';
-}
-
-
+      if (priceDisplay) {
+        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
+        priceDisplay.style.color = 'black';
+      }
     } catch (err) {
       console.error('❌ Domain check error:', err);
       resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
@@ -109,9 +111,10 @@ if (priceDisplay) {
       });
 
       if (!res.ok) throw new Error('Estimate failed');
-      const { domainPrice, currency } = await res.json();
-      const base = parseFloat(domainPrice || 0);
+      const data = await res.json();
+      const base = parseFloat(data.domainPrice || 0);
       const final = (base + 150).toFixed(2);
+      localStorage.setItem('domainPrice', base);
 
       if (priceDisplay) {
         priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
