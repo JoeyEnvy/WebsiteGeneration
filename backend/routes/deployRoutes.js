@@ -1,12 +1,14 @@
 import express from 'express';
 import fetch from 'node-fetch';
 import { Octokit } from '@octokit/rest';
+import Stripe from 'stripe';
 import { tempSessions } from '../index.js';
 import { retryRequest, sanitizeRepoName, getUniqueRepoName } from '../utils/githubUtils.js';
 import { setGitHubDNS } from '../utils/dnsUtils.js';
 
 const router = express.Router();
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 router.post('/deploy-full-hosting', async (req, res) => {
   const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
@@ -41,7 +43,17 @@ router.post('/deploy-full-hosting', async (req, res) => {
   };
 
   try {
-    // ✅ 1. Ensure domain is still available
+    // ✅ 1. Fetch Stripe session to get correct domain price
+    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+    const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
+
+    if (!domainPriceInPennies) {
+      return res.status(400).json({ error: 'Missing domain price from Stripe metadata.' });
+    }
+
+    const domainPriceFloat = domainPriceInPennies / 100;
+
+    // ✅ 2. Ensure domain is still available
     const availRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -52,7 +64,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(409).json({ error: 'Domain is no longer available.' });
     }
 
-    // ✅ 2. Fetch legal agreements
+    // ✅ 3. Fetch legal agreements
     const agreementRes = await fetch(`${apiBase}/v1/domains/agreements?tlds=${cleanedDomain.split('.').pop()}&privacy=false`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -61,7 +73,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const agreements = await agreementRes.json();
     const agreementKeys = agreements.map(a => a.agreementKey);
 
-    // ✅ 3. Purchase domain
+    // ✅ 4. Purchase domain with exact price
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
       headers: {
@@ -73,6 +85,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
         period,
         privacy: false,
         renewAuto: true,
+        price: domainPriceFloat, // 👈 THIS IS KEY
         consent: {
           agreedAt: new Date().toISOString(),
           agreedBy: '127.0.0.1',
@@ -96,7 +109,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
-    // ✅ 4. GitHub Pages deploy
+    // ✅ 5. Deploy to GitHub
     const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
 
@@ -140,12 +153,10 @@ jobs:
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: \${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
-`).toString('base64'),
+          publish_dir: ./`).toString('base64'),
       branch: 'main'
     });
 
-    // ✅ Done
     const pagesUrl = `https://${cleanedDomain}`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
@@ -166,3 +177,4 @@ jobs:
 });
 
 export default router;
+
