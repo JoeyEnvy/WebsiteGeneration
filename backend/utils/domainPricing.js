@@ -34,13 +34,19 @@ export async function getLiveDomainPrice(domain) {
     Accept: 'application/json'
   };
 
+  console.log('🌐 Fetching GoDaddy live price for:', domain);
+
   const res = await fetch(url, { headers });
+
   if (!res.ok) {
     const errorText = await res.text();
+    console.error('💥 GoDaddy API price fetch failed:', res.status, errorText);
     throw new Error(`GoDaddy price fetch failed: ${errorText}`);
   }
 
   const data = await res.json();
-  return data.price; // in base unit (e.g., 2.99)
+  console.log('✅ GoDaddy live price fetched:', { domain, price: data.price });
+  return data.price; // e.g. 2.99
 }
+
 
