@@ -66,13 +66,26 @@ function setupDomainChecker() {
       const duration = durationSelect?.value || '1';
       localStorage.setItem('domainDuration', duration);
 
-      const base = parseFloat(domainPrice || 0);
-      const final = (base + 150).toFixed(2);
+// 🔁 NEW backend price request
+const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ domain, duration })
+});
 
-      if (priceDisplay) {
-        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
-        priceDisplay.style.color = 'black';
-      }
+if (!priceRes.ok) throw new Error('Price fetch failed');
+const { domainPrice } = await priceRes.json();
+localStorage.setItem('domainPrice', domainPrice);
+
+const base = parseFloat(domainPrice || 0);
+const final = (base + 150).toFixed(2);
+
+if (priceDisplay) {
+  priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
+  priceDisplay.style.color = 'black';
+}
+
+
     } catch (err) {
       console.error('❌ Domain check error:', err);
       resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';

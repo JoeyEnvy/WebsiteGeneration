@@ -1,9 +1,10 @@
 import express from 'express';
 import fetch from 'node-fetch';
+import { getDomainPriceInPounds } from '../utils/domainPricing.js'; // ✅ Import pricing map
 
 const router = express.Router();
 
-// ✅ Domain Availability Checker
+// ✅ Domain Availability Checker (still uses GoDaddy)
 router.post('/check-domain', async (req, res) => {
   const { domain } = req.body;
   if (!domain || typeof domain !== 'string') {
@@ -35,9 +36,8 @@ router.post('/check-domain', async (req, res) => {
     }
 
     const data = await response.json();
-    const rawPrice = data.price || 50; // fallback 50p for 1 year
-    const currency = data.currency || 'GBP';
-    const domainPrice = parseFloat((rawPrice / 100).toFixed(2));
+    const domainPrice = getDomainPriceInPounds(cleanedDomain); // 🔁 Use local pricing instead of GoDaddy price
+    const currency = 'GBP';
 
     res.json({
       available: data.available,
@@ -53,7 +53,7 @@ router.post('/check-domain', async (req, res) => {
   }
 });
 
-// ✅ Domain Price Estimator (uses stable products endpoint)
+// ✅ Domain Price Estimator (now uses local utility instead of GoDaddy API)
 router.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
   const cleanedDomain = domain?.trim().toLowerCase();
@@ -63,46 +63,14 @@ router.post('/get-domain-price', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
-  const apiBase = process.env.GODADDY_ENV === 'production'
-    ? 'https://api.godaddy.com'
-    : 'https://api.ote-godaddy.com';
-  const priceUrl = `${apiBase}/v1/products/domains/price`;
-
   try {
-    const response = await fetch(priceUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        domain: cleanedDomain,
-        action: 'create',
-        period
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({
-        error: 'GoDaddy price lookup failed',
-        fallbackPrice: 15.99 * period,
-        status: response.status,
-        raw: errorText
-      });
-    }
-
-    const data = await response.json();
-    const rawPrice = data.total || data.subtotal || 1599; // safe fallback from GoDaddy
-    const priceInPounds = rawPrice / 100;
-    const total = parseFloat(priceInPounds.toFixed(2));
-    const currency = data.currency || 'GBP';
-
-    res.json({ domainPrice: total, currency });
+    const domainPrice = getDomainPriceInPounds(cleanedDomain, period);
+    const currency = 'GBP';
+    res.json({ domainPrice, currency });
   } catch (err) {
+    console.error('💥 Price mapping error:', err);
     res.status(500).json({
-      error: 'Failed to fetch domain price',
+      error: 'Failed to estimate price',
       fallbackPrice: 15.99 * period,
       detail: err.message
     });
@@ -115,4 +83,5 @@ router.get('/ping-domain-routes', (req, res) => {
 });
 
 export default router;
+
 
