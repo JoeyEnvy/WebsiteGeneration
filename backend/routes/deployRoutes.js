@@ -44,8 +44,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
   try {
     // ✅ 1. Fetch Stripe session to get correct domain price
-    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
-    const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
+const domainPriceInPennies = parseInt(session?.domainPrice, 10);
+
 
     if (!domainPriceInPennies) {
       return res.status(400).json({ error: 'Missing domain price from Stripe metadata.' });
