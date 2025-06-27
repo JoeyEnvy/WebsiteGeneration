@@ -1,4 +1,3 @@
-// utils/domainPricing.js
 import fetch from 'node-fetch';
 
 export const TLD_PRICES = {
@@ -26,8 +25,7 @@ export function getDomainPriceInPennies(domain, period = 1) {
 }
 
 export async function getLiveDomainPrice(domain) {
-  const tld = domain.split('.').pop().toLowerCase();
-  const url = `https://api.godaddy.com/v1/domains/price/${tld}?domainName=${domain}`;
+  const url = `https://api.godaddy.com/v1/domains/available?domain=${domain}&checkType=FULL&forTransfer=false`;
 
   const headers = {
     Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
@@ -45,8 +43,13 @@ export async function getLiveDomainPrice(domain) {
   }
 
   const data = await res.json();
-  console.log('✅ GoDaddy live price fetched:', { domain, price: data.price });
-  return data.price; // e.g. 2.99
-}
 
+  if (!data.price || !data.available) {
+    console.warn('⚠️ Domain not available or price missing from response:', data);
+    throw new Error(`Domain unavailable or unpriceable.`);
+  }
+
+  console.log('✅ GoDaddy live price fetched:', { domain, price: data.price });
+  return data.price / 100; // Convert from pennies to base unit (e.g., 299 → 2.99)
+}
 
