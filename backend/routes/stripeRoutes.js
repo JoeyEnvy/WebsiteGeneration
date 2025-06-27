@@ -26,12 +26,15 @@ router.post('/create-checkout-session', async (req, res) => {
   if (domain) tempSessions[sessionId].domain = domain.trim().toLowerCase();
   if (duration) tempSessions[sessionId].domainDuration = duration;
 
-  const priceMap = {
-    'zip-download': { price: 5000, name: 'ZIP File Only' },
-    'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
-    'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { price: 0, name: 'Full Hosting + Custom Domain (Test Mode)' } // ← force £0 for testing
-  };
+const priceMap = {
+  'zip-download': { price: 5000, name: 'ZIP File Only' },
+  'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
+  'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
+  'full-hosting': {
+    price: process.env.NODE_ENV === 'production' ? 30000 : 50,
+    name: 'Full Hosting + Custom Domain'
+  }
+};
 
   const product = priceMap[type];
   if (!product) {
