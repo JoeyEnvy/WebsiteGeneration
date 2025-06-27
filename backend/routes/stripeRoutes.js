@@ -1,7 +1,6 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { tempSessions } from '../index.js';
-import { getLiveDomainPrice } from '../utils/domainPricing.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -31,7 +30,7 @@ router.post('/create-checkout-session', async (req, res) => {
     'zip-download': { price: 5000, name: 'ZIP File Only' },
     'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
     'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
-    'full-hosting': { name: 'Full Hosting + Custom Domain' } // dynamic
+    'full-hosting': { price: 0, name: 'Full Hosting + Custom Domain (Test Mode)' } // ← force £0 for testing
   };
 
   const product = priceMap[type];
@@ -39,42 +38,7 @@ router.post('/create-checkout-session', async (req, res) => {
     return res.status(400).json({ error: 'Invalid deployment option.' });
   }
 
-  let finalPriceInPennies = 0;
-  let domainCost = 0;
-
-  if (type === 'full-hosting') {
-    const period = parseInt(duration, 10) || 1;
-    const cleanedDomain = domain.trim().toLowerCase();
-
-    if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
-      return res.status(400).json({ error: 'Invalid domain format.' });
-    }
-
-    try {
-      const livePrice = await getLiveDomainPrice(cleanedDomain); // e.g., 2.99
-      domainCost = Math.round(livePrice * 100 * period); // Convert to pennies
-
-      // 💸 Add £1 buffer per domain to avoid underpricing on GoDaddy purchase
-      const bufferInPennies = 100;
-      finalPriceInPennies = domainCost + bufferInPennies;
-
-      tempSessions[sessionId].domainPrice = domainCost;
-
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🧮 GoDaddy Live Price (pence):', {
-          domainCost,
-          buffer: bufferInPennies,
-          duration: period,
-          total: finalPriceInPennies
-        });
-      }
-    } catch (err) {
-      console.error('❌ Failed to fetch live domain price:', err.message);
-      return res.status(500).json({ error: 'Failed to fetch domain price from GoDaddy' });
-    }
-  } else {
-    finalPriceInPennies = product.price;
-  }
+  const finalPriceInPennies = product.price;
 
   try {
     const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
@@ -95,8 +59,7 @@ router.post('/create-checkout-session', async (req, res) => {
         sessionId,
         type,
         domain: domain || '',
-        duration: duration || '1',
-        domainPrice: String(domainCost) // 🧠 exact domain cost for GoDaddy purchase
+        duration: duration || '1'
       },
       success_url: type === 'full-hosting'
         ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`

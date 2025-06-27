@@ -24,14 +24,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or empty.' });
   }
 
-const domainPriceInPennies = parseInt(session?.domainPrice, 10);
-if (!domainPriceInPennies) {
-  return res.status(400).json({ error: 'Missing domain price from session metadata.' });
-}
-const domainPriceFloat = domainPriceInPennies / 100;
-console.log('💸 Sending domain price to GoDaddy:', domainPriceFloat);
-
-
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
@@ -72,7 +64,7 @@ console.log('💸 Sending domain price to GoDaddy:', domainPriceFloat);
     const agreements = await agreementRes.json();
     const agreementKeys = agreements.map(a => a.agreementKey);
 
-    // ✅ Purchase domain
+    // ✅ Purchase domain (no price sent — charged to account)
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
       headers: {
@@ -84,7 +76,6 @@ console.log('💸 Sending domain price to GoDaddy:', domainPriceFloat);
         period,
         privacy: false,
         renewAuto: true,
-        price: domainPriceFloat,
         consent: {
           agreedAt: new Date().toISOString(),
           agreedBy: '127.0.0.1',
@@ -102,8 +93,7 @@ console.log('💸 Sending domain price to GoDaddy:', domainPriceFloat);
       console.warn('❌ Domain purchase failed:', purchaseData);
       return res.status(purchaseRes.status).json({
         error: 'Domain purchase failed',
-        details: purchaseData?.message || purchaseData,
-        priceReminder: '💡 Ensure the Stripe payment matches or exceeds the current domain price.'
+        details: purchaseData?.message || purchaseData
       });
     }
 
@@ -175,4 +165,3 @@ jobs:
 });
 
 export default router;
-
