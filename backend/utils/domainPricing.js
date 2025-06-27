@@ -50,6 +50,7 @@ export async function getLiveDomainPrice(domain) {
   }
 
   console.log('✅ GoDaddy live price fetched:', { domain, price: data.price });
-  return data.price / 100; // Convert from pennies to base unit (e.g., 299 → 2.99)
+  return data.price / 1_000_000; // ✅ convert micros to pounds
+
 }
 
