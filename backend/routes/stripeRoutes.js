@@ -1,4 +1,4 @@
-// /routes/stripeRoutes.js
+/// /routes/stripeRoutes.js
 
 import express from 'express';
 import Stripe from 'stripe';
@@ -57,6 +57,8 @@ router.post('/create-checkout-session', async (req, res) => {
       domainCost = Math.round(livePrice * 100 * period); // Convert to pennies
       finalPriceInPennies = domainCost;
 
+      tempSessions[sessionId].domainPrice = domainCost; // ✅ Ensure deploy route gets exact price
+
       if (process.env.NODE_ENV !== 'production') {
         console.log('🧮 GoDaddy Live Price (pence):', {
           domainCost,
@@ -92,7 +94,7 @@ router.post('/create-checkout-session', async (req, res) => {
         type,
         domain: domain || '',
         duration: duration || '1',
-        domainPrice: String(domainCost || finalPriceInPennies) // 🧠 ensure deploy route can use it
+        domainPrice: String(domainCost || finalPriceInPennies) // 🧠 Also stored here
       },
       success_url: type === 'full-hosting'
         ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
@@ -108,5 +110,4 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 export default router;
-
 

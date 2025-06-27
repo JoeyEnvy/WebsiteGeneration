@@ -24,6 +24,12 @@ router.post('/deploy-full-hosting', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or empty.' });
   }
 
+  const domainPriceInPennies = parseInt(session?.domainPrice, 10);
+  if (!domainPriceInPennies) {
+    return res.status(400).json({ error: 'Missing domain price from session metadata.' });
+  }
+  const domainPriceFloat = domainPriceInPennies / 100;
+
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
@@ -43,18 +49,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
   };
 
   try {
-    // ✅ 1. Fetch Stripe session to get correct domain price
-const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
-const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
-
-
-    if (!domainPriceInPennies) {
-      return res.status(400).json({ error: 'Missing domain price from Stripe metadata.' });
-    }
-
-    const domainPriceFloat = domainPriceInPennies / 100;
-
-    // ✅ 2. Ensure domain is still available
+    // ✅ Check domain still available
     const availRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -65,8 +60,9 @@ const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
       return res.status(409).json({ error: 'Domain is no longer available.' });
     }
 
-    // ✅ 3. Fetch legal agreements
-    const agreementRes = await fetch(`${apiBase}/v1/domains/agreements?tlds=${cleanedDomain.split('.').pop()}&privacy=false`, {
+    // ✅ Get legal agreements
+    const tld = cleanedDomain.split('.').pop();
+    const agreementRes = await fetch(`${apiBase}/v1/domains/agreements?tlds=${tld}&privacy=false`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
       }
@@ -74,7 +70,7 @@ const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
     const agreements = await agreementRes.json();
     const agreementKeys = agreements.map(a => a.agreementKey);
 
-    // ✅ 4. Purchase domain with exact price
+    // ✅ Purchase domain
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
       headers: {
@@ -86,7 +82,7 @@ const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
         period,
         privacy: false,
         renewAuto: true,
-        price: domainPriceFloat, // 👈 THIS IS KEY
+        price: domainPriceFloat,
         consent: {
           agreedAt: new Date().toISOString(),
           agreedBy: '127.0.0.1',
@@ -100,7 +96,6 @@ const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
     });
 
     const purchaseData = await purchaseRes.json();
-
     if (!purchaseRes.ok) {
       console.warn('❌ Domain purchase failed:', purchaseData);
       return res.status(purchaseRes.status).json({
@@ -110,7 +105,7 @@ const domainPriceInPennies = parseInt(stripeSession?.metadata?.domainPrice, 10);
       });
     }
 
-    // ✅ 5. Deploy to GitHub
+    // ✅ Deploy GitHub repo
     const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
 
