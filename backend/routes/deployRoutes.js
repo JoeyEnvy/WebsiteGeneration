@@ -32,18 +32,18 @@ router.post('/deploy-full-hosting', async (req, res) => {
     nameFirst: 'Joe',
     nameLast: 'Mort',
     email: 'support@websitegeneration.co.uk',
-    phone: '+441234567890',
+    phone: '+44.1234567890',
     addressMailing: {
       address1: '123 Web Street',
       city: 'Neath',
-      state: 'Wales',
+      state: 'WLS', // ISO state abbreviation (not "Wales")
       postalCode: 'SA10 6XY',
       country: 'GB'
     }
   };
 
   try {
-    // ✅ Check domain still available
+    // 🔍 Check availability again
     const availRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -64,40 +64,42 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const agreements = await agreementRes.json();
     const agreementKeys = agreements.map(a => a.agreementKey);
 
-    // ✅ Purchase domain (no price sent — charged to account)
+    // ✅ Attempt domain purchase
+    const purchasePayload = {
+      domain: cleanedDomain,
+      period,
+      privacy: false,
+      renewAuto: true,
+      consent: {
+        agreedAt: new Date().toISOString(),
+        agreedBy: req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '127.0.0.1',
+        agreementKeys
+      },
+      contactAdmin: contact,
+      contactRegistrant: contact,
+      contactTech: contact,
+      contactBilling: contact
+    };
+
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        domain: cleanedDomain,
-        period,
-        privacy: false,
-        renewAuto: true,
-        consent: {
-          agreedAt: new Date().toISOString(),
-          agreedBy: '127.0.0.1',
-          agreementKeys
-        },
-        contactAdmin: contact,
-        contactRegistrant: contact,
-        contactTech: contact,
-        contactBilling: contact
-      })
+      body: JSON.stringify(purchasePayload)
     });
 
     const purchaseData = await purchaseRes.json();
     if (!purchaseRes.ok) {
-      console.warn('❌ Domain purchase failed:', purchaseData);
+      console.warn('❌ Domain purchase failed. GoDaddy response:', purchaseData);
       return res.status(purchaseRes.status).json({
         error: 'Domain purchase failed',
         details: purchaseData?.message || purchaseData
       });
     }
 
-    // ✅ Deploy GitHub repo
+    // ✅ Deploy to GitHub
     const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
 
@@ -128,8 +130,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       repo: repoName,
       path: '.github/workflows/static.yml',
       message: 'Add GitHub Pages workflow',
-      content: Buffer.from(`
-name: Deploy static site
+      content: Buffer.from(`name: Deploy static site
 on:
   push:
     branches: [main]
@@ -159,7 +160,7 @@ jobs:
     res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('❌ Full hosting failed:', err);
+    console.error('❌ Full hosting failed:', err.response?.data || err.message);
     res.status(500).json({ error: 'Full hosting failed', detail: err.message });
   }
 });
