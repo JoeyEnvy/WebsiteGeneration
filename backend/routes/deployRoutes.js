@@ -36,14 +36,14 @@ router.post('/deploy-full-hosting', async (req, res) => {
     addressMailing: {
       address1: '123 Web Street',
       city: 'Neath',
-      state: 'WLS', // ISO state abbreviation (not "Wales")
+      state: 'WLS',
       postalCode: 'SA10 6XY',
       country: 'GB'
     }
   };
 
   try {
-    // 🔍 Check availability again
+    // 🔍 Recheck domain availability
     const availRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -54,7 +54,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(409).json({ error: 'Domain is no longer available.' });
     }
 
-    // ✅ Get legal agreements
+    // ✅ Get required legal agreements
     const tld = cleanedDomain.split('.').pop();
     const agreementRes = await fetch(`${apiBase}/v1/domains/agreements?tlds=${tld}&privacy=false`, {
       headers: {
@@ -64,7 +64,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const agreements = await agreementRes.json();
     const agreementKeys = agreements.map(a => a.agreementKey);
 
-    // ✅ Attempt domain purchase
+    // ✅ Log full purchase payload
     const purchasePayload = {
       domain: cleanedDomain,
       period,
@@ -80,6 +80,9 @@ router.post('/deploy-full-hosting', async (req, res) => {
       contactTech: contact,
       contactBilling: contact
     };
+
+    console.log('📦 Sending domain purchase payload to GoDaddy:');
+    console.log(JSON.stringify(purchasePayload, null, 2));
 
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
@@ -99,7 +102,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
-    // ✅ Deploy to GitHub
+    // ✅ GitHub deployment
     const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
 
