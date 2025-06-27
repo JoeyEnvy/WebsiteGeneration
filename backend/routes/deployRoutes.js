@@ -24,11 +24,13 @@ router.post('/deploy-full-hosting', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or empty.' });
   }
 
-  const domainPriceInPennies = parseInt(session?.domainPrice, 10);
-  if (!domainPriceInPennies) {
-    return res.status(400).json({ error: 'Missing domain price from session metadata.' });
-  }
-  const domainPriceFloat = domainPriceInPennies / 100;
+const domainPriceInPennies = parseInt(session?.domainPrice, 10);
+if (!domainPriceInPennies) {
+  return res.status(400).json({ error: 'Missing domain price from session metadata.' });
+}
+const domainPriceFloat = domainPriceInPennies / 100;
+console.log('💸 Sending domain price to GoDaddy:', domainPriceFloat);
+
 
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
