@@ -31,10 +31,11 @@ const priceMap = {
   'github-instructions': { price: 7500, name: 'GitHub Self-Deployment Instructions' },
   'github-hosted': { price: 12500, name: 'GitHub Hosting + Support' },
   'full-hosting': {
-    price: process.env.NODE_ENV === 'production' ? 30000 : 50,
-    name: 'Full Hosting + Custom Domain'
+    price: 50, // ← Always charge £0.50
+    name: 'Full Hosting + Custom Domain (Test Mode)'
   }
 };
+
 
   const product = priceMap[type];
   if (!product) {
