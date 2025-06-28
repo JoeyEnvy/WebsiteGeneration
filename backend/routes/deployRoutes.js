@@ -28,12 +28,26 @@ router.post('/deploy-github', async (req, res) => {
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
     const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
+    // 1. Create the repo
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
     });
 
+    // 2. Get SHA of main branch
+    const mainRef = await octokit.git.getRef({ owner, repo: repoName, ref: 'heads/main' });
+    const mainSha = mainRef.data.object.sha;
+
+    // 3. Create gh-pages branch from main
+    await octokit.git.createRef({
+      owner,
+      repo: repoName,
+      ref: 'refs/heads/gh-pages',
+      sha: mainSha
+    });
+
+    // 4. Upload files to gh-pages branch
     for (let i = 0; i < session.pages.length; i++) {
       await octokit.repos.createOrUpdateFileContents({
         owner,
@@ -45,6 +59,7 @@ router.post('/deploy-github', async (req, res) => {
       });
     }
 
+    // 5. Enable GitHub Pages from gh-pages branch
     await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
