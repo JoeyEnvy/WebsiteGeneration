@@ -54,6 +54,8 @@ router.post('/deploy-github', async (req, res) => {
 on:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -212,6 +214,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
 on:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   deploy:
     runs-on: ubuntu-latest
