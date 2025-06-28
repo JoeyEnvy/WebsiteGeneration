@@ -26,7 +26,7 @@ router.post('/deploy-github', async (req, res) => {
 
     const owner = process.env.GITHUB_USERNAME;
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
-    const repoName = await getUniqueRepoName(octokit, cleanName, owner);
+    const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
@@ -41,31 +41,17 @@ router.post('/deploy-github', async (req, res) => {
         path: i === 0 ? 'index.html' : `page${i + 1}.html`,
         message: `Add page ${i + 1}`,
         content: Buffer.from(session.pages[i]).toString('base64'),
-        branch: 'main'
+        branch: 'gh-pages'
       });
     }
 
-    await octokit.repos.createOrUpdateFileContents({
+    await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
-      path: '.github/workflows/static.yml',
-      message: 'Add GitHub Pages workflow',
-      content: Buffer.from(`name: Deploy static site
-on:
-  push:
-    branches: [main]
-permissions:
-  contents: write
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: \${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./`).toString('base64'),
-      branch: 'main'
+      source: {
+        branch: 'gh-pages',
+        path: '/'
+      }
     });
 
     const pagesUrl = `https://${owner}.github.io/${repoName}`;
@@ -177,7 +163,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     const owner = process.env.GITHUB_USERNAME;
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
-    const repoName = await getUniqueRepoName(octokit, cleanName, owner);
+    const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
@@ -205,27 +191,13 @@ router.post('/deploy-full-hosting', async (req, res) => {
       branch: 'main'
     });
 
-    await octokit.repos.createOrUpdateFileContents({
+    await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
-      path: '.github/workflows/static.yml',
-      message: 'Add GitHub Pages workflow',
-      content: Buffer.from(`name: Deploy static site
-on:
-  push:
-    branches: [main]
-permissions:
-  contents: write
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: \${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./`).toString('base64'),
-      branch: 'main'
+      source: {
+        branch: 'main',
+        path: '/'
+      }
     });
 
     const pagesUrl = `https://${cleanedDomain}`;
@@ -248,4 +220,5 @@ jobs:
 });
 
 export default router;
+
 
