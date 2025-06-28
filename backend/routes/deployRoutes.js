@@ -12,20 +12,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ✅ GitHub-Only Deployment (No Domain)
 router.post('/deploy-github', async (req, res) => {
-  const { sessionId = '', businessName = '' } = req.body || {};
-
-  if (!sessionId || !businessName) {
-    return res.status(400).json({ error: 'Missing session ID or business name.' });
-  }
-
-  const session = tempSessions[sessionId];
-  if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
-    return res.status(404).json({ error: 'Session not found or empty.' });
-  }
-
   try {
+    const { sessionId = '', businessName = '' } = req.body || {};
+
+    if (typeof sessionId !== 'string' || typeof businessName !== 'string' || !sessionId.trim() || !businessName.trim()) {
+      return res.status(400).json({ error: 'Invalid session ID or business name.' });
+    }
+
+    const session = tempSessions[sessionId];
+    if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
+      return res.status(404).json({ error: 'Session not found or empty.' });
+    }
+
     const owner = process.env.GITHUB_USERNAME;
-    const repoName = await getUniqueRepoName(octokit, sanitizeRepoName(businessName || 'site'));
+    const cleanName = sanitizeRepoName(String(businessName || 'site'));
+    const repoName = await getUniqueRepoName(octokit, cleanName);
 
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
@@ -84,38 +85,38 @@ jobs:
 
 // ✅ Full Hosting + Domain Purchase + GitHub Deployment
 router.post('/deploy-full-hosting', async (req, res) => {
-  const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
-  const cleanedDomain = domain.trim().toLowerCase();
-  const period = parseInt(duration, 10) || 1;
-
-  if (!sessionId || !domain || !businessName) {
-    return res.status(400).json({ error: 'Missing session ID, domain, or business name.' });
-  }
-
-  const session = tempSessions[sessionId];
-  if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
-    return res.status(404).json({ error: 'Session not found or empty.' });
-  }
-
-  const apiBase = process.env.GODADDY_ENV === 'production'
-    ? 'https://api.godaddy.com'
-    : 'https://api.ote-godaddy.com';
-
-  const contact = {
-    nameFirst: 'Joe',
-    nameLast: 'Mort',
-    email: 'support@websitegeneration.co.uk',
-    phone: '+44.1234567890',
-    addressMailing: {
-      address1: '123 Web Street',
-      city: 'Neath',
-      state: 'WLS',
-      postalCode: 'SA10 6XY',
-      country: 'GB'
-    }
-  };
-
   try {
+    const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
+    const cleanedDomain = domain.trim().toLowerCase();
+    const period = parseInt(duration, 10) || 1;
+
+    if (!sessionId || !cleanedDomain || !businessName || typeof sessionId !== 'string' || typeof cleanedDomain !== 'string' || typeof businessName !== 'string') {
+      return res.status(400).json({ error: 'Invalid input: session ID, domain, or business name.' });
+    }
+
+    const session = tempSessions[sessionId];
+    if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
+      return res.status(404).json({ error: 'Session not found or empty.' });
+    }
+
+    const apiBase = process.env.GODADDY_ENV === 'production'
+      ? 'https://api.godaddy.com'
+      : 'https://api.ote-godaddy.com';
+
+    const contact = {
+      nameFirst: 'Joe',
+      nameLast: 'Mort',
+      email: 'support@websitegeneration.co.uk',
+      phone: '+44.1234567890',
+      addressMailing: {
+        address1: '123 Web Street',
+        city: 'Neath',
+        state: 'WLS',
+        postalCode: 'SA10 6XY',
+        country: 'GB'
+      }
+    };
+
     const availRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -173,9 +174,14 @@ router.post('/deploy-full-hosting', async (req, res) => {
     }
 
     const owner = process.env.GITHUB_USERNAME;
-    const repoName = `site-${Date.now()}`;
+    const cleanName = sanitizeRepoName(String(businessName || 'site'));
+    const repoName = await getUniqueRepoName(octokit, cleanName);
 
-    await octokit.repos.createForAuthenticatedUser({ name: repoName, private: false, auto_init: true });
+    await octokit.repos.createForAuthenticatedUser({
+      name: repoName,
+      private: false,
+      auto_init: true
+    });
 
     for (let i = 0; i < session.pages.length; i++) {
       await octokit.repos.createOrUpdateFileContents({
