@@ -13,6 +13,12 @@ import { Octokit } from '@octokit/rest';
 import sgMail from '@sendgrid/mail';
 import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Resolve __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import routes
 import sessionRoutes from './routes/sessionRoutes.js';
@@ -40,7 +46,7 @@ const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 // ========================================================================
 export const tempSessions = {};
 
-// ✅ Export third-party SDKs for use in route modules (if needed later)
+// ✅ Export third-party SDKs for use in route modules
 export const thirdParty = {
   stripe,
   fetch,
@@ -59,16 +65,12 @@ app.use('/', stripeRoutes);
 app.use('/', deployRoutes);
 app.use('/', utilityRoutes);
 
-// Optional: Static serving (if testing locally)
+// ✅ Optional: Static serving (useful for local testing or fallback)
 if (process.env.NODE_ENV !== 'production') {
-  import path from 'path';
-  import { fileURLToPath } from 'url';
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
   app.use(express.static(path.join(__dirname, 'public')));
 }
 
-// Global error fallback
+// ✅ Global error fallback
 app.use((err, req, res, next) => {
   console.error('❌ Uncaught Server Error:', err.stack);
   res.status(500).json({ error: 'Internal Server Error' });
