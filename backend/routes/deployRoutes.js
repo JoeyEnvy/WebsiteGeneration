@@ -26,7 +26,7 @@ router.post('/deploy-github', async (req, res) => {
 
     const owner = process.env.GITHUB_USERNAME;
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
-    const repoName = await getUniqueRepoName(octokit, cleanName);
+    const repoName = await getUniqueRepoName(octokit, cleanName, owner);
 
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
@@ -177,7 +177,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     const owner = process.env.GITHUB_USERNAME;
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
-    const repoName = await getUniqueRepoName(octokit, cleanName);
+    const repoName = await getUniqueRepoName(octokit, cleanName, owner);
 
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
