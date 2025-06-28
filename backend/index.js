@@ -59,6 +59,21 @@ app.use('/', stripeRoutes);
 app.use('/', deployRoutes);
 app.use('/', utilityRoutes);
 
+// Optional: Static serving (if testing locally)
+if (process.env.NODE_ENV !== 'production') {
+  import path from 'path';
+  import { fileURLToPath } from 'url';
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  app.use(express.static(path.join(__dirname, 'public')));
+}
+
+// Global error fallback
+app.use((err, req, res, next) => {
+  console.error('❌ Uncaught Server Error:', err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 // ========================================================================
 // Server Startup
 // ========================================================================
@@ -66,3 +81,4 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
 });
+

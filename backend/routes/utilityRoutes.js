@@ -1,5 +1,3 @@
-// /routes/utilityRoutes.js
-
 import express from 'express';
 import fetch from 'node-fetch';
 import sgMail from '@sendgrid/mail';
@@ -11,7 +9,9 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// POST /generate
+// ========================================================================
+// POST /generate — Calls OpenAI to generate HTML pages
+// ========================================================================
 router.post('/generate', async (req, res) => {
   const prompt = req.body.query;
   const expectedPageCount = parseInt(req.body.pageCount || '1');
@@ -65,7 +65,7 @@ router.post('/generate', async (req, res) => {
         },
         body: JSON.stringify({
           model: 'gpt-4o',
-          messages: messages,
+          messages,
           max_tokens: 4000,
           temperature: 0.7
         })
@@ -104,18 +104,20 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-// POST /email-zip
+// ========================================================================
+// POST /email-zip — Sends a ZIP file of pages via SendGrid
+// ========================================================================
 router.post('/email-zip', async (req, res) => {
-  const { email, pages, extraNote } = req.body;
+  const { email, pages, extraNote = '' } = req.body;
 
-  if (!email || !pages || !Array.isArray(pages) || pages.length === 0) {
-    return res.status(400).json({ success: false, error: 'Missing email or pages.' });
+  if (!email || !Array.isArray(pages) || pages.length === 0) {
+    return res.status(400).json({ success: false, error: 'Missing or invalid email/pages.' });
   }
 
   try {
     const zip = new JSZip();
     pages.forEach((html, i) => {
-      zip.file(`page${i + 1}.html`, html);
+      zip.file(i === 0 ? 'index.html' : `page${i + 1}.html`, html);
     });
 
     const content = await zip.generateAsync({ type: 'base64' });
@@ -124,7 +126,7 @@ router.post('/email-zip', async (req, res) => {
       to: email,
       from: 'c.fear.907@gmail.com',
       subject: 'Your AI-Generated Website ZIP',
-      text: `${extraNote || 'Here is your generated website in ZIP format.'}`,
+      text: extraNote || 'Attached is your AI-generated website in ZIP format.',
       attachments: [
         {
           content,
@@ -143,7 +145,9 @@ router.post('/email-zip', async (req, res) => {
   }
 });
 
-// POST /log-download
+// ========================================================================
+// POST /log-download — Logs when someone downloads or views ZIP
+// ========================================================================
 router.post('/log-download', (req, res) => {
   const { sessionId, type, timestamp } = req.body;
 
@@ -156,4 +160,3 @@ router.post('/log-download', (req, res) => {
 });
 
 export default router;
-

@@ -10,6 +10,79 @@ const router = express.Router();
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// ✅ GitHub-Only Deployment (No Domain)
+router.post('/deploy-github', async (req, res) => {
+  const { sessionId = '', businessName = '' } = req.body || {};
+
+  if (!sessionId || !businessName) {
+    return res.status(400).json({ error: 'Missing session ID or business name.' });
+  }
+
+  const session = tempSessions[sessionId];
+  if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
+    return res.status(404).json({ error: 'Session not found or empty.' });
+  }
+
+  try {
+    const owner = process.env.GITHUB_USERNAME;
+    const repoName = await getUniqueRepoName(octokit, sanitizeRepoName(businessName || 'site'));
+
+    await octokit.repos.createForAuthenticatedUser({
+      name: repoName,
+      private: false,
+      auto_init: true
+    });
+
+    for (let i = 0; i < session.pages.length; i++) {
+      await octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo: repoName,
+        path: i === 0 ? 'index.html' : `page${i + 1}.html`,
+        message: `Add page ${i + 1}`,
+        content: Buffer.from(session.pages[i]).toString('base64'),
+        branch: 'main'
+      });
+    }
+
+    await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo: repoName,
+      path: '.github/workflows/static.yml',
+      message: 'Add GitHub Pages workflow',
+      content: Buffer.from(`name: Deploy static site
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: \${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./`).toString('base64'),
+      branch: 'main'
+    });
+
+    const pagesUrl = `https://${owner}.github.io/${repoName}`;
+    const repoUrl = `https://github.com/${owner}/${repoName}`;
+
+    tempSessions[sessionId] = {
+      ...session,
+      deployed: true,
+      repo: repoName
+    };
+
+    res.json({ success: true, pagesUrl, repoUrl });
+
+  } catch (err) {
+    console.error('❌ GitHub deploy failed:', err.response?.data || err.message);
+    res.status(500).json({ error: 'GitHub deployment failed', detail: err.message });
+  }
+});
+
+// ✅ Full Hosting + Domain Purchase + GitHub Deployment
 router.post('/deploy-full-hosting', async (req, res) => {
   const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
   const cleanedDomain = domain.trim().toLowerCase();
@@ -43,7 +116,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
   };
 
   try {
-    // 🔍 Recheck domain availability
     const availRes = await fetch(`${apiBase}/v1/domains/available?domain=${cleanedDomain}`, {
       headers: {
         Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`
@@ -54,7 +126,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(409).json({ error: 'Domain is no longer available.' });
     }
 
-    // ✅ Get required legal agreements
     const tld = cleanedDomain.split('.').pop();
     const agreementRes = await fetch(`${apiBase}/v1/domains/agreements?tlds=${tld}&privacy=false`, {
       headers: {
@@ -64,7 +135,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const agreements = await agreementRes.json();
     const agreementKeys = agreements.map(a => a.agreementKey);
 
-    // ✅ Log full purchase payload
     const purchasePayload = {
       domain: cleanedDomain,
       period,
@@ -102,9 +172,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
-    // ✅ GitHub deployment
-    const repoName = `site-${Date.now()}`;
     const owner = process.env.GITHUB_USERNAME;
+    const repoName = `site-${Date.now()}`;
 
     await octokit.repos.createForAuthenticatedUser({ name: repoName, private: false, auto_init: true });
 
@@ -169,3 +238,4 @@ jobs:
 });
 
 export default router;
+

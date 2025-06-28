@@ -1,4 +1,4 @@
-WebsiteGenerator.prototype.handleSubmit = async function() {
+WebsiteGenerator.prototype.handleSubmit = async function () {
   this.goToStep(5);
   this.showLoading();
 
@@ -52,7 +52,7 @@ WebsiteGenerator.prototype.handleSubmit = async function() {
   }
 };
 
-WebsiteGenerator.prototype.buildFinalPrompt = function(formData) {
+WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
   const websiteType = formData.get('websiteType');
   const pageCount = formData.get('pageCount');
   const pages = Array.from(formData.getAll('pages')).join(', ');
@@ -113,5 +113,6 @@ Do not explain or comment anything.
 - Never use "Lorem Ipsum".
 - Use context-aware, realistic, varied content.
 - Include clear CTAs, subheadings, bullet lists, and quotes.
-  `.trim();
+`.trim();
 };
+
