@@ -59,45 +59,45 @@ router.post('/deploy-github', async (req, res) => {
     // Add .nojekyll to prevent Jekyll-related deploy issues
     await fs.writeFile(path.join(localDir, '.nojekyll'), '');
 
-    // Write GitHub Pages workflow
+    // Write GitHub Pages workflow (safely using string array)
     const workflowDir = path.join(localDir, '.github', 'workflows');
     await fs.ensureDir(workflowDir);
 
-    const staticYaml = String.raw`
-name: Deploy static content to Pages
-
-on:
-  push:
-    branches: [ "main" ]
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-`;
+    const staticYaml = [
+      'name: Deploy static content to Pages',
+      '',
+      'on:',
+      '  push:',
+      '    branches: [ "main" ]',
+      '',
+      'permissions:',
+      '  contents: read',
+      '  pages: write',
+      '  id-token: write',
+      '',
+      'concurrency:',
+      '  group: "pages"',
+      '  cancel-in-progress: true',
+      '',
+      'jobs:',
+      '  deploy:',
+      '    environment:',
+      '      name: github-pages',
+      '      url: ${{ steps.deployment.outputs.page_url }}',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - name: Checkout repository',
+      '        uses: actions/checkout@v4',
+      '      - name: Setup Pages',
+      '        uses: actions/configure-pages@v5',
+      '      - name: Upload site artifact',
+      '        uses: actions/upload-pages-artifact@v3',
+      '        with:',
+      "          path: '.'",
+      '      - name: Deploy to GitHub Pages',
+      '        id: deployment',
+      '        uses: actions/deploy-pages@v4'
+    ].join('\n');
 
     await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml);
 
@@ -136,5 +136,4 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
-
 
