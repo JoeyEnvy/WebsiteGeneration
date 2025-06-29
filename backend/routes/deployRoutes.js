@@ -24,7 +24,7 @@ router.post('/deploy-github', async (req, res) => {
       return res.status(404).json({ error: 'Session not found or empty.' });
     }
 
-    const owner = process.env.GITHUB_USERNAME;
+    const owner = process.env.GITHUB_USERNAME?.toLowerCase();
     if (!owner) {
       throw new Error('❌ GITHUB_USERNAME is not defined in environment variables.');
     }
@@ -34,40 +34,40 @@ router.post('/deploy-github', async (req, res) => {
 
     console.log(`📁 Creating repo: ${repoName} for owner: ${owner}`);
 
-    await octokit.repos.createForAuthenticatedUser({
+    await octokit.rest.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
     });
 
-    // Retry loop for GitHub to finish creating the 'main' branch
+    // Retry loop for 'main' branch to appear
     let mainSha;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const mainRef = await octokit.git.getRef({ owner, repo: repoName, ref: 'heads/main' });
+        const mainRef = await octokit.rest.git.getRef({ owner, repo: repoName, ref: 'heads/main' });
         mainSha = mainRef.data.object.sha;
         break;
       } catch (e) {
-        console.log(`⏳ Waiting for 'main' branch to appear... attempt ${attempt + 1}`);
+        console.log(`⏳ Waiting for 'main' branch... attempt ${attempt + 1}`);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
     if (!mainSha) {
-      throw new Error(`Failed to retrieve SHA of 'main' branch for ${repoName}`);
+      throw new Error(`❌ Could not get SHA of 'main' branch for repo ${repoName}`);
     }
 
     // Create gh-pages branch from main
-    await octokit.git.createRef({
+    await octokit.rest.git.createRef({
       owner,
       repo: repoName,
       ref: 'refs/heads/gh-pages',
       sha: mainSha
     });
 
-    // Upload generated HTML files to gh-pages
+    // Upload files to gh-pages
     for (let i = 0; i < session.pages.length; i++) {
-      await octokit.repos.createOrUpdateFileContents({
+      await octokit.rest.repos.createOrUpdateFileContents({
         owner,
         repo: repoName,
         path: i === 0 ? 'index.html' : `page${i + 1}.html`,
@@ -77,7 +77,7 @@ router.post('/deploy-github', async (req, res) => {
       });
     }
 
-    // Enable GitHub Pages for gh-pages branch
+    // Enable GitHub Pages
     await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
@@ -194,18 +194,18 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
-    const owner = process.env.GITHUB_USERNAME;
+    const owner = process.env.GITHUB_USERNAME?.toLowerCase();
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
     const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
-    await octokit.repos.createForAuthenticatedUser({
+    await octokit.rest.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
     });
 
     for (let i = 0; i < session.pages.length; i++) {
-      await octokit.repos.createOrUpdateFileContents({
+      await octokit.rest.repos.createOrUpdateFileContents({
         owner,
         repo: repoName,
         path: i === 0 ? 'index.html' : `page${i + 1}.html`,
@@ -215,7 +215,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
-    await octokit.repos.createOrUpdateFileContents({
+    await octokit.rest.repos.createOrUpdateFileContents({
       owner,
       repo: repoName,
       path: 'CNAME',
@@ -253,4 +253,3 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
-
