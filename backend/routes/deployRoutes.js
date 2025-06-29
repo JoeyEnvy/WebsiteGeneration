@@ -31,7 +31,7 @@ router.post('/deploy-github', async (req, res) => {
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    // Step 1: Create the repo via GitHub API (once, no Octokit needed)
+    // Step 1: Create the repo via GitHub API (no Octokit needed)
     await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
@@ -54,6 +54,8 @@ router.post('/deploy-github', async (req, res) => {
     // Step 3: Git init + commit + push
     const git = simpleGit(localDir);
     await git.init();
+    await git.addConfig('user.name', 'Website Generator Bot');
+    await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
     await git.commit('Initial commit');
     await git.addRemote('origin', repoUrl);
@@ -197,6 +199,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
     // Git init + push
     const git = simpleGit(localDir);
     await git.init();
+    await git.addConfig('user.name', 'Website Generator Bot');
+    await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
     await git.commit('Initial commit with custom domain');
     await git.addRemote('origin', repoUrl);
@@ -222,5 +226,4 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
-
 
