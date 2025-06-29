@@ -36,7 +36,7 @@ router.post('/deploy-github', async (req, res) => {
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    // Step 1: Create the repo via GitHub API
+    // Step 1: Create the repo without auto-init
     await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
@@ -44,22 +44,20 @@ router.post('/deploy-github', async (req, res) => {
         'Content-Type': 'application/json',
         'User-Agent': 'website-generator'
       },
-      body: JSON.stringify({ name: repoName, private: false, auto_init: true })
+      body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
 
-    // Step 2: Clone, write, commit, and push
-    await simpleGit().clone(repoUrl, localDir);
-    const git = simpleGit(localDir);
+    // Step 2: Prepare local directory manually and init
+    await fs.remove(localDir);
+    await fs.ensureDir(localDir);
 
     for (let i = 0; i < session.pages.length; i++) {
       const fileName = i === 0 ? 'index.html' : `page${i + 1}.html`;
       await fs.writeFile(path.join(localDir, fileName), session.pages[i]);
     }
 
-    // Add .nojekyll to prevent Jekyll-related deploy issues
     await fs.writeFile(path.join(localDir, '.nojekyll'), '');
 
-    // Write GitHub Pages workflow (safely using string array)
     const workflowDir = path.join(localDir, '.github', 'workflows');
     await fs.ensureDir(workflowDir);
 
@@ -101,26 +99,28 @@ router.post('/deploy-github', async (req, res) => {
 
     await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml);
 
+    const git = simpleGit(localDir);
+    await git.init(['--initial-branch=main']);
+    await git.addRemote('origin', repoUrl);
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
     await git.commit('Initial commit with GitHub Pages workflow');
-await git.push('origin', 'main');
+    await git.push('origin', 'main');
 
-// 🛠 Trigger second commit to activate workflow
-await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
-await git.add('.');
-await git.commit('Trigger GitHub Actions workflow');
-await git.push('origin', 'main');
+    // Step 3: Trigger rebuild
+    await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
+    await git.add('.');
+    await git.commit('Trigger GitHub Actions workflow');
+    await git.push('origin', 'main');
 
-// Step 3: Enable GitHub Pages with retry + fallback
-let pagesUrl = `https://${owner}.github.io/${repoName}/`;
-try {
-  pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
-} catch (err) {
-  console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
-}
-
+    // Step 4: Enable GitHub Pages
+    let pagesUrl = `https://${owner}.github.io/${repoName}/`;
+    try {
+      pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
+    } catch (err) {
+      console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
+    }
 
     const repoUrlPublic = `https://github.com/${owner}/${repoName}`;
     tempSessions[sessionId] = {
@@ -137,10 +137,9 @@ try {
   }
 });
 
-// ✅ Full Hosting + Domain Purchase + GitHub Push (Simple-Git based)
+// ✅ Full Hosting route (unchanged for now)
 router.post('/deploy-full-hosting', async (req, res) => {
-  // (No changes here unless we’re adding the same GitHub Pages logic there too)
+  // Implement GitHub Pages flow here if needed later
 });
 
 export default router;
-
