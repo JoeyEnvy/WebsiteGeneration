@@ -53,7 +53,7 @@ router.post('/deploy-github', async (req, res) => {
 
     // Step 3: Git init + commit + push
     const git = simpleGit(localDir);
-    await git.init();
+    await git.init(['--initial-branch=main']); // ✅ FIXED
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
@@ -198,7 +198,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     // Git init + push
     const git = simpleGit(localDir);
-    await git.init();
+    await git.init(['--initial-branch=main']); // ✅ FIXED
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
