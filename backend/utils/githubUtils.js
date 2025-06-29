@@ -1,5 +1,7 @@
 // /utils/githubUtils.js
 
+import fetch from 'node-fetch';
+
 /**
  * Sanitizes a string for use as a GitHub repository name.
  * Ensures it's lowercase, removes invalid characters, and trims to 64 characters.
@@ -32,24 +34,36 @@ export async function retryRequest(fn, retries = 3, delay = 1000) {
 
 /**
  * Returns a unique GitHub repository name, avoiding conflicts by appending numeric suffixes.
- * @param {object} octokit - Octokit instance.
+ * Uses fetch instead of Octokit to check repo existence.
  * @param {string} baseName - Base name to use for the repo.
  * @param {string} owner - GitHub username or org.
+ * @returns {Promise<string>} - Unique repo name
  */
-export async function getUniqueRepoName(octokit, baseName, owner) {
+export async function getUniqueRepoName(baseName, owner) {
+  const token = process.env.GITHUB_TOKEN;
   const base = sanitizeRepoName(baseName);
   let name = base;
   let counter = 1;
 
   while (true) {
-    try {
-      await octokit.repos.get({ owner, repo: name });
-      name = `${base}-${counter++}`;
-    } catch (err) {
-      if (err.status === 404) {
-        return name;
+    const res = await fetch(`https://api.github.com/repos/${owner}/${name}`, {
+      headers: {
+        Authorization: `token ${token}`,
+        'User-Agent': 'website-generator'
       }
-      throw err;
+    });
+
+    if (res.status === 404) {
+      return name; // ✅ Name is available
     }
+
+    if (!res.ok && res.status !== 404) {
+      const errMsg = await res.text();
+      throw new Error(`GitHub API error: ${res.status} - ${errMsg}`);
+    }
+
+    name = `${base}-${counter++}`;
+    if (counter > 10) throw new Error('Too many attempts to generate unique repo name.');
   }
 }
+
