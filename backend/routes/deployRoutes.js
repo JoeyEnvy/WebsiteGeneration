@@ -25,21 +25,39 @@ router.post('/deploy-github', async (req, res) => {
     }
 
     const owner = process.env.GITHUB_USERNAME;
+    if (!owner) {
+      throw new Error('❌ GITHUB_USERNAME is not defined in environment variables.');
+    }
+
     const cleanName = sanitizeRepoName(String(businessName || 'site'));
     const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
-    // 1. Create the repo
+    console.log(`📁 Creating repo: ${repoName} for owner: ${owner}`);
+
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
     });
 
-    // 2. Get SHA of main branch
-    const mainRef = await octokit.git.getRef({ owner, repo: repoName, ref: 'heads/main' });
-    const mainSha = mainRef.data.object.sha;
+    // Retry loop for GitHub to finish creating the 'main' branch
+    let mainSha;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const mainRef = await octokit.git.getRef({ owner, repo: repoName, ref: 'heads/main' });
+        mainSha = mainRef.data.object.sha;
+        break;
+      } catch (e) {
+        console.log(`⏳ Waiting for 'main' branch to appear... attempt ${attempt + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
 
-    // 3. Create gh-pages branch from main
+    if (!mainSha) {
+      throw new Error(`Failed to retrieve SHA of 'main' branch for ${repoName}`);
+    }
+
+    // Create gh-pages branch from main
     await octokit.git.createRef({
       owner,
       repo: repoName,
@@ -47,7 +65,7 @@ router.post('/deploy-github', async (req, res) => {
       sha: mainSha
     });
 
-    // 4. Upload files to gh-pages branch
+    // Upload generated HTML files to gh-pages
     for (let i = 0; i < session.pages.length; i++) {
       await octokit.repos.createOrUpdateFileContents({
         owner,
@@ -59,7 +77,7 @@ router.post('/deploy-github', async (req, res) => {
       });
     }
 
-    // 5. Enable GitHub Pages from gh-pages branch
+    // Enable GitHub Pages for gh-pages branch
     await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
@@ -81,8 +99,8 @@ router.post('/deploy-github', async (req, res) => {
     res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('❌ GitHub deploy failed:', err.response?.data || err.message);
-    res.status(500).json({ error: 'GitHub deployment failed', detail: err.message });
+    console.error('❌ GitHub deploy failed:', err.response?.data || err.message || err);
+    res.status(500).json({ error: 'GitHub deployment failed', detail: err.message || err.toString() });
   }
 });
 
@@ -235,5 +253,4 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
-
 
