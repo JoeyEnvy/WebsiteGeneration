@@ -99,8 +99,8 @@ router.post('/deploy-github', async (req, res) => {
     res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('❌ GitHub deploy failed:', err.response?.data || err.message || err);
-    res.status(500).json({ error: 'GitHub deployment failed', detail: err.message || err.toString() });
+    console.error('❌ GitHub deploy failed:', err?.response?.data || err?.message || err);
+    res.status(500).json({ error: 'GitHub deployment failed', detail: err?.message || err.toString() });
   }
 });
 
@@ -247,9 +247,10 @@ router.post('/deploy-full-hosting', async (req, res) => {
     res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('❌ Full hosting failed:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Full hosting failed', detail: err.message });
+    console.error('❌ Full hosting failed:', err?.response?.data || err?.message || err);
+    res.status(500).json({ error: 'Full hosting failed', detail: err?.message || err.toString() });
   }
 });
 
 export default router;
+
