@@ -40,13 +40,22 @@ router.post('/deploy-github', async (req, res) => {
       auto_init: true
     });
 
+    // Wait for GitHub to initialize default branch
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     // Retry loop for 'main' branch to appear
     let mainSha;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const mainRef = await octokit.rest.git.getRef({ owner, repo: repoName, ref: 'heads/main' });
-        mainSha = mainRef.data.object.sha;
-        break;
+        const mainRef = await octokit.rest.git.getRef({
+          owner,
+          repo: repoName,
+          ref: 'heads/main'
+        });
+        if (mainRef?.data?.object?.sha) {
+          mainSha = mainRef.data.object.sha;
+          break;
+        }
       } catch (e) {
         console.log(`⏳ Waiting for 'main' branch... attempt ${attempt + 1}`);
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -204,6 +213,33 @@ router.post('/deploy-full-hosting', async (req, res) => {
       auto_init: true
     });
 
+    // Wait for GitHub to initialize default branch
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Retry loop for 'main' branch to appear
+    let mainSha;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const mainRef = await octokit.rest.git.getRef({
+          owner,
+          repo: repoName,
+          ref: 'heads/main'
+        });
+        if (mainRef?.data?.object?.sha) {
+          mainSha = mainRef.data.object.sha;
+          break;
+        }
+      } catch (e) {
+        console.log(`⏳ Waiting for 'main' branch... attempt ${attempt + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    if (!mainSha) {
+      throw new Error(`❌ Could not get SHA of 'main' branch for repo ${repoName}`);
+    }
+
+    // Upload generated pages to main
     for (let i = 0; i < session.pages.length; i++) {
       await octokit.rest.repos.createOrUpdateFileContents({
         owner,
@@ -215,6 +251,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
     }
 
+    // Add CNAME
     await octokit.rest.repos.createOrUpdateFileContents({
       owner,
       repo: repoName,
@@ -224,6 +261,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       branch: 'main'
     });
 
+    // Enable GitHub Pages
     await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
