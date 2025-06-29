@@ -15,7 +15,7 @@ router.post('/deploy-github', async (req, res) => {
   try {
     const { sessionId = '', businessName = '' } = req.body || {};
 
-    if (typeof sessionId !== 'string' || typeof businessName !== 'string' || !sessionId.trim() || !businessName.trim()) {
+    if (!sessionId || !businessName || typeof sessionId !== 'string' || typeof businessName !== 'string') {
       return res.status(400).json({ error: 'Invalid session ID or business name.' });
     }
 
@@ -25,56 +25,21 @@ router.post('/deploy-github', async (req, res) => {
     }
 
     const owner = process.env.GITHUB_USERNAME?.toLowerCase();
-    if (!owner) {
-      throw new Error('❌ GITHUB_USERNAME is not defined in environment variables.');
-    }
+    if (!owner) throw new Error('❌ GITHUB_USERNAME not set');
 
-    const cleanName = sanitizeRepoName(String(businessName || 'site'));
+    const cleanName = sanitizeRepoName(businessName);
     const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
-    console.log(`📁 Creating repo: ${repoName} for owner: ${owner}`);
-
+    console.log(`🚀 Creating repo: ${repoName}`);
     await octokit.rest.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
     });
 
-    // Wait for GitHub to initialize default branch
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Let GitHub finish initializing
 
-    // Retry loop for 'main' branch to appear
-    let mainSha;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        const mainRef = await octokit.rest.git.getRef({
-          owner,
-          repo: repoName,
-          ref: 'heads/main'
-        });
-        if (mainRef?.data?.object?.sha) {
-          mainSha = mainRef.data.object.sha;
-          break;
-        }
-      } catch (e) {
-        console.log(`⏳ Waiting for 'main' branch... attempt ${attempt + 1}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-
-    if (!mainSha) {
-      throw new Error(`❌ Could not get SHA of 'main' branch for repo ${repoName}`);
-    }
-
-    // Create gh-pages branch from main
-    await octokit.rest.git.createRef({
-      owner,
-      repo: repoName,
-      ref: 'refs/heads/gh-pages',
-      sha: mainSha
-    });
-
-    // Upload files to gh-pages
+    // Upload pages to main
     for (let i = 0; i < session.pages.length; i++) {
       await octokit.rest.repos.createOrUpdateFileContents({
         owner,
@@ -82,16 +47,16 @@ router.post('/deploy-github', async (req, res) => {
         path: i === 0 ? 'index.html' : `page${i + 1}.html`,
         message: `Add page ${i + 1}`,
         content: Buffer.from(session.pages[i]).toString('base64'),
-        branch: 'gh-pages'
+        branch: 'main'
       });
     }
 
-    // Enable GitHub Pages
+    // Enable GitHub Pages on main branch
     await octokit.request('PUT /repos/{owner}/{repo}/pages', {
       owner,
       repo: repoName,
       source: {
-        branch: 'gh-pages',
+        branch: 'main',
         path: '/'
       }
     });
@@ -182,9 +147,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       contactBilling: contact
     };
 
-    console.log('📦 Sending domain purchase payload to GoDaddy:');
-    console.log(JSON.stringify(purchasePayload, null, 2));
-
+    console.log('📦 Purchasing domain via GoDaddy...');
     const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
       method: 'POST',
       headers: {
@@ -196,7 +159,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     const purchaseData = await purchaseRes.json();
     if (!purchaseRes.ok) {
-      console.warn('❌ Domain purchase failed. GoDaddy response:', purchaseData);
+      console.warn('❌ Domain purchase failed:', purchaseData);
       return res.status(purchaseRes.status).json({
         error: 'Domain purchase failed',
         details: purchaseData?.message || purchaseData
@@ -204,42 +167,19 @@ router.post('/deploy-full-hosting', async (req, res) => {
     }
 
     const owner = process.env.GITHUB_USERNAME?.toLowerCase();
-    const cleanName = sanitizeRepoName(String(businessName || 'site'));
+    const cleanName = sanitizeRepoName(businessName);
     const repoName = await getUniqueRepoName(cleanName, owner, octokit);
 
+    console.log(`🚀 Creating repo for full hosting: ${repoName}`);
     await octokit.rest.repos.createForAuthenticatedUser({
       name: repoName,
       private: false,
       auto_init: true
     });
 
-    // Wait for GitHub to initialize default branch
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Let GitHub init
 
-    // Retry loop for 'main' branch to appear
-    let mainSha;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        const mainRef = await octokit.rest.git.getRef({
-          owner,
-          repo: repoName,
-          ref: 'heads/main'
-        });
-        if (mainRef?.data?.object?.sha) {
-          mainSha = mainRef.data.object.sha;
-          break;
-        }
-      } catch (e) {
-        console.log(`⏳ Waiting for 'main' branch... attempt ${attempt + 1}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-
-    if (!mainSha) {
-      throw new Error(`❌ Could not get SHA of 'main' branch for repo ${repoName}`);
-    }
-
-    // Upload generated pages to main
+    // Upload pages to main
     for (let i = 0; i < session.pages.length; i++) {
       await octokit.rest.repos.createOrUpdateFileContents({
         owner,
@@ -291,4 +231,5 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
+
 
