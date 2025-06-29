@@ -56,14 +56,14 @@ router.post('/deploy-github', async (req, res) => {
       await fs.writeFile(path.join(localDir, fileName), session.pages[i]);
     }
 
-    // Add .nojekyll to prevent build issues
+    // Add .nojekyll to prevent Jekyll-related deploy issues
     await fs.writeFile(path.join(localDir, '.nojekyll'), '');
 
     // Write GitHub Pages workflow
     const workflowDir = path.join(localDir, '.github', 'workflows');
     await fs.ensureDir(workflowDir);
 
-    const staticYaml = `
+    const staticYaml = String.raw`
 name: Deploy static content to Pages
 
 on:
@@ -97,7 +97,7 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-`.trim();
+`;
 
     await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml);
 
