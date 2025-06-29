@@ -9,7 +9,6 @@ import express from 'express';
 import cors from 'cors';
 import Stripe from 'stripe';
 import fetch from 'node-fetch';
-import { Octokit } from '@octokit/rest';
 import sgMail from '@sendgrid/mail';
 import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
@@ -39,21 +38,17 @@ app.use(express.json());
 // ========================================================================
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-// ========================================================================
-// In-memory session store
-// ========================================================================
+// ✅ In-memory session store
 export const tempSessions = {};
 
-// ✅ Export third-party SDKs for use in route modules
+// ✅ Export shared utilities (no Octokit anymore)
 export const thirdParty = {
   stripe,
   fetch,
   sgMail,
   JSZip,
-  uuidv4,
-  octokit
+  uuidv4
 };
 
 // ========================================================================
@@ -83,4 +78,5 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
 });
+
 
