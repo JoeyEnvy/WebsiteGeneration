@@ -42,23 +42,19 @@ router.post('/deploy-github', async (req, res) => {
       body: JSON.stringify({ name: repoName, private: false, auto_init: true })
     });
 
-    // Step 2: Prepare local folder
-    await fs.remove(localDir);
-    await fs.ensureDir(localDir);
+    // Step 2: Clone, write, commit, and push
+    await simpleGit().clone(repoUrl, localDir);
+    const git = simpleGit(localDir);
 
     for (let i = 0; i < session.pages.length; i++) {
       const fileName = i === 0 ? 'index.html' : `page${i + 1}.html`;
       await fs.writeFile(path.join(localDir, fileName), session.pages[i]);
     }
 
-    // Step 3: Git init + commit + push
-    const git = simpleGit(localDir);
-    await git.init(['--initial-branch=main']); // ✅ FIXED
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
     await git.commit('Initial commit');
-    await git.addRemote('origin', repoUrl);
     await git.push('origin', 'main');
 
     const pagesUrl = `https://${owner}.github.io/${repoName}`;
@@ -173,7 +169,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    // Create repo on GitHub
     await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
@@ -184,7 +179,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
       body: JSON.stringify({ name: repoName, private: false, auto_init: true })
     });
 
-    // Prepare folder
     await fs.remove(localDir);
     await fs.ensureDir(localDir);
 
@@ -193,12 +187,10 @@ router.post('/deploy-full-hosting', async (req, res) => {
       await fs.writeFile(path.join(localDir, fileName), session.pages[i]);
     }
 
-    // Add CNAME
     await fs.writeFile(path.join(localDir, 'CNAME'), cleanedDomain);
 
-    // Git init + push
     const git = simpleGit(localDir);
-    await git.init(['--initial-branch=main']); // ✅ FIXED
+    await git.init(['--initial-branch=main']);
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
@@ -226,4 +218,5 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
+
 
