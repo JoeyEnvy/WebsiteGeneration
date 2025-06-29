@@ -70,31 +70,31 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const params = new URLSearchParams(window.location.search);
-      const purchaseType = params.get('option');
-      const sessionId = params.get('sessionId') || localStorage.getItem('sessionId');
-      const savedPages = localStorage.getItem('generatedPages');
-      const messageEl = document.getElementById('successMessage') || document.body;
-      const actionButtons = document.getElementById('actionButtons');
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const purchaseType = params.get('option');
+    const sessionId = params.get('sessionId') || localStorage.getItem('sessionId');
+    const savedPages = localStorage.getItem('generatedPages');
+    const messageEl = document.getElementById('successMessage') || document.body;
+    const actionButtons = document.getElementById('actionButtons');
 
-      if (params.get('sessionId')) {
-        localStorage.setItem('sessionId', sessionId);
-      }
+    if (params.get('sessionId')) {
+      localStorage.setItem('sessionId', sessionId);
+    }
 
-      if (!messageEl || !actionButtons) return;
+    if (!messageEl || !actionButtons) return;
 
-      const generateZip = (pages) => {
-        const zip = new JSZip();
-        pages.forEach((html, i) => {
-          zip.file(i === 0 ? 'index.html' : `page${i + 1}.html`, html);
-        });
-        return zip.generateAsync({ type: 'blob' });
-      };
+    const generateZip = (pages) => {
+      const zip = new JSZip();
+      pages.forEach((html, i) => {
+        zip.file(i === 0 ? 'index.html' : `page${i + 1}.html`, html);
+      });
+      return zip.generateAsync({ type: 'blob' });
+    };
 
-      const generateTextInstructions = () => {
-        const txtContent = `
+    const generateTextInstructions = () => {
+      const txtContent = `
 GitHub Deployment Instructions
 
 1. Create GitHub account: https://github.com/signup
@@ -104,145 +104,153 @@ GitHub Deployment Instructions
 5. Enable GitHub Pages in Settings → Pages
 6. Optional: Add a GoDaddy domain
 For help, contact: support@websitegenerator.co.uk
-        `;
-        const blob = new Blob([txtContent], { type: 'text/plain' });
-        saveAs(blob, "Website-Instructions.txt");
-      };
+      `;
+      const blob = new Blob([txtContent], { type: 'text/plain' });
+      saveAs(blob, "Website-Instructions.txt");
+    };
 
-      const addReturnLink = () => {
-        if (actionButtons) {
-          const backLink = document.createElement('a');
-          backLink.href = "index.html";
-          backLink.className = "btn btn-outline";
-          backLink.innerText = "← Return to Generator";
-          actionButtons.appendChild(backLink);
-        }
-      };
+    const addReturnLink = () => {
+      if (actionButtons) {
+        const backLink = document.createElement('a');
+        backLink.href = "index.html";
+        backLink.className = "btn btn-outline";
+        backLink.innerText = "← Return to Generator";
+        actionButtons.appendChild(backLink);
+      }
+    };
 
-      const handleSuccess = (pages) => {
-        if (['zip-download', 'github-instructions', 'github-hosted', 'full-hosting'].includes(purchaseType)) {
-          generateZip(pages)
-            .then(blob => {
-              saveAs(blob, "my-website.zip");
+    const handleSuccess = (pages) => {
+      if (['zip-download', 'github-instructions', 'github-hosted', 'full-hosting'].includes(purchaseType)) {
+        generateZip(pages)
+          .then(blob => {
+            saveAs(blob, "my-website.zip");
 
-              if (['github-instructions', 'full-hosting'].includes(purchaseType)) {
-                setTimeout(generateTextInstructions, 800);
-              }
+            if (['github-instructions', 'full-hosting'].includes(purchaseType)) {
+              setTimeout(generateTextInstructions, 800);
+            }
 
-              if (purchaseType !== 'github-hosted') {
-                messageEl.innerText = "✅ Your files are ready. Redirecting...";
-                setTimeout(() => {
-                  window.location.href = `instructions.html?option=${purchaseType}`;
-                }, 3000);
-              }
-            })
-            .catch(() => {
-              messageEl.innerText = "⚠️ ZIP generation failed. Please try again or contact support.";
-              addReturnLink();
-            });
-        } else {
-          messageEl.innerText = "✅ Purchase confirmed. Redirecting...";
-          setTimeout(() => {
-            window.location.href = `instructions.html?option=${purchaseType}`;
-          }, 2000);
-        }
-      };
-
-      const loadPagesAndRun = () => {
-        if (savedPages) {
-          try {
-            const parsedPages = JSON.parse(savedPages);
-            handleSuccess(parsedPages);
-          } catch (err) {
-            console.error("❌ Failed to parse savedPages:", err);
-            messageEl.innerText = "⚠️ Saved data is corrupt. Please regenerate.";
+            if (purchaseType !== 'github-hosted') {
+              messageEl.innerText = "✅ Your files are ready. Redirecting...";
+              setTimeout(() => {
+                window.location.href = `instructions.html?option=${purchaseType}`;
+              }, 3000);
+            }
+          })
+          .catch(() => {
+            messageEl.innerText = "⚠️ ZIP generation failed. Please try again or contact support.";
             addReturnLink();
-          }
-        } else if (sessionId && typeof sessionId === 'string') {
-          fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data.success && data.steps.pages) {
-                handleSuccess(data.steps.pages);
-              } else {
-                messageEl.innerText = "⚠️ Could not retrieve your site. Please regenerate.";
-                addReturnLink();
-              }
-            })
-            .catch(() => {
-              messageEl.innerText = "⚠️ Network error. Please try again.";
-              addReturnLink();
-            });
-        } else {
-          messageEl.innerText = "⚠️ Session missing. Please regenerate your site.";
+          });
+      } else {
+        messageEl.innerText = "✅ Purchase confirmed. Redirecting...";
+        setTimeout(() => {
+          window.location.href = `instructions.html?option=${purchaseType}`;
+        }, 2000);
+      }
+    };
+
+    const loadPagesAndRun = () => {
+      if (savedPages) {
+        try {
+          const parsedPages = JSON.parse(savedPages);
+          handleSuccess(parsedPages);
+        } catch (err) {
+          console.error("❌ Failed to parse savedPages:", err);
+          messageEl.innerText = "⚠️ Saved data is corrupt. Please regenerate.";
           addReturnLink();
         }
-      };
-
-      if (!purchaseType) {
-        messageEl.innerText = "⚠️ Missing purchase type. Contact support.";
-        addReturnLink();
-      } else if (purchaseType === 'github-hosted' && sessionId && typeof sessionId === 'string') {
-        const businessName = localStorage.getItem('businessName');
-        const userEmail = localStorage.getItem('email');
-
-        if (!businessName || typeof businessName !== 'string') {
-          messageEl.innerText = '❌ Business name not found. Please regenerate your site.';
-          console.warn('❌ businessName not found or invalid in localStorage:', businessName);
-          addReturnLink();
-          return;
-        }
-
-        messageEl.innerText = "⏳ Deploying your website to GitHub Pages. Please wait...";
-
-        fetch('https://websitegeneration.onrender.com/deploy-github', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, businessName })
-        })
+      } else if (sessionId && typeof sessionId === 'string') {
+        console.log("🌐 Fetching steps from session:", sessionId);
+        fetch(`https://websitegeneration.onrender.com/get-steps/${sessionId}`)
           .then(res => res.json())
           .then(data => {
-            const liveUrl = data.pagesUrl || data.url;
-            const repoUrl = data.repoUrl || data.repo;
-
-            if (liveUrl && repoUrl) {
-              const url = new URL('/WebsiteGeneration/github-success.html', window.location.origin);
-              url.searchParams.set('live', liveUrl);
-              url.searchParams.set('repo', repoUrl);
-              window.location.href = url.toString();
-
-              if (userEmail && savedPages) {
-                try {
-                  const pages = JSON.parse(savedPages);
-                  fetch('https://websitegeneration.onrender.com/email-zip', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      email: userEmail,
-                      pages,
-                      extraNote: `Here is your live site: ${liveUrl}\nGitHub Repo: ${repoUrl}`
-                    })
-                  });
-                } catch (e) {
-                  console.warn("⚠️ Could not send ZIP email, invalid savedPages:", e);
-                }
-              }
+            if (data.success && data.steps.pages) {
+              handleSuccess(data.steps.pages);
             } else {
-              messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
-              console.warn('❌ GitHub deployment failed', data);
+              console.warn("⚠️ No pages returned from get-steps:", data);
+              messageEl.innerText = "⚠️ Could not retrieve your site. Please regenerate.";
               addReturnLink();
             }
           })
           .catch(err => {
-            messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
-            console.error('❌ GitHub deploy error:', err);
+            console.error("❌ Network error while getting steps:", err);
+            messageEl.innerText = "⚠️ Network error. Please try again.";
             addReturnLink();
           });
       } else {
-        loadPagesAndRun();
+        messageEl.innerText = "⚠️ Session missing. Please regenerate your site.";
+        addReturnLink();
       }
-    });
-  </script>
+    };
+
+    if (!purchaseType) {
+      messageEl.innerText = "⚠️ Missing purchase type. Contact support.";
+      addReturnLink();
+    } else if (purchaseType === 'github-hosted' && sessionId && typeof sessionId === 'string') {
+      const businessName = localStorage.getItem('businessName');
+      const userEmail = localStorage.getItem('email');
+
+      console.log("🚀 Initiating GitHub deploy with:", { sessionId, businessName });
+
+      if (!businessName || typeof businessName !== 'string' || businessName.trim() === '') {
+        messageEl.innerText = '❌ Business name not found. Please regenerate your site.';
+        console.warn('❌ Invalid businessName in localStorage:', businessName);
+        addReturnLink();
+        return;
+      }
+
+      messageEl.innerText = "⏳ Deploying your website to GitHub Pages. Please wait...";
+
+      fetch('https://websitegeneration.onrender.com/deploy-github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, businessName })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("✅ Deploy response received:", data);
+
+          const liveUrl = data.pagesUrl || data.url;
+          const repoUrl = data.repoUrl || data.repo;
+
+          if (liveUrl && repoUrl) {
+            const url = new URL('/WebsiteGeneration/github-success.html', window.location.origin);
+            url.searchParams.set('live', liveUrl);
+            url.searchParams.set('repo', repoUrl);
+            window.location.href = url.toString();
+
+            if (userEmail && savedPages) {
+              try {
+                const pages = JSON.parse(savedPages);
+                fetch('https://websitegeneration.onrender.com/email-zip', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: userEmail,
+                    pages,
+                    extraNote: `Here is your live site: ${liveUrl}\nGitHub Repo: ${repoUrl}`
+                  })
+                });
+              } catch (e) {
+                console.warn("⚠️ Failed to send ZIP email:", e);
+              }
+            }
+          } else {
+            messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
+            console.warn('❌ Missing liveUrl or repoUrl in response:', data);
+            addReturnLink();
+          }
+        })
+        .catch(err => {
+          messageEl.innerText = "❌ GitHub deployment failed. Please try again or contact support.";
+          console.error('❌ GitHub deploy error:', err);
+          addReturnLink();
+        });
+    } else {
+      loadPagesAndRun();
+    }
+  });
+</script>
+
 
 </body>
 </html>
