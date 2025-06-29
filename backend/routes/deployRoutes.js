@@ -105,15 +105,22 @@ router.post('/deploy-github', async (req, res) => {
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
     await git.add('.');
     await git.commit('Initial commit with GitHub Pages workflow');
-    await git.push('origin', 'main');
+await git.push('origin', 'main');
 
-    // Step 3: Enable GitHub Pages with retry + fallback
-    let pagesUrl = `https://${owner}.github.io/${repoName}/`;
-    try {
-      pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
-    } catch (err) {
-      console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
-    }
+// 🛠 Trigger second commit to activate workflow
+await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
+await git.add('.');
+await git.commit('Trigger GitHub Actions workflow');
+await git.push('origin', 'main');
+
+// Step 3: Enable GitHub Pages with retry + fallback
+let pagesUrl = `https://${owner}.github.io/${repoName}/`;
+try {
+  pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
+} catch (err) {
+  console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
+}
+
 
     const repoUrlPublic = `https://github.com/${owner}/${repoName}`;
     tempSessions[sessionId] = {
