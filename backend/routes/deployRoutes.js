@@ -4,7 +4,12 @@ import fs from 'fs-extra';
 import path from 'path';
 import simpleGit from 'simple-git';
 import { tempSessions } from '../index.js';
-import { sanitizeRepoName, getUniqueRepoName, enableGitHubPagesWorkflow } from '../utils/githubUtils.js';
+import {
+  sanitizeRepoName,
+  getUniqueRepoName,
+  enableGitHubPagesWorkflow,
+  retryRequest
+} from '../utils/githubUtils.js';
 
 const router = express.Router();
 
@@ -51,9 +56,13 @@ router.post('/deploy-github', async (req, res) => {
       await fs.writeFile(path.join(localDir, fileName), session.pages[i]);
     }
 
+    // Add .nojekyll to prevent build issues
+    await fs.writeFile(path.join(localDir, '.nojekyll'), '');
+
     // Write GitHub Pages workflow
     const workflowDir = path.join(localDir, '.github', 'workflows');
     await fs.ensureDir(workflowDir);
+
     const staticYaml = `
 name: Deploy static content to Pages
 
@@ -72,16 +81,25 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-      - uses: actions/deploy-pages@v4
-`;
-    await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml.trim());
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+`.trim();
+
+    await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml);
 
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
@@ -89,10 +107,15 @@ jobs:
     await git.commit('Initial commit with GitHub Pages workflow');
     await git.push('origin', 'main');
 
-    // Step 3: Enable GitHub Pages via API
-    const pagesUrl = await enableGitHubPagesWorkflow(owner, repoName, token);
-    const repoUrlPublic = `https://github.com/${owner}/${repoName}`;
+    // Step 3: Enable GitHub Pages with retry + fallback
+    let pagesUrl = `https://${owner}.github.io/${repoName}/`;
+    try {
+      pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
+    } catch (err) {
+      console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
+    }
 
+    const repoUrlPublic = `https://github.com/${owner}/${repoName}`;
     tempSessions[sessionId] = {
       ...session,
       deployed: true,
@@ -109,9 +132,9 @@ jobs:
 
 // ✅ Full Hosting + Domain Purchase + GitHub Push (Simple-Git based)
 router.post('/deploy-full-hosting', async (req, res) => {
-  // (This route remains unchanged for now)
-  // No changes here unless you want to enable Pages + workflow in that flow too
+  // (No changes here unless we’re adding the same GitHub Pages logic there too)
 });
 
 export default router;
+
 
