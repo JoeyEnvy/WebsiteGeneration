@@ -1,5 +1,3 @@
-// /utils/githubUtils.js
-
 import fetch from 'node-fetch';
 
 /**
@@ -65,5 +63,37 @@ export async function getUniqueRepoName(baseName, owner) {
     name = `${base}-${counter++}`;
     if (counter > 10) throw new Error('Too many attempts to generate unique repo name.');
   }
+}
+
+/**
+ * Enables GitHub Pages deployment via GitHub Actions workflow.
+ * Ensures the Pages source is set to `main` using the Actions workflow method.
+ * @param {string} owner - GitHub username or org.
+ * @param {string} repo - Repository name.
+ * @param {string} githubToken - GitHub personal access token.
+ * @returns {Promise<string>} - The live GitHub Pages URL.
+ */
+export async function enableGitHubPagesWorkflow(owner, repo, githubToken) {
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${githubToken}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      build_type: 'workflow',
+      source: { branch: 'main' }
+    })
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.json();
+    console.error('GitHub Pages enablement failed:', errorBody);
+    throw new Error(`GitHub Pages error: ${errorBody.message}`);
+  }
+
+  const data = await res.json();
+  return data.html_url; // ✅ This is the live Pages link
 }
 
