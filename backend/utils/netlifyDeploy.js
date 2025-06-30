@@ -12,9 +12,9 @@ import { exec } from 'child_process';
  */
 export function deployToNetlify(folderPath, siteId, token) {
   return new Promise((resolve, reject) => {
-    const command = `npx netlify deploy --prod --dir="${folderPath}" --site=${siteId} --auth=${token}`;
+    const command = `npx --yes netlify-cli deploy --prod --dir="${folderPath}" --site=${siteId} --auth=${token}`;
 
-    exec(command, (error, stdout, stderr) => {
+    exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
       if (error) {
         return reject(`Netlify CLI error: ${stderr || error.message}`);
       }
@@ -32,3 +32,4 @@ export function deployToNetlify(folderPath, siteId, token) {
     });
   });
 }
+
