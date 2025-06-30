@@ -72,7 +72,6 @@
       margin-top: 10px;
     }
 
-    /* Fullscreen Loading Overlay */
     .loading-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -105,12 +104,11 @@
   </style>
 </head>
 <body>
-  <!-- Loading Overlay -->
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loader"></div>
     <div>Publishing your website... Please wait</div>
     <div style="margin-top: 5px; font-size: 1rem; color: #666;">
-      Creating GitHub repository...
+      Setting up your Netlify site...
     </div>
   </div>
 
@@ -120,9 +118,7 @@
       <a id="liveUrl" href="#" target="_blank" rel="noopener noreferrer">Loading...</a>
       <div class="status-msg" id="statusMessage">Publishing in progress. Your site may take up to 1 minute to go live.</div>
     </p>
-    <p><strong>GitHub Repo:</strong><br>
-      <a id="repoUrl" href="#" target="_blank" rel="noopener noreferrer">Loading...</a>
-    </p>
+
     <p>Your site has also been emailed to you as a ZIP file.<br>
        If you need help, email <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
     </p>
@@ -134,91 +130,49 @@
     </div>
   </div>
 
-  <!-- JSZip + FileSaver -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const siteUrl = params.get('live');
-    const repoUrl = params.get('repo');
 
     const liveUrlEl = document.getElementById('liveUrl');
     const statusMsgEl = document.getElementById('statusMessage');
     const loadingOverlay = document.getElementById('loadingOverlay');
 
-    if (repoUrl) {
-      document.getElementById('repoUrl').href = repoUrl;
-      document.getElementById('repoUrl').textContent = repoUrl;
-    } else {
-      document.getElementById('repoUrl').textContent = 'URL not available';
-      document.getElementById('repoUrl').removeAttribute('href');
-    }
-
-    // BEGIN POLLING FOR LIVE URL
     async function waitForSiteLive(url, maxAttempts = 20, interval = 5000) {
       for (let i = 0; i < maxAttempts; i++) {
         try {
           const res = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
-          if (res.ok) {
-            return true;
-          }
-        } catch (err) {
-          // Fail silently
-        }
-        await new Promise(resolve => setTimeout(resolve, interval));
+          if (res.ok) return true;
+        } catch {}
+        await new Promise(r => setTimeout(r, interval));
       }
       return false;
     }
 
     if (siteUrl) {
       liveUrlEl.textContent = 'Checking site availability...';
-      liveUrlEl.removeAttribute('href');
 
       waitForSiteLive(siteUrl).then(isLive => {
-        loadingOverlay.style.display = 'none'; // Hide overlay
-        if (isLive) {
-          liveUrlEl.href = siteUrl;
-          liveUrlEl.textContent = siteUrl;
-          statusMsgEl.textContent = '✅ Your site is now live!';
-        } else {
-          liveUrlEl.textContent = siteUrl;
-          liveUrlEl.href = siteUrl;
-          statusMsgEl.textContent = '⚠️ Your site may not be live yet. Please wait a bit then refresh.';
-        }
+        loadingOverlay.style.display = 'none';
+        liveUrlEl.href = siteUrl;
+        liveUrlEl.textContent = siteUrl;
+        statusMsgEl.textContent = isLive ? '✅ Your site is now live!' : '⚠️ Your site may not be live yet. Please refresh soon.';
       });
     } else {
       liveUrlEl.textContent = 'URL not available';
-      liveUrlEl.removeAttribute('href');
-      loadingOverlay.style.display = 'none'; // Hide overlay immediately
+      loadingOverlay.style.display = 'none';
     }
-    // END POLLING FOR LIVE URL
 
-    // Re-download ZIP
     const savedPages = JSON.parse(localStorage.getItem('generatedPages') || '[]');
-    document.getElementById('downloadZipBtn').addEventListener('click', () => {
-      if (!savedPages.length) {
-        alert('⚠️ No saved site found. Please regenerate.');
-        return;
-      }
-
+    document.getElementById('downloadZipBtn').onclick = () => {
+      if (!savedPages.length) return alert('⚠️ No saved site found. Please regenerate.');
       const zip = new JSZip();
-      savedPages.forEach((html, i) => {
-        zip.file(`page${i + 1}.html`, html);
-      });
-
-      zip.generateAsync({ type: 'blob' }).then(blob => {
-        saveAs(blob, "my-website.zip");
-      });
-    });
+      savedPages.forEach((html, i) => zip.file(`page${i+1}.html`, html));
+      zip.generateAsync({ type: 'blob' }).then(blob => saveAs(blob, "my-website.zip"));
+    };
   </script>
-
-
-
-
-
-
-
 </body>
 </html>
-
