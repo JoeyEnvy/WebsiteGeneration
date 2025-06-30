@@ -2,8 +2,12 @@ const deployFullHostingBtn = document.getElementById('deployFullHosting');
 
 if (deployFullHostingBtn) {
   deployFullHostingBtn.addEventListener('click', async () => {
-    const domain = document.getElementById('customDomain')?.value?.trim().toLowerCase();
-    const duration = document.getElementById('domainDuration')?.value || '1';
+    const domainInput = document.getElementById('customDomain');
+    const durationSelect = document.getElementById('domainDuration');
+    const priceDisplay = document.getElementById('domainPriceDisplay');
+
+    const domain = domainInput?.value?.trim().toLowerCase();
+    const duration = durationSelect?.value || '1';
     const businessName = localStorage.getItem('businessName');
     let sessionId = localStorage.getItem('sessionId');
 
@@ -17,18 +21,14 @@ if (deployFullHostingBtn) {
       return;
     }
 
-    // Generate and store session ID if not present
     if (!sessionId) {
       sessionId = crypto.randomUUID();
       localStorage.setItem('sessionId', sessionId);
     }
 
-    // Persist domain and duration
     localStorage.setItem('customDomain', domain);
     localStorage.setItem('domainDuration', duration);
 
-    // Extract price from UI and store for reference
-    const priceDisplay = document.getElementById('domainPriceDisplay');
     if (priceDisplay) {
       const match = priceDisplay.textContent.match(/£(\d+(\.\d+)?)/);
       if (match) {
@@ -41,7 +41,7 @@ if (deployFullHostingBtn) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'full-hosting',
+          type: 'full-hosting', // ✅ still GitHub full-hosting
           sessionId,
           domain,
           duration,

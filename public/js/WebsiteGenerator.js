@@ -30,16 +30,53 @@ class WebsiteGenerator {
       this.startStripeCheckout('github-hosted');
     });
 
+    document.getElementById('deployNetlifyOnly')?.addEventListener('click', () => {
+      const businessName = localStorage.getItem('businessName');
+      let sessionId = localStorage.getItem('sessionId');
+
+      if (!businessName) {
+        alert('⚠️ Please complete business info first.');
+        return;
+      }
+
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        localStorage.setItem('sessionId', sessionId);
+      }
+
+      fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'netlify-hosted',
+          sessionId,
+          businessName
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert('⚠️ Failed to create Netlify checkout session.');
+          console.error(data);
+        }
+      })
+      .catch(err => {
+        alert('❌ Error creating Netlify Stripe session.');
+        console.error('Netlify Stripe error:', err);
+      });
+    });
+
     document.getElementById('deployFullHosting')?.addEventListener('click', () => {
       const domain = localStorage.getItem('customDomain');
       const duration = localStorage.getItem('domainDuration');
       const businessName = localStorage.getItem('businessName');
 
-if (!domain || !duration || !businessName) {
-  alert('⚠️ Missing domain, duration, or business name. Please confirm domain first.');
-  return;
-}
-
+      if (!domain || !duration || !businessName) {
+        alert('⚠️ Missing domain, duration, or business name. Please confirm domain first.');
+        return;
+      }
 
       this.startStripeCheckout('full-hosting');
     });
