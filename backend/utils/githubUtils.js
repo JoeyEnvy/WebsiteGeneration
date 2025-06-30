@@ -55,7 +55,7 @@ export async function getUniqueRepoName(baseName, owner) {
       return name; // ✅ Name is available
     }
 
-    if (!res.ok && res.status !== 404) {
+    if (!res.ok) {
       const errMsg = await res.text();
       throw new Error(`GitHub API error: ${res.status} - ${errMsg}`);
     }
@@ -67,14 +67,16 @@ export async function getUniqueRepoName(baseName, owner) {
 
 /**
  * Enables GitHub Pages deployment via GitHub Actions workflow.
- * Ensures the Pages source is set to `main` using the Actions workflow method.
+ * Sets the Pages build type to `workflow` and branch to `main`.
  * @param {string} owner - GitHub username or org.
  * @param {string} repo - Repository name.
  * @param {string} githubToken - GitHub personal access token.
  * @returns {Promise<string>} - The live GitHub Pages URL.
  */
 export async function enableGitHubPagesWorkflow(owner, repo, githubToken) {
-  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, {
+  const url = `https://api.github.com/repos/${owner}/${repo}/pages`;
+
+  const res = await fetch(url, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${githubToken}`,
@@ -83,17 +85,19 @@ export async function enableGitHubPagesWorkflow(owner, repo, githubToken) {
     },
     body: JSON.stringify({
       build_type: 'workflow',
-      source: { branch: 'main' }
+      source: {
+        branch: 'main'
+      }
     })
   });
 
+  const json = await res.json();
+
   if (!res.ok) {
-    const errorBody = await res.json();
-    console.error('GitHub Pages enablement failed:', errorBody);
-    throw new Error(`GitHub Pages error: ${errorBody.message}`);
+    console.error('❌ GitHub Pages enablement failed:', json);
+    throw new Error(`GitHub Pages error: ${json.message}`);
   }
 
-  const data = await res.json();
-  return data.html_url; // ✅ This is the live Pages link
+  return json.html_url || `https://${owner}.github.io/${repo}/`; // fallback if html_url missing
 }
 
