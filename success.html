@@ -33,26 +33,55 @@
       width: 100%;
       max-width: 960px;
       height: 600px;
+      display: none;
+    }
+
+    .loader {
+      margin-top: 20px;
+      font-style: italic;
+      color: #555;
     }
   </style>
 </head>
 <body>
   <h1>✅ Your Site is Live!</h1>
   <p id="hostedLink">Loading your link...</p>
+  <div class="loader" id="loader">⏳ Waiting for your site to become available...</div>
+  <iframe id="sitePreview" loading="lazy"></iframe>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const liveUrl = params.get('live');
+    const linkEl = document.getElementById('hostedLink');
+    const loader = document.getElementById('loader');
+    const iframe = document.getElementById('sitePreview');
 
-    if (liveUrl) {
-      const decoded = decodeURIComponent(liveUrl);
-      document.getElementById('hostedLink').innerHTML = `
-        <a href="${decoded}" target="_blank">${decoded}</a>
-        <iframe src="${decoded}" loading="lazy"></iframe>
-      `;
+    if (!liveUrl) {
+      linkEl.textContent = "No live site URL found.";
+      loader.remove();
     } else {
-      document.getElementById('hostedLink').textContent = "No live site URL found.";
+      const decoded = decodeURIComponent(liveUrl);
+      linkEl.innerHTML = `<a href="${decoded}" target="_blank">${decoded}</a>`;
+
+      const checkSite = async (tries = 0) => {
+        try {
+          // HEAD request would be ideal, but no-cors mode fallback here
+          const res = await fetch(decoded, { mode: 'no-cors' });
+          iframe.src = decoded;
+          iframe.style.display = 'block';
+          loader.remove();
+        } catch {
+          if (tries < 15) {
+            setTimeout(() => checkSite(tries + 1), 4000);
+          } else {
+            loader.textContent = "⚠️ Your site is still deploying. Please refresh this page in a minute if it's not visible yet.";
+          }
+        }
+      };
+
+      checkSite();
     }
   </script>
 </body>
 </html>
+

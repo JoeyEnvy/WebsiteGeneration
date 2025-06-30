@@ -56,9 +56,30 @@ const staticYaml = [
 // ✅ Netlify deployment route (auto-hosting live preview)
 import { deployViaNetlifyApi } from '../utils/deployToNetlifyApi.js'; // ✅ NEW IMPORT
 
+import slugify from 'slugify'; // install if needed: npm i slugify
+
+function generateSlug(base, attempt) {
+  const suffix = attempt > 0 ? `-${attempt}` : '';
+  return `${slugify(base, { lower: true, strict: true }).slice(0, 40 - suffix.length)}${suffix}`;
+}
+
+async function createUniqueNetlifySite(token, baseSlug) {
+  for (let i = 0; i < 10; i++) {
+    const slug = generateSlug(baseSlug, i);
+    try {
+      const { siteId, siteUrl } = await createNetlifySite(token, slug);
+      return { siteId, siteUrl };
+    } catch (err) {
+      if (err.message.includes('name already taken')) continue;
+      throw err;
+    }
+  }
+  throw new Error('Could not create a unique Netlify site after 10 attempts.');
+}
+
 router.post('/deploy-live', async (req, res) => {
   try {
-    const { sessionId = '' } = req.body;
+    const { sessionId = '', businessName = '' } = req.body;
     const session = tempSessions[sessionId];
 
     if (!session?.pages?.length) {
@@ -76,10 +97,9 @@ router.post('/deploy-live', async (req, res) => {
       await fs.writeFile(path.join(folderPath, name), session.pages[i]);
     }
 
-    // ✅ Create Netlify site on-the-fly
-    const { siteId, siteUrl } = await createNetlifySite(process.env.NETLIFY_TOKEN, `site-${sessionId}`);
+    const baseSlug = businessName || `site-${sessionId}`;
+    const { siteId, siteUrl } = await createUniqueNetlifySite(process.env.NETLIFY_TOKEN, baseSlug);
 
-    // ✅ Deploy using Netlify API (not CLI)
     const deployUrl = await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
     res.json({ success: true, pagesUrl: deployUrl });
@@ -89,7 +109,6 @@ router.post('/deploy-live', async (req, res) => {
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
-
 
 // ✅ GitHub-only deployment (no domain)
 router.post('/deploy-github', async (req, res) => {
