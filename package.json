@@ -4,7 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "postinstall": "npm install -g netlify-cli"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
@@ -17,6 +18,11 @@
     "node-fetch": "^3.3.2",
     "simple-git": "^3.28.0",
     "stripe": "^12.0.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "netlify-cli": "^17.19.1"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.19.1"
   }
 }
+

@@ -10,6 +10,8 @@ import {
   enableGitHubPagesWorkflow,
   retryRequest
 } from '../utils/githubUtils.js';
+import { deployToNetlify } from '../utils/netlifyDeploy.js';
+import { createNetlifySite } from '../utils/createNetlifySite.js'; // ✅ NEW import
 
 const router = express.Router();
 
@@ -51,7 +53,43 @@ const staticYaml = [
   '        uses: actions/deploy-pages@v4'
 ].join('\n');
 
-// Deploy to GitHub (no custom domain)
+// ✅ Netlify deployment route (auto-hosting live preview)
+router.post('/deploy-live', async (req, res) => {
+  try {
+    const { sessionId = '' } = req.body;
+    const session = tempSessions[sessionId];
+
+    if (!session?.pages?.length) {
+      return res.status(400).json({ error: 'Session not found or empty.' });
+    }
+
+    const repoName = `site-${sessionId}`;
+    const folderPath = path.join('/tmp', repoName);
+
+    await fs.remove(folderPath);
+    await fs.ensureDir(folderPath);
+
+    for (let i = 0; i < session.pages.length; i++) {
+      const name = i === 0 ? 'index.html' : `page${i + 1}.html`;
+      await fs.writeFile(path.join(folderPath, name), session.pages[i]);
+    }
+
+    // ✅ Create Netlify site on-the-fly
+    const { siteId, siteUrl } = await createNetlifySite(process.env.NETLIFY_TOKEN, `site-${sessionId}`);
+
+    // 🚀 Deploy to Netlify
+    await deployToNetlify(folderPath, siteId, process.env.NETLIFY_TOKEN);
+
+    res.json({ success: true, pagesUrl: siteUrl });
+
+  } catch (err) {
+    console.error('❌ Netlify deploy failed:', err);
+    res.status(500).json({ error: 'Deployment failed', detail: err.message });
+  }
+});
+
+
+// ✅ GitHub-only deployment (no domain)
 router.post('/deploy-github', async (req, res) => {
   try {
     const { sessionId = '', businessName = '' } = req.body || {};
@@ -72,7 +110,6 @@ router.post('/deploy-github', async (req, res) => {
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    // Create GitHub repo
     await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
@@ -83,7 +120,6 @@ router.post('/deploy-github', async (req, res) => {
       body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
 
-    // Prepare local directory
     await fs.remove(localDir);
     await fs.ensureDir(localDir);
     await fs.writeFile(path.join(localDir, 'README.md'), `# ${repoName}`);
@@ -137,7 +173,7 @@ router.post('/deploy-github', async (req, res) => {
   }
 });
 
-// Deploy with full hosting + custom domain
+// ✅ Full hosting with GitHub Pages and custom domain
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
     const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
@@ -224,4 +260,5 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
+
 
