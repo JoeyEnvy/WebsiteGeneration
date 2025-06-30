@@ -2,23 +2,19 @@ import fetch from 'node-fetch';
 
 /**
  * Sanitizes a string for use as a GitHub repository name.
- * Ensures it's lowercase, removes invalid characters, and trims to 64 characters.
  */
 export function sanitizeRepoName(name) {
   const safe = typeof name === 'string' ? name : String(name || 'site');
   return safe
     .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-')      // Replace invalid chars with hyphens
-    .replace(/-+/g, '-')              // Collapse multiple hyphens
-    .replace(/^-+|-+$/g, '')          // Trim leading/trailing hyphens
-    .substring(0, 64);                // GitHub limit
+    .replace(/[^a-z0-9-]/g, '-')   // Replace invalid chars with hyphens
+    .replace(/-+/g, '-')           // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, '')       // Trim leading/trailing hyphens
+    .substring(0, 64);             // Max GitHub repo name length
 }
 
 /**
- * Retries a function with exponential backoff.
- * @param {Function} fn - The async function to retry.
- * @param {number} retries - How many times to retry.
- * @param {number} delay - Initial delay in ms.
+ * Retries an async function with exponential backoff.
  */
 export async function retryRequest(fn, retries = 3, delay = 1000) {
   try {
@@ -31,11 +27,7 @@ export async function retryRequest(fn, retries = 3, delay = 1000) {
 }
 
 /**
- * Returns a unique GitHub repository name, avoiding conflicts by appending numeric suffixes.
- * Uses fetch instead of Octokit to check repo existence.
- * @param {string} baseName - Base name to use for the repo.
- * @param {string} owner - GitHub username or org.
- * @returns {Promise<string>} - Unique repo name
+ * Generates a unique repo name by checking for existing repos and adding suffixes.
  */
 export async function getUniqueRepoName(baseName, owner) {
   const token = process.env.GITHUB_TOKEN;
@@ -51,9 +43,7 @@ export async function getUniqueRepoName(baseName, owner) {
       }
     });
 
-    if (res.status === 404) {
-      return name; // ✅ Name is available
-    }
+    if (res.status === 404) return name; // ✅ Available
 
     if (!res.ok) {
       const errMsg = await res.text();
@@ -61,32 +51,29 @@ export async function getUniqueRepoName(baseName, owner) {
     }
 
     name = `${base}-${counter++}`;
-    if (counter > 10) throw new Error('Too many attempts to generate unique repo name.');
+    if (counter > 10) throw new Error('Too many attempts to find unique repo name.');
   }
 }
 
 /**
- * Enables GitHub Pages deployment via GitHub Actions workflow.
- * Sets the Pages build type to `workflow` and branch to `main`.
- * @param {string} owner - GitHub username or org.
- * @param {string} repo - Repository name.
- * @param {string} githubToken - GitHub personal access token.
- * @returns {Promise<string>} - The live GitHub Pages URL.
+ * Enables GitHub Pages with the `workflow` build type for the given repo.
  */
 export async function enableGitHubPagesWorkflow(owner, repo, githubToken) {
   const url = `https://api.github.com/repos/${owner}/${repo}/pages`;
 
   const res = await fetch(url, {
-    method: 'PATCH',
+    method: 'PUT',  // ✅ Important: PUT not PATCH for first-time enable
     headers: {
-      Authorization: `Bearer ${githubToken}`,
+      Authorization: `token ${githubToken}`,
+      'Content-Type': 'application/json',
       Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json'
+      'User-Agent': 'website-generator'
     },
     body: JSON.stringify({
       build_type: 'workflow',
       source: {
-        branch: 'main'
+        branch: 'main',
+        path: '/'
       }
     })
   });
@@ -95,9 +82,9 @@ export async function enableGitHubPagesWorkflow(owner, repo, githubToken) {
 
   if (!res.ok) {
     console.error('❌ GitHub Pages enablement failed:', json);
-    throw new Error(`GitHub Pages error: ${json.message}`);
+    throw new Error(`GitHub Pages error: ${json.message || 'Unknown error'}`);
   }
 
-  return json.html_url || `https://${owner}.github.io/${repo}/`; // fallback if html_url missing
+  return json.html_url || `https://${owner}.github.io/${repo}/`;
 }
 

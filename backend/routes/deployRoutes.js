@@ -13,17 +13,54 @@ import {
 
 const router = express.Router();
 
-// ✅ GitHub-Only Deployment (No Domain, Simple-Git based)
+// Shared GitHub Actions YAML (static.yml)
+const staticYaml = [
+  'name: Deploy static content to Pages',
+  '',
+  'on:',
+  '  push:',
+  '    branches: [ "main" ]',
+  '',
+  'permissions:',
+  '  contents: read',
+  '  pages: write',
+  '  id-token: write',
+  '',
+  'concurrency:',
+  '  group: "pages"',
+  '  cancel-in-progress: true',
+  '',
+  'jobs:',
+  '  deploy:',
+  '    environment:',
+  '      name: github-pages',
+  '    runs-on: ubuntu-latest',
+  '    steps:',
+  '      - name: Checkout repository',
+  '        uses: actions/checkout@v4',
+  '      - name: Setup Pages',
+  '        uses: actions/configure-pages@v5',
+  '      - name: Upload site artifact',
+  '        uses: actions/upload-pages-artifact@v3',
+  '        with:',
+  "          path: '.'",
+  '      - name: Debug echo',
+  '        run: echo "GitHub Pages workflow triggered"',
+  '      - name: Deploy to GitHub Pages',
+  '        id: deployment',
+  '        uses: actions/deploy-pages@v4'
+].join('\n');
+
+// Deploy to GitHub (no custom domain)
 router.post('/deploy-github', async (req, res) => {
   try {
     const { sessionId = '', businessName = '' } = req.body || {};
-
-    if (!sessionId || !businessName || typeof sessionId !== 'string' || typeof businessName !== 'string') {
+    if (!sessionId || !businessName) {
       return res.status(400).json({ error: 'Invalid session ID or business name.' });
     }
 
     const session = tempSessions[sessionId];
-    if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
+    if (!session?.pages?.length) {
       return res.status(404).json({ error: 'Session not found or empty.' });
     }
 
@@ -31,12 +68,11 @@ router.post('/deploy-github', async (req, res) => {
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing.');
 
-    const cleanName = sanitizeRepoName(businessName);
-    const repoName = await getUniqueRepoName(cleanName, owner);
+    const repoName = await getUniqueRepoName(sanitizeRepoName(businessName), owner);
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    // Step 1: Create the repo without auto-init
+    // Create GitHub repo
     await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
@@ -47,55 +83,19 @@ router.post('/deploy-github', async (req, res) => {
       body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
 
-    // Step 2: Prepare local directory manually and init
+    // Prepare local directory
     await fs.remove(localDir);
     await fs.ensureDir(localDir);
+    await fs.writeFile(path.join(localDir, 'README.md'), `# ${repoName}`);
 
     for (let i = 0; i < session.pages.length; i++) {
       const fileName = i === 0 ? 'index.html' : `page${i + 1}.html`;
       await fs.writeFile(path.join(localDir, fileName), session.pages[i]);
     }
-
     await fs.writeFile(path.join(localDir, '.nojekyll'), '');
 
     const workflowDir = path.join(localDir, '.github', 'workflows');
     await fs.ensureDir(workflowDir);
-
-    const staticYaml = [
-      'name: Deploy static content to Pages',
-      '',
-      'on:',
-      '  push:',
-      '    branches: [ "main" ]',
-      '',
-      'permissions:',
-      '  contents: read',
-      '  pages: write',
-      '  id-token: write',
-      '',
-      'concurrency:',
-      '  group: "pages"',
-      '  cancel-in-progress: true',
-      '',
-      'jobs:',
-      '  deploy:',
-      '    environment:',
-      '      name: github-pages',
-      '    runs-on: ubuntu-latest',
-      '    steps:',
-      '      - name: Checkout repository',
-      '        uses: actions/checkout@v4',
-      '      - name: Setup Pages',
-      '        uses: actions/configure-pages@v5',
-      '      - name: Upload site artifact',
-      '        uses: actions/upload-pages-artifact@v3',
-      '        with:',
-      "          path: '.'",
-      '      - name: Deploy to GitHub Pages',
-      '        id: deployment',
-      '        uses: actions/deploy-pages@v4'
-    ].join('\n');
-
     await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml);
 
     const git = simpleGit(localDir);
@@ -103,8 +103,9 @@ router.post('/deploy-github', async (req, res) => {
     await git.addRemote('origin', repoUrl);
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
+
     await git.add('.');
-    await git.commit('Initial commit with GitHub Pages workflow');
+    await git.commit('Initial commit with README and site files');
     await git.push('origin', 'main');
 
     await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
@@ -116,32 +117,34 @@ router.post('/deploy-github', async (req, res) => {
     try {
       pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
     } catch (err) {
-      console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
+      console.warn('⚠️ GitHub Pages API failed — using fallback:', err.message);
     }
 
-    const repoUrlPublic = `https://github.com/${owner}/${repoName}`;
     tempSessions[sessionId] = {
       ...session,
       deployed: true,
       repo: repoName
     };
 
-    res.json({ success: true, pagesUrl, repoUrl: repoUrlPublic });
-
+    res.json({
+      success: true,
+      pagesUrl,
+      repoUrl: `https://github.com/${owner}/${repoName}`
+    });
   } catch (err) {
-    console.error('❌ GitHub CLI deploy failed:', err);
+    console.error('❌ GitHub-only deployment failed:', err);
     res.status(500).json({ error: 'GitHub deployment failed', detail: err.message });
   }
 });
 
-// ✅ Full Hosting + GitHub Pages Support
+// Deploy with full hosting + custom domain
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
     const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
     const cleanedDomain = domain.trim().toLowerCase();
 
     const session = tempSessions[sessionId];
-    if (!session || !Array.isArray(session.pages) || session.pages.length === 0) {
+    if (!session?.pages?.length) {
       return res.status(404).json({ error: 'Session not found or empty.' });
     }
 
@@ -149,8 +152,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing.');
 
-    const cleanName = sanitizeRepoName(businessName);
-    const repoName = await getUniqueRepoName(cleanName, owner);
+    const repoName = await getUniqueRepoName(sanitizeRepoName(businessName), owner);
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
@@ -166,6 +168,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     await fs.remove(localDir);
     await fs.ensureDir(localDir);
+    await fs.writeFile(path.join(localDir, 'README.md'), `# ${repoName}`);
 
     for (let i = 0; i < session.pages.length; i++) {
       const fileName = i === 0 ? 'index.html' : `page${i + 1}.html`;
@@ -184,8 +187,9 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await git.addRemote('origin', repoUrl);
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
+
     await git.add('.');
-    await git.commit('Initial commit with GitHub Pages workflow and CNAME');
+    await git.commit('Initial commit with CNAME and site files');
     await git.push('origin', 'main');
 
     await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
@@ -197,10 +201,9 @@ router.post('/deploy-full-hosting', async (req, res) => {
     try {
       pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
     } catch (err) {
-      console.warn('⚠️ GitHub Pages API failed — using fallback link:', err.message);
+      console.warn('⚠️ GitHub Pages API failed — using fallback:', err.message);
     }
 
-    const repoUrlPublic = `https://github.com/${owner}/${repoName}`;
     tempSessions[sessionId] = {
       ...session,
       deployed: true,
@@ -209,8 +212,11 @@ router.post('/deploy-full-hosting', async (req, res) => {
       domain: cleanedDomain
     };
 
-    res.json({ success: true, pagesUrl, repoUrl: repoUrlPublic });
-
+    res.json({
+      success: true,
+      pagesUrl,
+      repoUrl: `https://github.com/${owner}/${repoName}`
+    });
   } catch (err) {
     console.error('❌ Full hosting deployment failed:', err);
     res.status(500).json({ error: 'Full hosting deployment failed', detail: err.message });
@@ -218,3 +224,4 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
+
