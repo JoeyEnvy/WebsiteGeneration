@@ -54,6 +54,8 @@ const staticYaml = [
 ].join('\n');
 
 // ✅ Netlify deployment route (auto-hosting live preview)
+import { deployViaNetlifyApi } from '../utils/deployToNetlifyApi.js'; // ✅ NEW IMPORT
+
 router.post('/deploy-live', async (req, res) => {
   try {
     const { sessionId = '' } = req.body;
@@ -77,10 +79,10 @@ router.post('/deploy-live', async (req, res) => {
     // ✅ Create Netlify site on-the-fly
     const { siteId, siteUrl } = await createNetlifySite(process.env.NETLIFY_TOKEN, `site-${sessionId}`);
 
-    // 🚀 Deploy to Netlify
-    await deployToNetlify(folderPath, siteId, process.env.NETLIFY_TOKEN);
+    // ✅ Deploy using Netlify API (not CLI)
+    const deployUrl = await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
-    res.json({ success: true, pagesUrl: siteUrl });
+    res.json({ success: true, pagesUrl: deployUrl });
 
   } catch (err) {
     console.error('❌ Netlify deploy failed:', err);
