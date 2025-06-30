@@ -31,8 +31,12 @@ router.post('/create-checkout-session', async (req, res) => {
     'github-instructions': { price: 50, name: 'GitHub Self-Deployment Instructions (Test Mode)' },
     'github-hosted': { price: 50, name: 'GitHub Hosting + Support (Test Mode)' },
     'full-hosting': {
-      price: 50, // ← Always charge £0.50 for full-hosting test mode
+      price: 50,
       name: 'Full Hosting + Custom Domain (Test Mode)'
+    },
+    'netlify-hosted': {
+      price: 50,
+      name: 'Netlify Hosted Deployment (Test Mode)'
     }
   };
 
@@ -45,6 +49,13 @@ router.post('/create-checkout-session', async (req, res) => {
 
   try {
     const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'joeyenvy';
+
+    const successUrlMap = {
+      'full-hosting': `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`,
+      'github-hosted': `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
+      'netlify-hosted': `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/netlify-success.html?option=${type}&sessionId=${sessionId}`,
+      'default': `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`
+    };
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -64,9 +75,7 @@ router.post('/create-checkout-session', async (req, res) => {
         domain: domain || '',
         duration: duration || '1'
       },
-      success_url: type === 'full-hosting'
-        ? `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/fullhosting.html?option=${type}&sessionId=${sessionId}`
-        : `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-success.html?option=${type}&sessionId=${sessionId}`,
+      success_url: successUrlMap[type] || successUrlMap['default'],
       cancel_url: `https://${GITHUB_USERNAME}.github.io/WebsiteGeneration/payment-cancelled.html`
     });
 

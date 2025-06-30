@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deploying Your Website...</title>
+</head>
+<body>
+  <h2>🚀 Deploying Your Website...</h2>
+  <p>Please wait while we publish your site.</p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('sessionId');
+
+    fetch('https://YOUR_BACKEND_URL/deploy-live', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.pagesUrl) {
+        window.location.href = `success.html?live=${encodeURIComponent(data.pagesUrl)}`;
+      } else {
+        alert('Deployment failed. Please contact support.');
+      }
+    })
+    .catch(err => {
+      console.error('Deployment error:', err);
+      alert('An unexpected error occurred. Please contact support.');
+    });
+  </script>
+</body>
+</html>
