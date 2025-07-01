@@ -7,39 +7,54 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #fff;
-      color: #222;
+      background: #1e1f21;
+      color: #e0e0e0;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 30px;
       text-align: center;
+      min-height: 100vh;
     }
 
     h1 {
-      color: #28a745;
+      color: #00b4ff;
       margin-bottom: 20px;
+      font-size: 2rem;
     }
 
-    a {
-      color: #007bff;
+    #hostedLink a {
+      color: #00c6ff;
       font-size: 1.1rem;
       word-break: break-word;
+      text-decoration: underline;
     }
 
     iframe {
       margin-top: 30px;
-      border: 1px solid #ccc;
+      border: 2px solid #444;
       width: 100%;
       max-width: 960px;
       height: 600px;
+      border-radius: 8px;
       display: none;
     }
 
     .loader {
       margin-top: 20px;
       font-style: italic;
-      color: #555;
+      color: #bbb;
+    }
+
+    .support {
+      margin-top: 40px;
+      font-size: 0.95rem;
+      color: #999;
+    }
+
+    .support a {
+      color: #00b4ff;
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -49,6 +64,11 @@
   <div class="loader" id="loader">⏳ Waiting for your site to become available...</div>
   <iframe id="sitePreview" loading="lazy"></iframe>
 
+  <p class="support">
+    Need help? Contact us at
+    <a href="mailto:support@websitegenerator.co.uk">support@websitegenerator.co.uk</a>
+  </p>
+
   <script>
     const params = new URLSearchParams(window.location.search);
     const rawUrl = params.get('live');
@@ -57,12 +77,11 @@
     const iframe = document.getElementById('sitePreview');
 
     if (!rawUrl) {
-      linkEl.textContent = "No live site URL found.";
+      linkEl.textContent = "❌ No live site URL found.";
       loader.remove();
     } else {
       const decodedUrl = decodeURIComponent(rawUrl);
 
-      // Only clean up Netlify deploy preview URLs if needed
       const finalUrl = decodedUrl.includes('--') 
         ? decodedUrl.replace(/^https:\/\/[^.]+--/, 'https://') 
         : decodedUrl;
@@ -89,6 +108,5 @@
   </script>
 </body>
 </html>
-
 
 
