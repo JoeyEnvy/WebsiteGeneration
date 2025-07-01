@@ -1,9 +1,16 @@
-// utils/deployToNetlifyApi.js
 import fetch from 'node-fetch';
 import fs from 'fs-extra';
 import path from 'path';
 import archiver from 'archiver';
 
+/**
+ * Deploys a static folder to a Netlify site via the API using a ZIP upload.
+ * 
+ * @param {string} folderPath - Local path to folder containing site files
+ * @param {string} siteId - Netlify site ID
+ * @param {string} token - Netlify personal access token
+ * @returns {string} - Public URL of deployed site
+ */
 export async function deployViaNetlifyApi(folderPath, siteId, token) {
   const zipPath = path.join('/tmp', `site-${Date.now()}.zip`);
 
@@ -12,12 +19,12 @@ export async function deployViaNetlifyApi(folderPath, siteId, token) {
     const output = fs.createWriteStream(zipPath);
     const archive = archiver('zip', { zlib: { level: 9 } });
 
+    output.on('close', resolve);
+    archive.on('error', reject);
+
     archive.pipe(output);
     archive.directory(folderPath, false);
     archive.finalize();
-
-    output.on('close', resolve);
-    archive.on('error', reject);
   });
 
   // Step 2: Upload the ZIP to Netlify
@@ -25,24 +32,26 @@ export async function deployViaNetlifyApi(folderPath, siteId, token) {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/zip' // ✅ Required header to trigger deploy
+      'Content-Type': 'application/zip'
     },
     body: fs.createReadStream(zipPath)
   });
 
   if (!uploadRes.ok) {
-    const text = await uploadRes.text();
-    console.error('❌ Netlify deploy failed:', text);
-    throw new Error(`Netlify deploy API failed: ${text}`);
+    const errorText = await uploadRes.text();
+    console.error('❌ Netlify deploy failed:', errorText);
+    throw new Error(`Netlify deploy API failed: ${errorText}`);
   }
 
-  const data = await uploadRes.json();
-  console.log(`✅ Netlify deployed to: ${data.deploy_ssl_url || data.deploy_url}`);
+  const result = await uploadRes.json();
+  const url = result.deploy_ssl_url || result.deploy_url;
 
-  // Step 3: Clean up temp files
+  console.log(`✅ Deployed to Netlify: ${url}`);
+
+  // Step 3: Clean up
   await fs.remove(zipPath);
-  await fs.remove(folderPath); // optional, if you don't need to retain it
+  await fs.remove(folderPath);
 
-  // Step 4: Return the public deploy URL
-  return data.deploy_ssl_url || data.deploy_url;
+  // Step 4: Return live URL
+  return url;
 }

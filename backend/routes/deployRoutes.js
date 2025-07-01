@@ -86,6 +86,7 @@ router.post('/deploy-live', async (req, res) => {
       return res.status(400).json({ error: 'Session not found or empty.' });
     }
 
+    // Clean up + prep folder
     const repoName = `site-${sessionId}`;
     const folderPath = path.join('/tmp', repoName);
 
@@ -97,18 +98,43 @@ router.post('/deploy-live', async (req, res) => {
       await fs.writeFile(path.join(folderPath, name), session.pages[i]);
     }
 
+    // Slugify business name and create unique Netlify site
     const baseSlug = businessName || `site-${sessionId}`;
-    const { siteId, siteUrl } = await createUniqueNetlifySite(process.env.NETLIFY_TOKEN, baseSlug);
+    const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
 
+    let finalSlug;
+    let siteId;
+    for (let i = 0; i < 10; i++) {
+      const slug = i === 0 ? slugifiedBase : `${slugifiedBase}-${i}`;
+      try {
+        const result = await createNetlifySite(process.env.NETLIFY_TOKEN, slug);
+        siteId = result.siteId;
+        finalSlug = slug;
+        break;
+      } catch (err) {
+        if (err.message.includes('name already taken')) continue;
+        throw err;
+      }
+    }
+
+    if (!siteId) {
+      throw new Error('Could not create a unique Netlify site after 10 attempts.');
+    }
+
+    // Deploy to Netlify
     const deployUrl = await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
-    res.json({ success: true, pagesUrl: deployUrl });
+    // Return clean public URL (not deploy preview URL)
+    const liveUrl = `https://${finalSlug}.netlify.app`;
+
+    res.json({ success: true, pagesUrl: liveUrl });
 
   } catch (err) {
     console.error('❌ Netlify deploy failed:', err);
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
+
 
 // ✅ GitHub-only deployment (no domain)
 router.post('/deploy-github', async (req, res) => {
