@@ -2,7 +2,10 @@ import express from 'express';
 import fetch from 'node-fetch';
 import fs from 'fs-extra';
 import path from 'path';
+import cheerio from 'cheerio';
 import simpleGit from 'simple-git';
+import slugify from 'slugify';
+
 import { tempSessions } from '../index.js';
 import {
   sanitizeRepoName,
@@ -11,11 +14,11 @@ import {
   retryRequest
 } from '../utils/githubUtils.js';
 import { deployToNetlify } from '../utils/netlifyDeploy.js';
-import { createNetlifySite } from '../utils/createNetlifySite.js'; // ✅ NEW import
+import { createNetlifySite } from '../utils/createNetlifySite.js';
+import { deployViaNetlifyApi } from '../utils/deployToNetlifyApi.js';
 
 const router = express.Router();
 
-// Shared GitHub Actions YAML (static.yml)
 const staticYaml = [
   'name: Deploy static content to Pages',
   '',
@@ -53,11 +56,6 @@ const staticYaml = [
   '        uses: actions/deploy-pages@v4'
 ].join('\n');
 
-// ✅ Netlify deployment route (auto-hosting live preview)
-import { deployViaNetlifyApi } from '../utils/deployToNetlifyApi.js'; // ✅ NEW IMPORT
-
-import slugify from 'slugify'; // install if needed: npm i slugify
-
 function generateSlug(base, attempt) {
   const suffix = attempt > 0 ? `-${attempt}` : '';
   return `${slugify(base, { lower: true, strict: true }).slice(0, 40 - suffix.length)}${suffix}`;
@@ -86,35 +84,42 @@ router.post('/deploy-live', async (req, res) => {
       return res.status(400).json({ error: 'Session not found or empty.' });
     }
 
-    // Clean up + prep folder
     const repoName = `site-${sessionId}`;
     const folderPath = path.join('/tmp', repoName);
 
     await fs.remove(folderPath);
     await fs.ensureDir(folderPath);
 
-import cheerio from 'cheerio'; // make sure it's installed: npm i cheerio
-import slugify from 'slugify';
+    // Build session.structure from <title> tags if not already defined
+    if (!session.structure) {
+      session.structure = session.pages.map((html, i) => {
+        const $ = cheerio.load(html);
+        const title = $('title').text().trim() || `Page ${i + 1}`;
+        const file = i === 0 || title.toLowerCase() === 'home'
+          ? 'index.html'
+          : `${slugify(title, { lower: true, strict: true })}.html`;
+        return { title, file };
+      });
+    }
 
-const getPageFileName = (html, index) => {
-  const $ = cheerio.load(html);
-  const title = $('title').text().trim();
+    // Fix links and write files
+    for (let i = 0; i < session.pages.length; i++) {
+      let html = session.pages[i];
+      const fileName = session.structure[i].file;
 
-  if (index === 0 || !title || title.toLowerCase() === 'home') {
-    return 'index.html';
-  }
+      const $ = cheerio.load(html);
+      $('a').each((_, el) => {
+        const linkText = $(el).text().trim().toLowerCase();
+        const match = session.structure.find(p => p.title.toLowerCase() === linkText);
+        if (match) {
+          $(el).attr('href', match.file);
+        }
+      });
 
-  return `${slugify(title, { lower: true, strict: true })}.html`;
-};
+      await fs.writeFile(path.join(folderPath, fileName), $.html());
+    }
 
-for (let i = 0; i < session.pages.length; i++) {
-  const html = session.pages[i];
-  const fileName = getPageFileName(html, i);
-  await fs.writeFile(path.join(folderPath, fileName), html);
-}
-
-
-    // Slugify business name and create unique Netlify site
+    // Create Netlify site
     const baseSlug = businessName || `site-${sessionId}`;
     const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
 
@@ -127,7 +132,7 @@ for (let i = 0; i < session.pages.length; i++) {
       try {
         const result = await createNetlifySite(process.env.NETLIFY_TOKEN, slug);
         siteId = result.siteId;
-        siteUrl = result.siteUrl; // ✅ THIS LINE FIXES THE BUG
+        siteUrl = result.siteUrl;
         finalSlug = slug;
         break;
       } catch (err) {
@@ -140,10 +145,8 @@ for (let i = 0; i < session.pages.length; i++) {
       throw new Error('Could not create a unique Netlify site or retrieve its URL.');
     }
 
-    // Deploy to Netlify
-    const deployUrl = await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
+    await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
-    // Return clean public URL (not deploy preview URL)
     res.json({ success: true, pagesUrl: siteUrl });
 
   } catch (err) {
@@ -151,6 +154,7 @@ for (let i = 0; i < session.pages.length; i++) {
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
+
 
 // ✅ GitHub-only deployment (no domain)
 router.post('/deploy-github', async (req, res) => {
