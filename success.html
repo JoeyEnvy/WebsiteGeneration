@@ -60,21 +60,20 @@
       linkEl.textContent = "No live site URL found.";
       loader.remove();
     } else {
-      // Strip any unwanted Netlify subdomain preview prefix
-      const decoded = decodeURIComponent(rawUrl).replace(/^https:\/\/[^-]+--/, 'https://');
+      // ✅ Clean up Netlify preview prefix if present
+      const decoded = decodeURIComponent(rawUrl).replace(/^https:\/\/[^.]+--/, 'https://');
 
-      linkEl.innerHTML = `<a href="${decoded}" target="_blank">${decoded}</a>`;
+      linkEl.innerHTML = `<a href="${decoded}" target="_blank" rel="noopener noreferrer">${decoded}</a>`;
 
       const checkSite = async (tries = 0) => {
         try {
-          // Attempt simple GET fetch with timeout to allow DNS propagation
           await fetch(decoded, { mode: 'no-cors' });
           iframe.src = decoded;
           iframe.style.display = 'block';
           loader.remove();
         } catch {
           if (tries < 15) {
-            setTimeout(() => checkSite(tries + 1), 4000); // Retry every 4s
+            setTimeout(() => checkSite(tries + 1), 4000);
           } else {
             loader.textContent = "⚠️ Your site is still deploying. Please refresh this page in a few minutes if it's not visible yet.";
           }
@@ -86,5 +85,6 @@
   </script>
 </body>
 </html>
+
 
 

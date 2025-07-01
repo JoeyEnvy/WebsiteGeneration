@@ -52,24 +52,30 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('sessionId');
+    const businessName = localStorage.getItem('businessName') || ''; // Optional fallback
 
-    fetch('https://websitegeneration.onrender.com/deploy-live', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success && data.pagesUrl) {
-        window.location.href = `success.html?live=${encodeURIComponent(data.pagesUrl)}`;
-      } else {
-        alert('Deployment failed. Please contact support.');
-      }
-    })
-    .catch(err => {
-      console.error('Deployment error:', err);
-      alert('An unexpected error occurred. Please contact support.');
-    });
+    if (!sessionId) {
+      alert('Missing session ID. Deployment cannot continue.');
+    } else {
+      fetch('https://websitegeneration.onrender.com/deploy-live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, businessName })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.pagesUrl) {
+          window.location.href = `success.html?live=${encodeURIComponent(data.pagesUrl)}`;
+        } else {
+          alert(`Deployment failed: ${data.error || 'Unknown error'}`);
+        }
+      })
+      .catch(err => {
+        console.error('Deployment error:', err);
+        alert('An unexpected error occurred. Please contact support.');
+      });
+    }
   </script>
 </body>
 </html>
+
