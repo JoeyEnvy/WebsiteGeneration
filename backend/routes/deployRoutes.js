@@ -102,8 +102,10 @@ router.post('/deploy-live', async (req, res) => {
     const baseSlug = businessName || `site-${sessionId}`;
     const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
 
-    let finalSlug;
-    let siteId;
+let finalSlug;
+let siteId;
+let siteUrl;
+
     for (let i = 0; i < 10; i++) {
       const slug = i === 0 ? slugifiedBase : `${slugifiedBase}-${i}`;
       try {
@@ -125,9 +127,8 @@ router.post('/deploy-live', async (req, res) => {
     const deployUrl = await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
     // Return clean public URL (not deploy preview URL)
-    const liveUrl = `https://${finalSlug}.netlify.app`;
+res.json({ success: true, pagesUrl: siteUrl }); // ✅ Trust the real deployed URL from Netlify
 
-    res.json({ success: true, pagesUrl: liveUrl });
 
   } catch (err) {
     console.error('❌ Netlify deploy failed:', err);
