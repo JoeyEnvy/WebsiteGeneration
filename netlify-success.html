@@ -51,8 +51,8 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('sessionId');
-    const businessName = localStorage.getItem('businessName') || ''; // Optional fallback
+    let sessionId = params.get('sessionId') || localStorage.getItem('sessionId');
+    const businessName = localStorage.getItem('businessName') || '';
 
     if (!sessionId) {
       alert('Missing session ID. Deployment cannot continue.');

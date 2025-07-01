@@ -60,15 +60,19 @@
       linkEl.textContent = "No live site URL found.";
       loader.remove();
     } else {
-      // ✅ Clean up Netlify preview prefix if present
-      const decoded = decodeURIComponent(rawUrl).replace(/^https:\/\/[^.]+--/, 'https://');
+      const decodedUrl = decodeURIComponent(rawUrl);
 
-      linkEl.innerHTML = `<a href="${decoded}" target="_blank" rel="noopener noreferrer">${decoded}</a>`;
+      // Only clean up Netlify deploy preview URLs if needed
+      const finalUrl = decodedUrl.includes('--') 
+        ? decodedUrl.replace(/^https:\/\/[^.]+--/, 'https://') 
+        : decodedUrl;
+
+      linkEl.innerHTML = `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${finalUrl}</a>`;
 
       const checkSite = async (tries = 0) => {
         try {
-          await fetch(decoded, { mode: 'no-cors' });
-          iframe.src = decoded;
+          await fetch(finalUrl, { mode: 'no-cors' });
+          iframe.src = finalUrl;
           iframe.style.display = 'block';
           loader.remove();
         } catch {
