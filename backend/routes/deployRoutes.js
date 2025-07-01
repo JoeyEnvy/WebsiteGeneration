@@ -102,15 +102,16 @@ router.post('/deploy-live', async (req, res) => {
     const baseSlug = businessName || `site-${sessionId}`;
     const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
 
-let finalSlug;
-let siteId;
-let siteUrl;
+    let finalSlug;
+    let siteId;
+    let siteUrl;
 
     for (let i = 0; i < 10; i++) {
       const slug = i === 0 ? slugifiedBase : `${slugifiedBase}-${i}`;
       try {
         const result = await createNetlifySite(process.env.NETLIFY_TOKEN, slug);
         siteId = result.siteId;
+        siteUrl = result.siteUrl; // ✅ THIS LINE FIXES THE BUG
         finalSlug = slug;
         break;
       } catch (err) {
@@ -119,23 +120,21 @@ let siteUrl;
       }
     }
 
-    if (!siteId) {
-      throw new Error('Could not create a unique Netlify site after 10 attempts.');
+    if (!siteId || !siteUrl) {
+      throw new Error('Could not create a unique Netlify site or retrieve its URL.');
     }
 
     // Deploy to Netlify
     const deployUrl = await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
     // Return clean public URL (not deploy preview URL)
-res.json({ success: true, pagesUrl: siteUrl }); // ✅ Trust the real deployed URL from Netlify
-
+    res.json({ success: true, pagesUrl: siteUrl });
 
   } catch (err) {
     console.error('❌ Netlify deploy failed:', err);
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
-
 
 // ✅ GitHub-only deployment (no domain)
 router.post('/deploy-github', async (req, res) => {

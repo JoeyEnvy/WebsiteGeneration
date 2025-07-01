@@ -38,6 +38,13 @@
       animation: spin 0.8s linear infinite;
     }
 
+    #errorMsg {
+      color: red;
+      margin-top: 20px;
+      font-size: 1rem;
+      display: none;
+    }
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -46,8 +53,8 @@
 <body>
   <h2>🚀 Deploying Your Website...</h2>
   <div class="spinner"></div>
-  <p>Please wait while we publish your site.<br>
-     This usually takes less than a minute.</p>
+  <p>Please wait while we publish your site.<br>This usually takes less than a minute.</p>
+  <p id="errorMsg">Deployment failed. Please try again.</p>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -55,24 +62,40 @@
     const businessName = localStorage.getItem('businessName') || '';
 
     if (!sessionId) {
-      alert('Missing session ID. Deployment cannot continue.');
+      console.error('❌ Missing sessionId');
+      document.getElementById('errorMsg').textContent = 'Missing session ID. Deployment cannot continue.';
+      document.getElementById('errorMsg').style.display = 'block';
     } else {
+      console.log('✅ Starting deploy for session:', sessionId, 'with businessName:', businessName);
+
       fetch('https://websitegeneration.onrender.com/deploy-live', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, businessName })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        const contentType = res.headers.get('Content-Type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Invalid JSON response');
+        }
+
+        const data = await res.json();
+        console.log('✅ Deploy response:', data);
+
         if (data.success && data.pagesUrl) {
-          window.location.href = `success.html?live=${encodeURIComponent(data.pagesUrl)}`;
+          const redirectUrl = `success.html?live=${encodeURIComponent(data.pagesUrl)}`;
+          console.log('✅ Redirecting to:', redirectUrl);
+          window.location.href = redirectUrl;
         } else {
-          alert(`Deployment failed: ${data.error || 'Unknown error'}`);
+          console.warn('⚠️ Deployment failed:', data);
+          document.getElementById('errorMsg').textContent = data.error || 'Deployment failed. Please try again.';
+          document.getElementById('errorMsg').style.display = 'block';
         }
       })
       .catch(err => {
-        console.error('Deployment error:', err);
-        alert('An unexpected error occurred. Please contact support.');
+        console.error('❌ Network or server error:', err);
+        document.getElementById('errorMsg').textContent = 'Network error. Please contact support.';
+        document.getElementById('errorMsg').style.display = 'block';
       });
     }
   </script>
