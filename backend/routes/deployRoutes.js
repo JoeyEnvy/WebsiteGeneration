@@ -93,10 +93,26 @@ router.post('/deploy-live', async (req, res) => {
     await fs.remove(folderPath);
     await fs.ensureDir(folderPath);
 
-    for (let i = 0; i < session.pages.length; i++) {
-      const name = i === 0 ? 'index.html' : `page${i + 1}.html`;
-      await fs.writeFile(path.join(folderPath, name), session.pages[i]);
-    }
+import cheerio from 'cheerio'; // make sure it's installed: npm i cheerio
+import slugify from 'slugify';
+
+const getPageFileName = (html, index) => {
+  const $ = cheerio.load(html);
+  const title = $('title').text().trim();
+
+  if (index === 0 || !title || title.toLowerCase() === 'home') {
+    return 'index.html';
+  }
+
+  return `${slugify(title, { lower: true, strict: true })}.html`;
+};
+
+for (let i = 0; i < session.pages.length; i++) {
+  const html = session.pages[i];
+  const fileName = getPageFileName(html, i);
+  await fs.writeFile(path.join(folderPath, fileName), html);
+}
+
 
     // Slugify business name and create unique Netlify site
     const baseSlug = businessName || `site-${sessionId}`;
