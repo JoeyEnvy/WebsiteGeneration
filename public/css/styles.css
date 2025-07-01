@@ -43,7 +43,8 @@ body {
 }
 
 /* =====================
-   🚀 Navbar
+ /* =====================
+   🚀 Navbar Styling
    ===================== */
 .navbar {
   position: fixed;
@@ -57,32 +58,68 @@ body {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow);
+  animation: navbarFadeIn 0.6s ease-out forwards;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-.navbar a {
+/* Logo Area */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo img {
+  height: 125px !important;
+  width: auto;
+  filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));
+}
+
+/* Robotic Font for Text */
+.logo span {
+  font-family: 'Orbitron', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.8px;
+  color: white;
+}
+
+/* Nav Links (Right Aligned) */
+.nav-links {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.nav-links a {
   color: var(--text-muted);
-  margin-left: 20px;
+  margin-left: 24px;
   font-weight: 500;
+  font-size: 1rem;
   text-decoration: none;
   transition: var(--transition);
 }
 
-.navbar a:hover {
+.nav-links a:hover {
   color: var(--primary-color);
 }
 
+/* Scroll Bar */
 .scroll-progress {
   position: fixed;
-  top: 0;
+  top: 130px; /* match or slightly exceed logo height */
   left: 0;
-  height: 4px;
+  height: 6px;
   background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
   width: 0%;
-  z-index: 9999;
+  z-index: 999;
   transition: width 0.2s ease-out;
+  border-radius: 0 4px 4px 0;
 }
 
 
+
+/* Animation */
 @keyframes navbarFadeIn {
   from {
     transform: translateY(-30px);
@@ -93,18 +130,6 @@ body {
     opacity: 1;
   }
 }
-
-.navbar {
-  animation: navbarFadeIn 0.6s ease-out forwards;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-
-
-
-.logo img {
-  filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));
-}
-
 
 
 /* =====================
