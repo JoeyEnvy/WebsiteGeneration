@@ -674,87 +674,84 @@
 
 <!-- Optional Inline Script -->
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // ===== Click Preview Hint Logic =====
-    const previewFrame = document.getElementById('previewFrame');
-    const hintMessage = document.getElementById('iframeHintMessage');
+document.addEventListener('DOMContentLoaded', function () {
+  // ===== Click Preview Hint Logic =====
+  const previewFrame = document.getElementById('previewFrame');
+  const hintMessage = document.getElementById('iframeHintMessage');
 
-    previewFrame?.addEventListener('click', function () {
-      hintMessage.style.display = 'block';
-      clearTimeout(hintMessage._timeout);
-      hintMessage._timeout = setTimeout(() => {
-        hintMessage.style.display = 'none';
-      }, 5000);
-    });
+  previewFrame?.addEventListener('click', function () {
+    hintMessage.style.display = 'block';
+    clearTimeout(hintMessage._timeout);
+    hintMessage._timeout = setTimeout(() => {
+      hintMessage.style.display = 'none';
+    }, 5000);
+  });
 
-    // ===== Scroll Progress Bar =====
-    window.addEventListener('scroll', () => {
-      const scrollProgress = document.getElementById('scrollProgressBar');
-      if (!scrollProgress) return;
-      const scrollTop = window.scrollY;
-      const docHeight = document.body.scrollHeight - window.innerHeight;
-      const scrollPercent = (scrollTop / docHeight) * 100;
-      scrollProgress.style.width = scrollPercent + "%";
-    });
+  // ===== Scroll Progress Bar =====
+  window.addEventListener('scroll', () => {
+    const scrollProgress = document.getElementById('scrollProgressBar');
+    if (!scrollProgress) return;
+    const scrollTop = window.scrollY;
+    const docHeight = document.body.scrollHeight - window.innerHeight;
+    const scrollPercent = (scrollTop / docHeight) * 100;
+    scrollProgress.style.width = scrollPercent + "%";
+  });
 
-    // ===== Navbar Styling on Scroll =====
-    const navbar = document.querySelector('.navbar');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 60) {
-        navbar.style.background = "rgba(0, 0, 0, 0.85)";
-        navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
-      } else {
-        navbar.style.background = "rgba(0, 0, 0, 0.6)";
-        navbar.style.boxShadow = "var(--shadow)";
-      }
-    });
-
-    // ===== Post-Generation Enhancement Logic =====
-    const previewContainer = document.querySelector('.preview-container');
-    const brandingPanel = document.getElementById('brandingPanel');
-    const finalStep = document.getElementById('step5');
-
-    function showPreviewEnhancements() {
-      if (previewContainer) {
-        previewContainer.classList.add('fullscreen');
-        setTimeout(() => {
-          previewContainer.scrollIntoView({ behavior: 'smooth' });
-        }, 300);
-      }
-      if (brandingPanel) {
-        brandingPanel.style.display = 'block';
-      }
-    }
-
-    if (finalStep) {
-      const observer = new MutationObserver((mutationsList) => {
-        for (const mutation of mutationsList) {
-          if (
-            mutation.type === 'attributes' &&
-            mutation.target.style.display !== 'none'
-          ) {
-            showPreviewEnhancements();
-            observer.disconnect();
-          }
-        }
-      });
-      observer.observe(finalStep, { attributes: true, attributeFilter: ['style'] });
+  // ===== Navbar Styling on Scroll =====
+  const navbar = document.querySelector('.navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 60) {
+      navbar.style.background = "rgba(0, 0, 0, 0.85)";
+      navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+    } else {
+      navbar.style.background = "rgba(0, 0, 0, 0.6)";
+      navbar.style.boxShadow = "var(--shadow)";
     }
   });
 
+  // ===== Post-Generation Enhancement Logic =====
+  const previewContainer = document.querySelector('.preview-container');
+  const brandingPanel = document.getElementById('brandingPanel');
+  const finalStep = document.getElementById('step5');
 
+  function showPreviewEnhancements() {
+    if (previewContainer) previewContainer.classList.add('fullscreen');
 
+    const controls = document.querySelector('.preview-controls');
+    if (controls) controls.classList.add('post-gen-ui');
 
-// Include at end of DOMContentLoaded
-document.getElementById('hamburger').addEventListener('click', () => {
-  document.querySelector('.nav-links').classList.toggle('show');
-  document.getElementById('hamburger').classList.toggle('active');
+    if (brandingPanel) brandingPanel.style.display = 'block';
+
+    setTimeout(() => {
+      previewContainer?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  }
+
+  if (finalStep) {
+    const observer = new MutationObserver((mutationsList) => {
+      for (const mutation of mutationsList) {
+        if (
+          mutation.type === 'attributes' &&
+          mutation.target.style.display !== 'none'
+        ) {
+          showPreviewEnhancements();
+          observer.disconnect();
+        }
+      }
+    });
+    observer.observe(finalStep, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  // ===== Mobile Hamburger Nav Toggle =====
+  const hamburger = document.getElementById('hamburger');
+  const navLinks = document.querySelector('.nav-links');
+  if (hamburger && navLinks) {
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.toggle('show');
+      hamburger.classList.toggle('active');
+    });
+  }
 });
-
-
-document.querySelector('.preview-container').classList.add('fullscreen');
-document.querySelector('.preview-controls').classList.add('post-gen-ui');
-
 </script>
 
 
