@@ -103,12 +103,13 @@ router.post('/deploy-live', async (req, res) => {
       });
     }
 
-    // Fix links and write files
+    // Fix links and write full valid HTML files
     for (let i = 0; i < session.pages.length; i++) {
-      let html = session.pages[i];
+      const html = session.pages[i];
       const fileName = session.structure[i].file;
 
       const $ = cheerio.load(html);
+
       $('a').each((_, el) => {
         const linkText = $(el).text().trim().toLowerCase();
         const match = session.structure.find(p => p.title.toLowerCase() === linkText);
@@ -117,16 +118,16 @@ router.post('/deploy-live', async (req, res) => {
         }
       });
 
-      await fs.writeFile(path.join(folderPath, fileName), $.html());
+      // ✅ Correct full document output for Netlify (not escaped text)
+      await fs.writeFile(path.join(folderPath, fileName), $.root().html(), 'utf-8');
     }
 
     // Create Netlify site
     const baseSlug = businessName || `site-${sessionId}`;
     const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
 
-    let finalSlug;
-    let siteId;
-    let siteUrl;
+    let siteId = null;
+    let siteUrl = null;
 
     for (let i = 0; i < 10; i++) {
       const slug = i === 0 ? slugifiedBase : `${slugifiedBase}-${i}`;
@@ -134,7 +135,6 @@ router.post('/deploy-live', async (req, res) => {
         const result = await createNetlifySite(process.env.NETLIFY_TOKEN, slug);
         siteId = result.siteId;
         siteUrl = result.siteUrl;
-        finalSlug = slug;
         break;
       } catch (err) {
         if (err.message.includes('name already taken')) continue;
@@ -155,7 +155,6 @@ router.post('/deploy-live', async (req, res) => {
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
-
 
 // ✅ GitHub-only deployment (no domain)
 router.post('/deploy-github', async (req, res) => {
