@@ -2,9 +2,10 @@ import express from 'express';
 import fetch from 'node-fetch';
 import fs from 'fs-extra';
 import path from 'path';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import simpleGit from 'simple-git';
 import slugify from 'slugify';
+
 
 import { tempSessions } from '../index.js';
 import {
