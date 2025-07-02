@@ -67,6 +67,11 @@
         </div>
 
       </div>
+
+<div class="hamburger" id="hamburger">
+  <span></span><span></span><span></span>
+</div>
+
     </nav>
   </header>
   <!-- ================== MAIN ================== -->
@@ -736,6 +741,18 @@
       observer.observe(finalStep, { attributes: true, attributeFilter: ['style'] });
     }
   });
+
+
+
+
+// Include at end of DOMContentLoaded
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.querySelector('.nav-links').classList.toggle('show');
+  document.getElementById('hamburger').classList.toggle('active');
+});
+
+
+
 </script>
 
 
