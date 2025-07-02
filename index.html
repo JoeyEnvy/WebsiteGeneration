@@ -3,60 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Website Generator</title>
 
-  <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="public/css/styles.css" />
+  <title>WebsiteGeneration.co.uk — AI Website Builder with Custom Domains</title>
 
-  <!-- FontAwesome for Icons -->
+  <!-- 🔍 SEO Metadata -->
+  <meta name="description" content="WebsiteGeneration.co.uk lets anyone build a stunning, professional website using AI — no coding needed. Choose from modern templates, customize live, and deploy instantly with Netlify, GitHub, or a full custom domain.">
+  <meta name="keywords" content="AI website builder, website generation, instant site builder, AI web design, no-code website, Netlify hosting, GitHub Pages, custom domain, websitegeneration.co.uk">
+  <meta name="author" content="WebsiteGeneration.co.uk">
+  <meta name="robots" content="index, follow">
+
+  <!-- 🔗 Canonical URL -->
+  <link rel="canonical" href="https://www.websitegeneration.co.uk/" />
+
+  <!-- 📱 Favicons + Apple Touch Icon -->
+  <link rel="icon" href="images/7.png" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="images/7.png">
+  <link rel="shortcut icon" href="images/7.png" type="image/png">
+
+  <!-- 🧠 Open Graph (Facebook, LinkedIn, etc.) -->
+  <meta property="og:title" content="WebsiteGeneration.co.uk — AI Website Builder" />
+  <meta property="og:description" content="AI-powered no-code website builder with templates, live customization, and instant deployment." />
+  <meta property="og:image" content="https://www.websitegeneration.co.uk/images/7.png" />
+  <meta property="og:url" content="https://www.websitegeneration.co.uk/" />
+  <meta property="og:type" content="website" />
+
+  <!-- 🐦 Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="WebsiteGeneration.co.uk — Build Websites with AI" />
+  <meta name="twitter:description" content="Create and deploy custom websites instantly using AI. No coding. No hassle." />
+  <meta name="twitter:image" content="https://www.websitegeneration.co.uk/images/7.png" />
+
+  <!-- 🖋 Font + Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-papipZpN1EyazHIDrYF8P4f1YoU+Z9hZoZaXbcuClgOmZqH1UzfW2RjBQcm63gR9tLSyluH15A7Zf2zWMB69Hg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <!-- SEO + Favicon -->
-  <meta name="description" content="Generate a professional AI-powered website in minutes with no coding." />
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
-
+  <!-- 💅 Main Styles -->
+  <link rel="stylesheet" href="public/css/styles.css" />
 </head>
 
 <body class="dark-theme">
 
-
-
-
-
   <!-- ================== HEADER ================== -->
   <header class="site-header">
-<!-- Add to <head> -->
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <nav class="navbar">
+      <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
 
-<!-- Navbar -->
-<nav class="navbar">
-  <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+        <!-- Logo + Brand -->
+        <div class="logo" style="display: flex; align-items: center; gap: 12px;">
+          <img src="images/7.png" alt="WebsiteGeneration Logo" style="height: 52px; width: auto; filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));" />
+          <span style="font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.5rem; letter-spacing: 0.8px; color: white;">
+            WebsiteGeneration.co.uk
+          </span>
+        </div>
 
-    <!-- Logo + Brand -->
-    <div class="logo" style="display: flex; align-items: center; gap: 12px;">
-      <img src="images/7.png" alt="WebsiteGeneration Logo" style="height: 52px; width: auto; filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));" />
-      <span style="font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.5rem; letter-spacing: 0.8px; color: white;">
-        WebsiteGeneration.co.uk
-      </span>
-    </div>
+        <!-- Nav Links -->
+        <div class="nav-links" style="display: flex; align-items: center; gap: 24px; margin-left: auto;">
+          <a href="#how-it-works" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">How It Works</a>
+          <a href="templates.html" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">Templates</a>
+          <a href="pricing.html" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">Pricing</a>
+          <a href="documentation.html" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">Docs</a>
+          <button id="loginBtn" class="btn btn-outline" style="margin-left: 12px;">Login</button>
+          <button id="signupBtn" class="btn btn-primary">Get Started</button>
+        </div>
 
-    <!-- Nav Links -->
-    <div class="nav-links" style="display: flex; align-items: center; gap: 24px; margin-left: auto;">
-      <a href="#how-it-works" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">How It Works</a>
-      <a href="templates.html" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">Templates</a>
-      <a href="pricing.html" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">Pricing</a>
-      <a href="documentation.html" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">Docs</a>
-      <button id="loginBtn" class="btn btn-outline" style="margin-left: 12px;">Login</button>
-      <button id="signupBtn" class="btn btn-primary">Get Started</button>
-    </div>
-
-  </div>
-</nav>
-
-
-
+      </div>
+    </nav>
   </header>
   <!-- ================== MAIN ================== -->
   <main>
@@ -587,24 +598,62 @@
 
 
 <!-- ====== FOOTER ====== -->
-<footer>
+<footer style="background: linear-gradient(to right, #111, #1a1a1a); color: #ccc; padding: 60px 0 30px;">
   <div class="container">
-    <div class="footer-grid">
-      <div class="footer-section">
-        <h3>About</h3>
-        <p>AI-powered website generation for businesses of all sizes.</p>
+    <div class="footer-grid" style="display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between;">
+
+      <!-- About Section -->
+      <div class="footer-section" style="flex: 1 1 250px;">
+        <h3 style="color: white;">About WebsiteGeneration</h3>
+        <p style="line-height: 1.6;">
+          WebsiteGeneration.co.uk is an AI-powered web builder that lets anyone generate, customize, and launch professional websites in minutes — no code needed. Instantly deploy to Netlify, GitHub, or connect a custom domain.
+        </p>
+        <p style="margin-top: 12px;">
+          💬 <a href="mailto:support@websitegeneration.co.uk" style="color: var(--primary-color); text-decoration: underline;">support@websitegeneration.co.uk</a>
+        </p>
       </div>
-      <div class="footer-section">
-        <h3>Quick Links</h3>
-        <ul>
-          <li><a href="#">Templates</a></li>
-          <li><a href="#">Pricing</a></li>
-          <li><a href="#">Documentation</a></li>
+
+      <!-- Quick Links -->
+      <div class="footer-section" style="flex: 1 1 200px;">
+        <h3 style="color: white;">Quick Links</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li><a href="templates.html" style="color: #ccc; text-decoration: none;">Browse Templates</a></li>
+          <li><a href="pricing.html" style="color: #ccc; text-decoration: none;">Pricing Plans</a></li>
+          <li><a href="documentation.html" style="color: #ccc; text-decoration: none;">Documentation</a></li>
+          <li><a href="#how-it-works" style="color: #ccc; text-decoration: none;">How It Works</a></li>
         </ul>
       </div>
+
+      <!-- Company Info -->
+      <div class="footer-section" style="flex: 1 1 200px;">
+        <h3 style="color: white;">Company</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li><a href="mailto:support@websitegeneration.co.uk" style="color: #ccc; text-decoration: none;">Contact Support</a></li>
+          <li><a href="privacy.html" style="color: #ccc; text-decoration: none;">Privacy Policy</a></li>
+          <li><a href="terms.html" style="color: #ccc; text-decoration: none;">Terms of Service</a></li>
+          <li><a href="mailto:collab@websitegeneration.co.uk" style="color: #ccc; text-decoration: none;">Business Inquiries</a></li>
+        </ul>
+      </div>
+
+      <!-- Social & Logo -->
+      <div class="footer-section" style="flex: 1 1 220px;">
+        <h3 style="color: white;">Connect</h3>
+        <div style="display: flex; gap: 14px; margin-top: 10px;">
+          <a href="#" target="_blank" aria-label="Instagram"><i class="fab fa-instagram" style="color: #ccc; font-size: 1.4rem;"></i></a>
+          <a href="#" target="_blank" aria-label="X/Twitter"><i class="fab fa-x-twitter" style="color: #ccc; font-size: 1.4rem;"></i></a>
+          <a href="#" target="_blank" aria-label="GitHub"><i class="fab fa-github" style="color: #ccc; font-size: 1.4rem;"></i></a>
+          <a href="#" target="_blank" aria-label="YouTube"><i class="fab fa-youtube" style="color: #ccc; font-size: 1.4rem;"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Footer Line -->
+    <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: center; font-size: 0.9rem; color: #888;">
+      &copy; 2025 WebsiteGeneration.co.uk — AI Website Builder. All rights reserved.
     </div>
   </div>
 </footer>
+
 
 <!-- ====== SCRIPTS ====== -->
 <script src="public/js/core.js"></script>

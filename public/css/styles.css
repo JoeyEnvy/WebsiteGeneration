@@ -70,7 +70,7 @@ body {
 }
 
 .logo img {
-  height: 125px !important;
+  height: 125px;
   width: auto;
   filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));
 }
@@ -107,16 +107,15 @@ body {
 /* Scroll Bar */
 .scroll-progress {
   position: fixed;
-  top: 130px; /* match or slightly exceed logo height */
+  top: 70px; /* Adjust this to match your navbar height */
   left: 0;
-  height: 6px;
+  height: 6px; /* Thicker bar */
   background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
   width: 0%;
   z-index: 999;
   transition: width 0.2s ease-out;
   border-radius: 0 4px 4px 0;
 }
-
 
 
 /* Animation */
