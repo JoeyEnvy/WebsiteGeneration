@@ -1,28 +1,33 @@
 WebsiteGenerator.prototype.updatePreview = function () {
-  if (this.generatedPages.length === 0) return;
+  if (!this.generatedPages || this.generatedPages.length === 0) return;
 
   const currentPageContent = this.generatedPages[this.currentPage];
   const scrollY = window.scrollY;
 
+  // Ensure previewFrame exists
+  if (!this.previewFrame) {
+    this.previewFrame = document.getElementById('previewFrame');
+    if (!this.previewFrame) {
+      console.error('❌ previewFrame not found.');
+      return;
+    }
+  }
+
+  // Create and style the iframe
   const iframe = document.createElement('iframe');
   iframe.style.width = '100%';
   iframe.style.minHeight = '600px';
   iframe.style.border = 'none';
   iframe.style.background = '#111';
 
-  // Clear preview container and append iframe
+  // Clear existing preview and insert iframe
   this.previewFrame.innerHTML = '';
   this.previewFrame.appendChild(iframe);
 
-  // Write content to iframe
-  iframe.contentWindow.document.open();
-  iframe.contentWindow.document.write(currentPageContent);
-  iframe.contentWindow.document.close();
-
+  // Inject content into iframe
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
 
-    // Inject dynamic styles into preview content
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -51,24 +56,39 @@ WebsiteGenerator.prototype.updatePreview = function () {
     `;
     doc.head.appendChild(style);
 
-    // Hide customization panel if visible
+    // Hide customization panel
     const panel = document.getElementById('customizationPanel');
     if (panel) panel.style.display = 'none';
 
-    this.initializeCustomizationPanel();
+    if (typeof this.initializeCustomizationPanel === 'function') {
+      this.initializeCustomizationPanel();
+    }
   };
 
-  // Apply fullscreen styling to preview container
+  // Write HTML content into the iframe
+  iframe.contentWindow.document.open();
+  iframe.contentWindow.document.write(currentPageContent);
+  iframe.contentWindow.document.close();
+
+  // Apply full-width styling to preview
   this.previewFrame.classList.add('fullscreen');
 
-  // Boost button styling (applied via CSS modifier class)
+  // Highlight control buttons visually
   const controls = document.querySelector('.preview-controls');
   if (controls) controls.classList.add('post-gen-ui');
 
-  // Scroll to preview smoothly
+  // Scroll preview into view
   this.previewFrame.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // Update page navigation and show action buttons
-  this.updatePageNavigation();
-  this.showPostGenerationOptions();
+  // ✅ Safe calls
+  if (typeof this.updatePageNavigation === 'function') {
+    this.updatePageNavigation();
+  }
+
+  if (typeof this.showPostGenerationOptions === 'function') {
+    this.showPostGenerationOptions();
+  }
+
+  // Restore scroll position
+  window.scrollTo({ top: scrollY, behavior: 'auto' });
 };
