@@ -401,14 +401,20 @@
       </div> <!-- End Container -->
     </section> <!-- End Generator Section -->
 <!-- ====== DEPLOYMENT MODAL ====== -->
-<div id="deploymentModal" class="modal" style="display:none;">
+<div id="deploymentModal" class="modal" style="display: none;">
   <div class="modal-content">
+
+    <!-- ❌ Close Button -->
     <span class="close" id="closeDeploymentModal">&times;</span>
+
+    <!-- 🌍 Modal Header -->
     <h2>🌍 Deploy Your Website</h2>
     <p>Would you like instructions or help pushing your website online?</p>
 
+    <!-- 📦 Deployment Options -->
     <div class="deploy-options">
-      <!-- Option: Self-Deployment Instructions -->
+
+      <!-- 🧾 Option: Self-Deployment Instructions -->
       <div class="deploy-option-card">
         <h4>🧾 Self-Deployment Instructions (GitHub)</h4>
         <p>Step-by-step guide on using GitHub Pages to host your site.</p>
@@ -421,7 +427,7 @@
         <button class="btn btn-primary" id="deployGithubSelf">Get Instructions + Files</button>
       </div>
 
-      <!-- Option: ZIP Only -->
+      <!-- 📦 Option: ZIP Only -->
       <div class="deploy-option-card">
         <h4>📦 ZIP File Only</h4>
         <p>Download your full site (HTML, CSS, JS) for personal hosting.</p>
@@ -433,19 +439,7 @@
         <button class="btn btn-primary" id="deployZipOnly">Download .ZIP Only</button>
       </div>
 
-      <!-- Option: GitHub Hosting -->
-      <div class="deploy-option-card">
-        <h4>🚀 We Host It on GitHub</h4>
-        <p>Our team uploads your site and shares the live URL.</p>
-        <ul>
-          <li>Fully hosted</li>
-          <li>Email support included</li>
-        </ul>
-        <p><strong>Price: £125</strong></p>
-        <button class="btn btn-primary" id="deployGithubHosted">Buy GitHub Hosting + Support</button>
-      </div>
-
-      <!-- Option: Netlify Hosting -->
+      <!-- ⚡ Option: Netlify Hosting -->
       <div class="deploy-option-card">
         <h4>⚡ Instant Hosting (Netlify)</h4>
         <p>Auto-deploys your site to a public Netlify URL. No domain required.</p>
@@ -457,7 +451,7 @@
         <button class="btn btn-primary" id="deployNetlifyOnly">Deploy to Netlify</button>
       </div>
 
-      <!-- Option: Full Hosting + Domain -->
+      <!-- 🌐 Option: Full Hosting + Custom Domain -->
       <div class="deploy-option-card">
         <h4>🌐 Full Hosting + Custom Domain</h4>
         <p>We’ll register your domain and fully host your website.</p>
@@ -467,26 +461,32 @@
           <li>Email support</li>
         </ul>
 
+        <!-- 🔍 Domain Input -->
         <label for="customDomain">Check domain availability:</label>
         <input type="text" id="customDomain" placeholder="e.g. mybusiness.co.uk" />
         <button id="checkDomainBtn">Check Availability</button>
         <p id="domainCheckResult"></p>
         <p id="domainPriceDisplay" style="margin-top: 6px; font-weight: bold;"></p>
 
+        <!-- 📅 Domain Duration -->
         <label for="domainDuration" style="margin-top: 10px; display: block;">Choose domain duration:</label>
         <select id="domainDuration" style="margin: 8px 0 12px;">
           <option value="1">1 Year (Included)</option>
           <option value="3">3 Years (+£150)</option>
         </select>
 
+        <!-- ℹ️ Domain Info -->
         <p class="domain-term-info" style="font-size: 0.9rem; color: #666;">
-          📅 Domain will be registered in your name.<br>
-          Extensions and renewals available via <a href="mailto:support@websitegenerator.co.uk">support</a>.
+          📅 Domain will be registered in your name.<br />
+          Extensions and renewals available via 
+          <a href="mailto:support@websitegenerator.co.uk">support</a>.
         </p>
 
+        <!-- ✅ Confirm + Buy -->
         <button id="confirmDomainBtn" class="btn btn-outline" disabled>✅ Confirm This Domain</button>
         <button id="deployFullHosting" class="btn btn-primary" style="margin-top: 10px;" disabled>Buy Full Hosting + URL</button>
       </div>
+
     </div>
   </div>
 </div>

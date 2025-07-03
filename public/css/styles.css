@@ -43,7 +43,6 @@ body {
 }
 
 /* =====================
- /* =====================
    🚀 Navbar Styling
    ===================== */
 .navbar {
@@ -62,29 +61,23 @@ body {
   transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Logo Area */
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .logo img {
-  height: 125px;
+  height: 100px;
   width: auto;
-  filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));
 }
-
-/* Robotic Font for Text */
 .logo span {
   font-family: 'Orbitron', 'Segoe UI', sans-serif;
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   letter-spacing: 0.8px;
   color: white;
 }
 
-/* Nav Links (Right Aligned) */
 .nav-links {
   display: flex;
   align-items: center;
@@ -99,17 +92,16 @@ body {
   text-decoration: none;
   transition: var(--transition);
 }
-
 .nav-links a:hover {
   color: var(--primary-color);
 }
 
-/* Scroll Bar */
+/* Scroll Progress Bar */
 .scroll-progress {
   position: fixed;
-  top: 70px; /* Adjust this to match your navbar height */
+  top: 70px;
   left: 0;
-  height: 6px; /* Thicker bar */
+  height: 6px;
   background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
   width: 0%;
   z-index: 999;
@@ -117,8 +109,7 @@ body {
   border-radius: 0 4px 4px 0;
 }
 
-
-/* Animation */
+/* Navbar animation */
 @keyframes navbarFadeIn {
   from {
     transform: translateY(-30px);
@@ -129,7 +120,6 @@ body {
     opacity: 1;
   }
 }
-
 
 /* =====================
    🌄 Hero Section
@@ -142,9 +132,7 @@ body {
   align-items: center;
   text-align: center;
   padding: 160px 20px 80px;
-  background: none;
 }
-
 .hero h1 {
   font-size: 3.5rem;
   font-weight: 800;
@@ -152,21 +140,18 @@ body {
   margin-bottom: 1rem;
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
-
 .hero p {
   font-size: 1.25rem;
   color: var(--text-muted);
   max-width: 720px;
   margin-bottom: 2rem;
 }
-
 .hero-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
   justify-content: center;
 }
-
 .btn {
   padding: 14px 28px;
   font-size: 1rem;
@@ -176,34 +161,27 @@ body {
   font-weight: 600;
   transition: var(--transition);
 }
-
 .btn-primary {
   background: var(--primary-color);
   color: #000;
   box-shadow: var(--shadow);
 }
-
 .btn-primary:hover {
   transform: scale(1.05);
   background: #ff3e2e;
 }
-
 .btn-outline {
   background: transparent;
   border: 2px solid var(--primary-color);
   color: var(--primary-color);
 }
-
 .btn-outline:hover {
   background: var(--primary-color);
   color: #000;
 }
 
-
-
-
 /* =======================
-   🎯 Split Hero + Stacked Templates (50vh, no background)
+   📦 Split Hero & Templates
    ======================= */
 .split-hero-showcase {
   margin-top: 15vh;
@@ -212,7 +190,6 @@ body {
   align-items: center;
   justify-content: center;
 }
-
 .split-hero-container {
   width: 100%;
   max-width: 1400px;
@@ -221,15 +198,12 @@ body {
   height: 100%;
   padding: 0 24px;
 }
-
-/* Left: Vertical Templates */
 .split-hero-templates {
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding-right: 24px;
 }
-
 .split-hero-title {
   font-size: 1.75rem;
   margin-bottom: 16px;
@@ -237,14 +211,12 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
 .split-hero-stack {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin-bottom: 16px;
 }
-
 .split-hero-card {
   display: flex;
   align-items: center;
@@ -256,103 +228,45 @@ body {
   box-shadow: var(--shadow);
   transition: transform 0.3s ease;
 }
-
 .split-hero-card:hover {
   transform: translateY(-4px);
 }
-
 .split-hero-card img {
   width: 64px;
   height: 40px;
   object-fit: cover;
   border-radius: var(--border-radius);
 }
-
 .split-hero-card h4 {
   font-size: 0.95rem;
   color: var(--accent-purple);
-  margin: 0;
 }
-
-.split-hero-link {
-  font-size: 0.9rem;
-  width: fit-content;
-  padding: 10px 16px;
-}
-
-/* Right: Hero Text */
 .split-hero-content {
   display: flex;
   justify-content: center;
   align-items: center;
 }
-
 .split-hero-text {
   max-width: 500px;
 }
-
 .split-hero-text h1 {
   font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
   color: var(--text-light);
 }
-
 .split-hero-text p {
   font-size: 1.05rem;
   color: var(--text-muted);
   margin-bottom: 1.75rem;
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-  .split-hero-showcase {
-    height: auto;
-    padding: 40px 0;
-  }
-
-  .split-hero-container {
-    grid-template-columns: 1fr;
-    gap: 40px;
-  }
-
-  .split-hero-templates,
-  .split-hero-content {
-    padding: 0;
-  }
-
-  .split-hero-card {
-    justify-content: center;
-  }
-
-  .split-hero-text {
-    text-align: center;
-  }
-
-  .split-hero-link {
-    align-self: center;
-  }
-}
-
-
-
-
-
-.section-divider {
-  height: 10vh;
-  background: rgba(0, 0, 0, 0.5);
-  width: 100%;
-}
-
-
-
-
+/* =======================
+   🧩 Features Section
+   ======================= */
 .features-heavy {
   background: linear-gradient(to bottom right, #0f0f0f, #1a1a1a, #222, #2e2e2e);
   color: #fff;
   padding: 100px 20px;
 }
-
 .features-heavy .section-title {
   font-size: 2.5rem;
   text-align: center;
@@ -361,13 +275,11 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
 .features-grid-heavy {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 40px;
 }
-
 .feature-card-heavy {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -376,35 +288,28 @@ body {
   text-align: center;
   backdrop-filter: blur(8px);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
 .feature-card-heavy:hover {
   transform: translateY(-8px);
   box-shadow: 0 0 30px rgba(0, 123, 255, 0.3);
 }
-
 .feature-card-heavy i {
   font-size: 2rem;
   margin-bottom: 1rem;
   color: orange;
 }
-
 .feature-card-heavy h3 {
   font-size: 1.3rem;
   margin-bottom: 12px;
-  color: #fff;
 }
-
 .feature-card-heavy p {
   font-size: 0.95rem;
   color: #ccc;
-  line-height: 1.5;
 }
 
-
-
-/* 🍔 Hamburger */
+/* ======================
+   🍔 Hamburger + Responsive Nav
+   ====================== */
 .hamburger {
   display: none;
   flex-direction: column;
@@ -417,7 +322,6 @@ body {
   height: 3px;
   background: var(--text-light);
   border-radius: 4px;
-  transition: 0.3s ease;
 }
 .hamburger.active span:nth-child(1) {
   transform: rotate(45deg) translate(6px, 6px);
@@ -429,12 +333,22 @@ body {
   transform: rotate(-45deg) translate(6px, -6px);
 }
 
-/* Responsive Navbar */
+/* ======================
+   📱 Media Queries
+   ====================== */
+@media (max-width: 1024px) {
+  .hero h1 {
+    font-size: 2.75rem;
+  }
+  .hero p {
+    font-size: 1.1rem;
+  }
+}
+
 @media (max-width: 768px) {
   .hamburger {
     display: flex;
   }
-
   .nav-links {
     position: absolute;
     top: 100%;
@@ -448,43 +362,25 @@ body {
     transition: max-height 0.4s ease;
     padding: 0 24px;
   }
-
   .nav-links.show {
     max-height: 500px;
     padding: 12px 24px 20px;
   }
-
   .nav-links a {
     margin: 12px 0;
     font-size: 1.1rem;
     color: var(--text-light);
   }
-}
 
-
-@media (max-width: 1024px) {
-  .hero h1 {
-    font-size: 2.75rem;
-  }
-
-  .hero p {
-    font-size: 1.1rem;
-  }
-}
-
-@media (max-width: 768px) {
   .hero {
     padding: 120px 16px 60px;
   }
-
   .hero h1 {
     font-size: 2.25rem;
   }
-
   .hero p {
     font-size: 1rem;
   }
-
   .hero-buttons {
     flex-direction: column;
     gap: 16px;
@@ -492,8 +388,6 @@ body {
 
   .btn {
     width: 100%;
-    padding: 12px 20px;
-    font-size: 1rem;
   }
 }
 
@@ -501,45 +395,14 @@ body {
   .hero h1 {
     font-size: 1.8rem;
   }
-
   .hero p {
     font-size: 0.95rem;
   }
-}
-
-
-@media (max-width: 1024px) {
-  .split-hero-showcase {
-    height: auto;
-    padding: 60px 0;
-  }
-
   .split-hero-container {
-    grid-template-columns: 1fr;
-    gap: 40px;
-  }
-
-  .split-hero-templates,
-  .split-hero-content {
-    padding: 0 16px;
-  }
-
-  .split-hero-text {
-    text-align: center;
-  }
-
-  .split-hero-text h1 {
-    font-size: 1.8rem;
-  }
-
-  .split-hero-text p {
-    font-size: 1rem;
-  }
-
-  .split-hero-card {
-    justify-content: center;
+    padding: 0 12px;
   }
 }
+
 
 
 
@@ -1112,16 +975,24 @@ body {
   justify-content: space-between;
   z-index: 999;
   animation: fadeSlideUp 0.6s ease forwards;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .deploy-bar .status-text {
   color: var(--text-muted);
   font-size: 1rem;
+  flex: 1 1 auto;
+  min-width: 200px;
 }
 
 .deploy-bar .deploy-actions {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 200px;
 }
 
 .deploy-bar button {
@@ -1134,6 +1005,7 @@ body {
   border: none;
   transition: var(--transition);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .deploy-bar button:hover {
@@ -1150,6 +1022,11 @@ body {
     transform: translate(-50%, 0);
   }
 }
+
+
+/* =======================
+   🪟 Modal Base Styles
+   ======================= */
 .modal {
   position: fixed;
   top: 50%;
@@ -1166,6 +1043,8 @@ body {
   box-shadow: var(--shadow);
   animation: fadeInModal 0.3s ease;
   color: var(--text-light);
+  overflow-y: auto;
+  max-height: 90vh;
 }
 
 @keyframes fadeInModal {
@@ -1179,6 +1058,7 @@ body {
   }
 }
 
+/* Close button */
 .modal .close {
   position: absolute;
   top: 12px;
@@ -1192,6 +1072,11 @@ body {
 .modal .close:hover {
   color: var(--primary-color);
 }
+
+
+/* =======================
+   ⏳ Loader
+   ======================= */
 .loader {
   position: fixed;
   top: 50%;
@@ -1208,6 +1093,7 @@ body {
   align-items: center;
   color: var(--text-light);
   box-shadow: var(--shadow);
+  text-align: center;
 }
 
 .loader::after {
@@ -1226,6 +1112,45 @@ body {
     transform: rotate(360deg);
   }
 }
+
+
+/* =======================
+   📱 Responsive Enhancements
+   ======================= */
+@media (max-width: 540px) {
+  .deploy-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 20px;
+  }
+
+  .deploy-bar .status-text {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+
+  .deploy-bar .deploy-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .modal {
+    padding: 24px;
+    max-height: 85vh;
+  }
+
+  .modal .close {
+    top: 10px;
+    right: 14px;
+  }
+
+  .loader {
+    width: 80%;
+    max-width: 320px;
+    padding: 24px;
+  }
+}
+
 /* =======================
    🧭 Step Progress Bar
    ======================= */
