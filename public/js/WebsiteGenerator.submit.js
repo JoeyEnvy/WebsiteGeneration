@@ -69,50 +69,56 @@ WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
 You are a professional website developer.
 
 Generate exactly ${pageCount} fully standalone HTML pages: ${pages}.
-Each page must be a complete HTML5 document using embedded <style> and <script> only.
-Do not explain or comment anything.
+Each page must be a complete, fully working HTML5 document using <style> and <script> (no external CSS or JS).
+No comments or explanations.
 
-✅ Design Requirements:
-- Use a clean, modern, professional layout.
-- Use responsive design with media queries for 1024px, 768px, 480px, and 320px breakpoints.
-- Structure pages using semantic HTML5 elements: <header>, <nav>, <main>, <section>, <footer>.
-- Use grid or flex layout systems to organize content into responsive rows and columns.
-- Prioritize good spacing, font hierarchy, and visual balance.
-- Style all images with soft shadows, borders, and proper padding.
+✅ Core Design Guidelines:
+- Each website must use semantic HTML5 with <header>, <nav>, <main>, <section>, <footer>.
+- Structure layout with flexbox or CSS grid, with balanced spacing and good typography hierarchy.
+- Add full responsive design with breakpoints for 1024px, 768px, 480px, and 360px.
+- Ensure a clean, professional, modern style — unless otherwise varied below.
 
-📦 Details:
+📦 Input Details:
 - Website Type: ${websiteType}
 - Business: "${businessName}" (${businessType})
 - Pages: ${pages}
 - Features: ${features}
-- Design: ${colorScheme} theme, ${fontStyle} font, ${layoutPreference} layout
+- Design: ${colorScheme} color scheme, ${fontStyle} fonts, ${layoutPreference} layout
 
 📝 Business Description:
-"${businessDescription}" — expand this into 2–3 rich paragraphs (300–500 words total) that describe the business purpose, audience, and mission. Also include 4–6 bullet points in one or more columns.
+"${businessDescription}" — expand this into 2–3 descriptive paragraphs (300–500 words), using a realistic tone. Then list 4–6 bullet points in columns or grids.
 
-📐 Section Structure:
-- Each page must include at least 5 clearly labeled sections such as:
-  1. Hero Section
-  2. About/Description
-  3. Services Grid
-  4. Testimonials
-  5. Contact Section
-- Randomize some page layouts: e.g. navbar on top or side, hero image left or right, or full-width banner.
+🎨 Required Visual Variation:
+- Must not reuse any images between pages.
+- Each page must include at least 3 images, pulled from different public sources (e.g. Unsplash, Pexels, Pixabay).
+- Include at least 3 FontAwesome icons on every page.
+- Use image styling: soft drop shadows, border-radius, padding.
 
-🎨 Visuals & Variation:
-- Use different font pairings for headers and body text.
-- Mix content alignment (left-aligned, centered, or justified)
-- Add alternating section backgrounds for visual rhythm.
+🎭 Layout & Aesthetic Randomization:
+- For each site or page, vary one or more of the following:
+  - Font pairings using Google Fonts (random, but aesthetic combinations).
+  - Navbar styles: top, side, vertical, floating, full-width.
+  - Unconventional layouts: mobile-style UIs on desktop, vertical scrolling cards, grid-based panels.
+  - Section separators: use SVG curves, slants, or clip-path effects.
+  - Transitions and animations: fade-ins, slide-ups, zoom-ins (on load or scroll).
+  - Themes: occasionally apply styles like brutalist, retro vaporwave, glassmorphism, neon, or Apple-style minimalism.
 
-🖼️ Images & Icons:
-- Pull at least 2–3 relevant images per page from public sources online (Unsplash, Pexels, Pixabay).
-- Include at least 3 icons per page using FontAwesome CDN.
-- Style images with borders, drop shadows, and spacing.
+🧱 Required Sections:
+Each page must include 6–8 sections, for example:
+1. Hero Banner
+2. Business Overview or About
+3. Features or Services Grid
+4. Testimonials or Reviews
+5. Image Gallery or Showcase
+6. Call-to-Action or Signup Panel
+7. Contact Form
+8. Footer with business details
 
 📋 Content Notes:
-- Never use "Lorem Ipsum".
-- Use context-aware, realistic, varied content.
-- Include clear CTAs, subheadings, bullet lists, and quotes.
+- All content must be realistic and relevant.
+- No Lorem Ipsum. No placeholder content.
+- Include strong CTAs, icon-enhanced bullet lists, headings, and styled quotes.
+
+Ensure maximum visual uniqueness and modern appeal for each website.
 `.trim();
 };
-
