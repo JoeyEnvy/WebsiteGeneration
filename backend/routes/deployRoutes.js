@@ -251,6 +251,69 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(404).json({ error: 'Session not found or empty.' });
     }
 
+    // ✅ GoDaddy credentials
+    const godaddyApi = 'https://api.godaddy.com/v1/domains/purchase';
+    const godaddyKey = process.env.GODADDY_API_KEY;
+    const godaddySecret = process.env.GODADDY_API_SECRET;
+    const durationYears = parseInt(duration, 10) || 1;
+
+    // ✅ Contact info for GoDaddy purchase
+    const godaddyContact = {
+      addressMailing: {
+        address1: '123 Example Street',
+        city: 'London',
+        state: 'London',
+        postalCode: 'EC1A1AA',
+        country: 'GB'
+      },
+      email: 'support@websitegenerator.co.uk',
+      fax: '',
+      jobTitle: 'Owner',
+      nameFirst: 'Website',
+      nameLast: 'Customer',
+      nameMiddle: '',
+      organization: 'WebsiteGenerator',
+      phone: '+44.2030000000'
+    };
+
+    // ✅ Attempt domain purchase
+    try {
+      const purchasePayload = {
+        consent: {
+          agreedAt: new Date().toISOString(),
+          agreedBy: req.ip || '127.0.0.1',
+          agreementKeys: ['DNRA']
+        },
+        contactAdmin: godaddyContact,
+        contactBilling: godaddyContact,
+        contactRegistrant: godaddyContact,
+        contactTech: godaddyContact,
+        period: durationYears,
+        privacy: true
+      };
+
+      const purchaseRes = await fetch(`${godaddyApi}/${cleanedDomain}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(purchasePayload)
+      });
+
+      if (!purchaseRes.ok) {
+        const errorText = await purchaseRes.text();
+        throw new Error(`GoDaddy domain purchase failed: ${purchaseRes.status} ${errorText}`);
+      }
+
+      console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
+    } catch (err) {
+      console.error('❌ GoDaddy domain purchase failed:', err);
+      return res.status(500).json({ error: 'Domain purchase failed', detail: err.message });
+    }
+
+    // ✅ GitHub credentials + repo creation
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing.');
@@ -327,5 +390,3 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
-
-
