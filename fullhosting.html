@@ -3,136 +3,193 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Full Hosting Purchase - Website Generator</title>
+  <title>🌍 Full Hosting Activated - Website Generator</title>
   <link rel="stylesheet" href="./public/css/styles.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: #222;
+      margin-bottom: 12px;
+    }
+
+    .status-box {
+      background: #e6f7ff;
+      border-left: 5px solid #1890ff;
+      padding: 18px;
+      border-radius: 10px;
+      font-size: 1rem;
+      margin-bottom: 24px;
+    }
+
+    .info-line {
+      margin: 14px 0;
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    #hostingDetails a {
+      color: #0066cc;
+      font-weight: bold;
+      word-break: break-word;
+      text-decoration: none;
+    }
+
+    #hostingDetails a:hover {
+      text-decoration: underline;
+    }
+
+    .notice {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 28px;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    .small-text {
+      font-size: 0.9rem;
+      color: #777;
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    #loadingBox {
+      font-size: 1rem;
+      margin-top: 24px;
+      color: #444;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+        margin: 20px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container" style="max-width: 800px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-    <h1>🌐 Full Hosting + Custom Domain</h1>
-    <p>Thank you for choosing our full hosting package. Your domain and website are being set up automatically.</p>
+  <div class="container">
+    <h1>✅ Full Hosting Activated!</h1>
+    <p>Thanks for choosing full hosting with a custom domain. We're deploying everything automatically for you.</p>
 
-    <div class="status-box" style="margin-top: 24px; padding: 16px; background: #f0f8ff; border-left: 4px solid #007bff;">
-      <strong>✅ Payment successful.</strong> We're registering your domain, configuring DNS, and deploying your website now.
+    <div class="status-box">
+      ✅ Payment confirmed. Your domain is being registered, DNS is being configured, and your website is being deployed.
     </div>
 
-    <div id="hostingDetails" style="margin-top: 30px; display: none;">
-      <h2>🔗 Your Website is Live</h2>
-      <p><strong>Custom Domain:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a></p>
-      <p><strong>GitHub Repo:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a></p>
-      <p class="domain-term-info" id="termDisplay">
-        📅 Domain will be registered for <strong>1 year</strong>. Renewal available via support.
-      </p>
+    <div id="hostingDetails" style="display: none;">
+      <div class="info-line">
+        🌐 <strong>Live Website:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a>
+      </div>
+      <div class="info-line" id="repoSection">
+        💻 <strong>GitHub Repository:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a>
+      </div>
+      <div class="info-line" id="termDisplay">
+        📅 Domain registered for <strong>1 year</strong>. Renewal support available.
+      </div>
+
+      <div class="notice">
+        ⚠️ Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully resolve.<br />
+        You can access your site immediately via GitHub Pages. <br />
+        If your domain isn't live after 24h, email <strong>support@websitegenerator.co.uk</strong>.
+      </div>
     </div>
 
-    <div id="loadingBox" style="margin-top: 40px; font-size: 1.1rem;">
-      ⏳ Setting up your domain and website. This may take up to a minute...
-    </div>
+    <div id="loadingBox">⏳ Creating your site and configuring DNS. Please wait...</div>
 
-    <div style="margin-top: 30px; font-size: 0.9rem;">
-      <p>Need help? Email us at <strong>support@websitegenerator.co.uk</strong></p>
+    <div class="small-text">
+      Need help? Contact us at <strong>support@websitegenerator.co.uk</strong>
     </div>
   </div>
 
-<script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('sessionId');
-    const domain = localStorage.getItem('customDomain') || params.get('domain');
-    const duration = localStorage.getItem('domainDuration') || '1';
-    const businessName = localStorage.getItem('businessName');
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('sessionId');
+      const domain = localStorage.getItem('customDomain') || params.get('domain');
+      const duration = localStorage.getItem('domainDuration') || '1';
+      const businessName = localStorage.getItem('businessName');
 
-    const loadingBox = document.getElementById('loadingBox');
-    const termDisplay = document.getElementById('termDisplay');
-    const hostedLink = document.getElementById('hostedLink');
-    const repoLink = document.getElementById('repoLink');
-    const hostingDetails = document.getElementById('hostingDetails');
+      const loadingBox = document.getElementById('loadingBox');
+      const termDisplay = document.getElementById('termDisplay');
+      const hostedLink = document.getElementById('hostedLink');
+      const hostedPreview = document.getElementById('hostedLinkPreview');
+      const repoLink = document.getElementById('repoLink');
+      const repoSection = document.getElementById('repoSection');
+      const hostingDetails = document.getElementById('hostingDetails');
 
-    if (duration === '3' && termDisplay) {
-      termDisplay.innerHTML = '📅 Domain will be registered for <strong>3 years</strong>. Renewal handled via support.';
-    }
+      if (duration === '3' && termDisplay) {
+        termDisplay.innerHTML = '📅 Domain registered for <strong>3 years</strong>. Renewal support available.';
+      }
 
-    if (!sessionId || !domain || !businessName) {
-      if (loadingBox) {
+      if (!sessionId || !domain || !businessName) {
         loadingBox.innerText = '⚠️ Missing session, domain, or business name. Please go back and try again.';
-      }
-      console.warn('❌ Missing deployment inputs:', { sessionId, domain, businessName });
-      return;
-    }
-
-    console.log('🚀 Starting full hosting deployment with:', {
-      sessionId, domain, duration, businessName
-    });
-
-    try {
-      const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, domain, duration, businessName })
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        let errorMsg = data.error || 'Deployment failed.';
-        if (
-          data.details?.toLowerCase().includes('price') ||
-          data.details?.toLowerCase().includes('insufficient') ||
-          data.details?.toLowerCase().includes('fund') ||
-          data.priceReminder
-        ) {
-          errorMsg += '\n💸 The domain may have increased in price or exceeded the prepaid amount. Please try again or contact support.';
-        }
-        throw new Error(errorMsg);
+        return;
       }
 
-      console.log('✅ Deployment result:', data);
+      try {
+        const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, domain, duration, businessName })
+        });
 
-      const hostedUrl = `https://${domain}`;
-      if (hostedLink) {
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Deployment failed.');
+
+        const hostedUrl = `https://${domain}`;
+        const githubPagesUrl = data.pagesUrl;
+
         hostedLink.href = hostedUrl;
         hostedLink.textContent = hostedUrl;
-      }
+        hostedPreview.textContent = domain;
 
-      if (repoLink) {
         if (data.repoUrl) {
           repoLink.href = data.repoUrl;
           repoLink.textContent = data.repoUrl;
         } else {
-          repoLink.textContent = 'Unavailable';
-          console.warn('⚠️ repoUrl missing despite success:', data);
+          repoSection.style.display = 'none';
         }
+
+        loadingBox.style.display = 'none';
+        hostingDetails.style.display = 'block';
+
+      } catch (err) {
+        console.error('❌ Full hosting deployment error:', err);
+        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
       }
+    });
+  </script>
 
-      if (loadingBox) loadingBox.style.display = 'none';
-      if (hostingDetails) hostingDetails.style.display = 'block';
-
-    } catch (err) {
-      console.error('❌ Full hosting deployment error:', err);
-      if (loadingBox) {
-        const errMsg = (err.message || '').toLowerCase();
-        if (
-          errMsg.includes('insufficient') ||
-          errMsg.includes('fund') ||
-          errMsg.includes('price') ||
-          errMsg.includes('amount') ||
-          errMsg.includes('mismatch')
-        ) {
-          loadingBox.innerText = '💸 Domain purchase failed due to insufficient funds or pricing issue. Please contact support or try again with a different domain.';
-        } else {
-          loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
-        }
-      }
-    }
-  });
-</script>
-
-
-<script src="public/js/core.js"></script>
-<script src="public/js/domainChecker.js"></script>
-<script src="public/js/deployFullHosting.js"></script>
-
-
-
-
+  <script src="public/js/core.js"></script>
+  <script src="public/js/domainChecker.js"></script>
+  <script src="public/js/deployFullHosting.js"></script>
 </body>
 </html>

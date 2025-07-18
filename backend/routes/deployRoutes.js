@@ -402,6 +402,13 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn('⚠️ Failed to update DNS records:', err.message);
     }
 
+    // ✅ Wait 10s and re-push to enforce GitHub Pages binding
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Final DNS rebind -->');
+    await git.add('.');
+    await git.commit('Final push to ensure CNAME binding');
+    await git.push('origin', 'main');
+
     tempSessions[sessionId] = {
       ...session,
       deployed: true,
