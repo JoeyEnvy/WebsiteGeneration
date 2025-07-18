@@ -276,9 +276,10 @@ router.post('/deploy-full-hosting', async (req, res) => {
       phone: '+44.2030000000'
     };
 
-    // ✅ Attempt domain purchase
+    // ✅ Attempt domain purchase (fixed endpoint and body)
     try {
       const purchasePayload = {
+        domain: cleanedDomain,
         consent: {
           agreedAt: new Date().toISOString(),
           agreedBy: req.ip || '127.0.0.1',
@@ -292,7 +293,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
         privacy: true
       };
 
-      const purchaseRes = await fetch(`${godaddyApi}/${cleanedDomain}`, {
+      const purchaseRes = await fetch(godaddyApi, {
         method: 'POST',
         headers: {
           Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
