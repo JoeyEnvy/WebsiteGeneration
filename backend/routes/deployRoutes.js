@@ -283,7 +283,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
         consent: {
           agreedAt: new Date().toISOString(),
           agreedBy: req.ip || '127.0.0.1',
-          agreementKeys: ['DNRA']
+          agreementKeys: ['DNRA', 'DNPA']
+
         },
         contactAdmin: godaddyContact,
         contactBilling: godaddyContact,
