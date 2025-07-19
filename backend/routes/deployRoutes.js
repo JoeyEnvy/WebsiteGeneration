@@ -262,7 +262,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
     const godaddySecret = process.env.GODADDY_API_SECRET;
     const durationYears = parseInt(duration, 10) || 1;
 
-    // ✅ Contact info
     const godaddyContact = {
       addressMailing: {
         address1: '123 Example Street',
@@ -281,7 +280,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       phone: '+44.2030000000'
     };
 
-    // ✅ Attempt domain purchase
+    // ✅ Purchase domain
     try {
       const purchasePayload = {
         domain: cleanedDomain,
@@ -303,7 +302,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
         headers: {
           Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          Accept: 'application/json'
         },
         body: JSON.stringify(purchasePayload)
       });
@@ -369,15 +368,41 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await git.commit('Trigger GitHub Actions workflow');
     await git.push('origin', 'main');
 
-    // ✅ Enable GitHub Pages
-    let pagesUrl = `https://${owner}.github.io/${repoName}/`;
+    // ✅ Enable GitHub Pages with custom domain
     try {
-      pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
+      // Enable GitHub Pages
+      await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
+        method: 'POST',
+        headers: {
+          Authorization: `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          source: {
+            branch: 'main',
+            path: '/'
+          }
+        })
+      });
+
+      // Set custom domain
+      await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cname: cleanedDomain
+        })
+      });
+
+      console.log('✅ GitHub Pages enabled with custom domain');
     } catch (err) {
-      console.warn('⚠️ GitHub Pages API failed — using fallback:', err.message);
+      console.warn('⚠️ GitHub Pages setup failed:', err.message);
     }
 
-    // ✅ Set DNS records
+    // ✅ DNS Records
     try {
       const dnsApi = `https://api.godaddy.com/v1/domains/${cleanedDomain}/records`;
       const dnsRecords = [
@@ -402,7 +427,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn('⚠️ Failed to update DNS records:', err.message);
     }
 
-    // ✅ Wait 10s and re-push to enforce GitHub Pages binding
+    // ✅ Final push to rebind Pages
     await new Promise(resolve => setTimeout(resolve, 10000));
     await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Final DNS rebind -->');
     await git.add('.');
@@ -419,7 +444,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     res.json({
       success: true,
-      pagesUrl,
+      pagesUrl: `https://${owner}.github.io/${repoName}/`,
       customDomain: `https://${cleanedDomain}/`,
       repoUrl: `https://github.com/${owner}/${repoName}`
     });
@@ -431,3 +456,4 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
+
