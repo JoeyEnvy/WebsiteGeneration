@@ -18,18 +18,29 @@ export async function setGitHubDNS(domain) {
     Accept: 'application/json'
   };
 
-  // 🧹 Step 1: DELETE existing A records
-  const deleteUrl = `${apiBase}/v1/domains/${domain}/records/A/@`;
-  const deleteRes = await fetch(deleteUrl, { method: 'DELETE', headers });
+  // 🧹 Step 1: DELETE existing A records (@)
+  const deleteA = await fetch(`${apiBase}/v1/domains/${domain}/records/A/@`, {
+    method: 'DELETE',
+    headers
+  });
 
-  if (!deleteRes.ok) {
-    const errText = await deleteRes.text();
-    console.warn(`⚠️ Failed to delete A records for ${domain}: ${errText}`);
-    // Still proceed
+  if (!deleteA.ok) {
+    const errText = await deleteA.text();
+    console.warn(`⚠️ Failed to delete A records: ${errText}`);
   }
 
-  // ✅ Step 2: ADD the 4 GitHub IPs
-  const addUrl = `${apiBase}/v1/domains/${domain}/records`;
+  // 🧹 Step 2: DELETE existing CNAME record for www
+  const deleteCNAME = await fetch(`${apiBase}/v1/domains/${domain}/records/CNAME/www`, {
+    method: 'DELETE',
+    headers
+  });
+
+  if (!deleteCNAME.ok) {
+    const errText = await deleteCNAME.text();
+    console.warn(`⚠️ Failed to delete www CNAME: ${errText}`);
+  }
+
+  // ✅ Step 3: Add GitHub IPs + correct CNAME
   const records = githubIPs.map(ip => ({
     type: 'A',
     name: '@',
@@ -40,12 +51,12 @@ export async function setGitHubDNS(domain) {
   records.push({
     type: 'CNAME',
     name: 'www',
-    data: 'joeyenvy.github.io', // 👈 hardcoded for now
+    data: 'joeyenvy.github.io',
     ttl: 3600
   });
 
-  const addRes = await fetch(addUrl, {
-    method: 'PATCH', // PATCH = append, not overwrite
+  const addRes = await fetch(`${apiBase}/v1/domains/${domain}/records`, {
+    method: 'PATCH',
     headers,
     body: JSON.stringify(records)
   });
