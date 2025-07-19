@@ -247,6 +247,8 @@ router.post('/deploy-github', async (req, res) => {
 
 
 // ✅ Full hosting with GitHub Pages and custom domain
+import { setGitHubDNS } from '../utils/dnsUtils.js';
+
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
     const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
@@ -370,7 +372,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
     // ✅ Enable GitHub Pages with custom domain
     try {
-      // Enable GitHub Pages
       await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
         method: 'POST',
         headers: {
@@ -385,7 +386,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
         })
       });
 
-      // Set custom domain
       await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
         method: 'PUT',
         headers: {
@@ -402,29 +402,12 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn('⚠️ GitHub Pages setup failed:', err.message);
     }
 
-    // ✅ DNS Records
+    // ✅ Set correct DNS records via centralized utility
     try {
-      const dnsApi = `https://api.godaddy.com/v1/domains/${cleanedDomain}/records`;
-      const dnsRecords = [
-        { type: 'A', name: '@', data: '185.199.108.153' },
-        { type: 'A', name: '@', data: '185.199.109.153' },
-        { type: 'A', name: '@', data: '185.199.110.153' },
-        { type: 'A', name: '@', data: '185.199.111.153' },
-        { type: 'CNAME', name: 'www', data: `${owner}.github.io` }
-      ];
-
-      await fetch(dnsApi, {
-        method: 'PUT',
-        headers: {
-          Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dnsRecords)
-      });
-
-      console.log('✅ DNS records updated successfully.');
+      await setGitHubDNS(cleanedDomain);
+      console.log(`✅ DNS records for ${cleanedDomain} set to GitHub Pages.`);
     } catch (err) {
-      console.warn('⚠️ Failed to update DNS records:', err.message);
+      console.warn(`⚠️ DNS setup failed for ${cleanedDomain}:`, err.message);
     }
 
     // ✅ Final push to rebind Pages
@@ -456,4 +439,3 @@ router.post('/deploy-full-hosting', async (req, res) => {
 });
 
 export default router;
-
