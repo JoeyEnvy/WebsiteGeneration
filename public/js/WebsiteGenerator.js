@@ -14,7 +14,22 @@ class WebsiteGenerator {
 
     this.initializeEventListeners();
     this.initializeDeploymentButtons();
+    this.initializeContactFormToggle();
     this.highlightStep(this.currentStep);
+  }
+
+  initializeContactFormToggle() {
+    const contactCheckbox = document.querySelector('input[name="features"][value="contact form"]');
+    const emailContainer = document.getElementById('contactEmailContainer');
+
+    if (contactCheckbox && emailContainer) {
+      contactCheckbox.addEventListener('change', () => {
+        emailContainer.style.display = contactCheckbox.checked ? 'block' : 'none';
+        if (!contactCheckbox.checked) {
+          document.getElementById('contactEmail').value = '';
+        }
+      });
+    }
   }
 
   initializeDeploymentButtons() {
@@ -53,19 +68,19 @@ class WebsiteGenerator {
           businessName
         })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          alert('⚠️ Failed to create Netlify checkout session.');
-          console.error(data);
-        }
-      })
-      .catch(err => {
-        alert('❌ Error creating Netlify Stripe session.');
-        console.error('Netlify Stripe error:', err);
-      });
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            alert('⚠️ Failed to create Netlify checkout session.');
+            console.error(data);
+          }
+        })
+        .catch(err => {
+          alert('❌ Error creating Netlify Stripe session.');
+          console.error('Netlify Stripe error:', err);
+        });
     });
 
     document.getElementById('deployFullHosting')?.addEventListener('click', () => {
@@ -128,4 +143,3 @@ class WebsiteGenerator {
 }
 
 window.WebsiteGenerator = WebsiteGenerator;
-

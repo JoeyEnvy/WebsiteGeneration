@@ -3,133 +3,126 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🌍 Full Hosting Activated - Website Generator</title>
+  <title>✅ Your Website Is Live - Website Generator</title>
   <link rel="stylesheet" href="./public/css/styles.css">
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 0;
+      font-family: var(--font-main);
+      background: var(--background-dark);
+      color: var(--text-light);
+      padding: 40px 16px;
     }
 
-    .container {
-      max-width: 800px;
-      margin: 40px auto;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-      padding: 32px;
-      animation: fadeIn 0.6s ease;
+    .deploy-container {
+      max-width: 860px;
+      margin: auto;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      padding: 40px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      animation: fadeInUp 0.5s ease-out;
     }
 
-    @keyframes fadeIn {
+    @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    h1 {
-      font-size: 2rem;
-      color: #222;
+    .deploy-container h1 {
+      font-size: 2.2rem;
       margin-bottom: 12px;
+      color: var(--accent-green);
     }
 
-    .status-box {
-      background: #e6f7ff;
-      border-left: 5px solid #1890ff;
+    .status-line {
+      background: #122;
+      border-left: 5px solid var(--accent-purple);
       padding: 18px;
       border-radius: 10px;
-      font-size: 1rem;
-      margin-bottom: 24px;
+      margin: 24px 0;
+      font-size: 1.05rem;
     }
 
     .info-line {
-      margin: 14px 0;
+      margin: 16px 0;
       font-size: 1.05rem;
-      line-height: 1.5;
     }
 
-    #hostingDetails a {
-      color: #0066cc;
-      font-weight: bold;
-      word-break: break-word;
+    .info-line strong {
+      color: var(--accent-yellow);
+    }
+
+    .info-line a {
+      color: var(--accent-purple);
       text-decoration: none;
+      font-weight: bold;
     }
 
-    #hostingDetails a:hover {
+    .info-line a:hover {
       text-decoration: underline;
     }
 
     .notice {
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
-      padding: 16px;
-      border-radius: 10px;
-      margin-top: 28px;
-      font-size: 1rem;
-      line-height: 1.4;
+      background: #2e2e2e;
+      border-left: 5px solid var(--accent-yellow);
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      margin-top: 30px;
     }
 
-    .small-text {
+    .footer-note {
       font-size: 0.9rem;
-      color: #777;
-      margin-top: 40px;
+      color: var(--text-muted);
       text-align: center;
-    }
-
-    #loadingBox {
-      font-size: 1rem;
-      margin-top: 24px;
-      color: #444;
+      margin-top: 40px;
     }
 
     @media (max-width: 600px) {
-      .container {
-        padding: 20px;
-        margin: 20px;
+      .deploy-container {
+        padding: 24px;
       }
-
-      h1 {
-        font-size: 1.5rem;
+      .deploy-container h1 {
+        font-size: 1.6rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>✅ Full Hosting Activated!</h1>
-    <p>Thanks for choosing full hosting with a custom domain. We're deploying everything automatically for you.</p>
+  <div class="deploy-container">
+    <h1>✅ Full Hosting Activated</h1>
+    <p>Thank you for using WebsiteGenerator.co.uk. Your website is live!</p>
 
-    <div class="status-box">
-      ✅ Payment confirmed. Your domain is being registered, DNS is being configured, and your website is being deployed.
+    <div class="status-line">
+      ✅ Payment confirmed. Domain purchased, DNS configured, GitHub deployed.
     </div>
 
-<div id="hostingDetails" style="display: none;">
-  <div class="info-line">
-    🌐 <strong>Custom Domain:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a>
-  </div>
-  <div class="info-line">
-    ⚡ <strong>Instant Preview (.github.io):</strong> <a id="pagesLink" href="#" target="_blank">Loading...</a>
-  </div>
-  <div class="info-line" id="repoSection">
-    💻 <strong>GitHub Repository:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a>
-  </div>
-  <div class="info-line" id="termDisplay">
-    📅 Domain registered for <strong>1 year</strong>. Renewal support available.
-  </div>
+    <div id="hostingDetails" style="display: none;">
+      <div class="info-line">
+        🌍 <strong>Custom Domain:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a>
+      </div>
+      <div class="info-line">
+        ⚡ <strong>GitHub Pages Preview:</strong> <a id="pagesLink" href="#" target="_blank">Loading...</a>
+      </div>
+      <div class="info-line" id="repoSection">
+        💻 <strong>GitHub Repository:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a>
+      </div>
+      <div class="info-line" id="termDisplay">
+        📅 Domain registered for <strong>1 year</strong>. Renewal support included.
+      </div>
+      <div class="notice">
+        ⚠️ DNS propagation can take up to <strong>24 hours</strong>.
+        In the meantime, use your GitHub Pages preview.
+        If issues persist, contact <strong>support@websitegenerator.co.uk</strong>.
+      </div>
+    </div>
 
-  <div class="notice">
-    ⚠️ Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully resolve.<br />
-    In the meantime, use the GitHub Pages preview link below. <br />
-    If your domain isn't live after 24h, email <strong>support@websitegenerator.co.uk</strong>.
-  </div>
-</div>
+    <div id="loadingBox">⏳ Finalizing your site deployment. Please wait...</div>
 
-
-    <div id="loadingBox">⏳ Creating your site and configuring DNS. Please wait...</div>
-
-    <div class="small-text">
-      Need help? Contact us at <strong>support@websitegenerator.co.uk</strong>
+    <div class="footer-note">
+      Need help? Contact <strong>support@websitegenerator.co.uk</strong>
     </div>
   </div>
 
@@ -147,10 +140,11 @@
       const hostedPreview = document.getElementById('hostedLinkPreview');
       const repoLink = document.getElementById('repoLink');
       const repoSection = document.getElementById('repoSection');
+      const pagesLink = document.getElementById('pagesLink');
       const hostingDetails = document.getElementById('hostingDetails');
 
       if (duration === '3' && termDisplay) {
-        termDisplay.innerHTML = '📅 Domain registered for <strong>3 years</strong>. Renewal support available.';
+        termDisplay.innerHTML = '📅 Domain registered for <strong>3 years</strong>. Renewal support included.';
       }
 
       if (!sessionId || !domain || !businessName) {
@@ -169,17 +163,19 @@
         if (!data.success) throw new Error(data.error || 'Deployment failed.');
 
         const hostedUrl = `https://${domain}`;
-        const githubPagesUrl = data.pagesUrl;
-
         hostedLink.href = hostedUrl;
         hostedLink.textContent = hostedUrl;
-        hostedPreview.textContent = domain;
 
         if (data.repoUrl) {
           repoLink.href = data.repoUrl;
           repoLink.textContent = data.repoUrl;
         } else {
           repoSection.style.display = 'none';
+        }
+
+        if (data.pagesUrl && pagesLink) {
+          pagesLink.href = data.pagesUrl;
+          pagesLink.textContent = data.pagesUrl;
         }
 
         loadingBox.style.display = 'none';
@@ -190,27 +186,7 @@
         loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
       }
     });
-
-
-
-
-const pagesLink = document.getElementById('pagesLink');
-
-hostedLink.href = hostedUrl;
-hostedLink.textContent = hostedUrl;
-hostedPreview.textContent = domain;
-
-if (pagesLink && githubPagesUrl) {
-  pagesLink.href = githubPagesUrl;
-  pagesLink.textContent = githubPagesUrl;
-}
-
-
-
   </script>
-
-  <script src="public/js/core.js"></script>
-  <script src="public/js/domainChecker.js"></script>
-  <script src="public/js/deployFullHosting.js"></script>
 </body>
 </html>
+

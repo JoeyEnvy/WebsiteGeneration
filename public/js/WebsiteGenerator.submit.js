@@ -4,6 +4,16 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
   try {
     const formData = new FormData(this.form);
+
+// If user selected 'Contact Form' feature and entered an email, store it
+const selectedFeatures = formData.getAll('features');
+if (selectedFeatures.includes('contact form')) {
+  const contactEmail = formData.get('contactEmail');
+  if (contactEmail) {
+    localStorage.setItem('contactEmail', contactEmail);
+  }
+}
+
     const finalPrompt = this.buildFinalPrompt(formData);
 
     // ✅ Store businessName for later use (e.g., full-hosting checkout)
