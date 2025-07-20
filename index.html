@@ -839,6 +839,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
+
+
+
+
+
+
+  // ===== 📧 Contact Form Toggle Logic =====
+  const contactCheckbox = document.getElementById('contactFormCheckbox');
+  const emailContainer = document.getElementById('contactEmailContainer');
+
+  if (contactCheckbox && emailContainer) {
+    contactCheckbox.addEventListener('change', () => {
+      emailContainer.style.display = contactCheckbox.checked ? 'block' : 'none';
+      if (!contactCheckbox.checked) {
+        document.getElementById('contactEmail').value = '';
+      }
+    });
+  }
+
+
+
+
+
 </script>
 
 
