@@ -1,6 +1,10 @@
 WebsiteGenerator.prototype.validateStep = function(stepId) {
   const step = document.getElementById(stepId);
-  const requiredFields = step.querySelectorAll('[required]');
+
+  // ✅ Only validate visible required fields
+  const requiredFields = Array.from(step.querySelectorAll('[required]'))
+    .filter(field => field.offsetParent !== null);
+
   let isValid = true;
 
   requiredFields.forEach(field => {
@@ -12,6 +16,7 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
     }
   });
 
+  // ✅ At least one checkbox must be selected, if any exist
   const checkboxes = step.querySelectorAll('input[type="checkbox"]');
   if (checkboxes.length) {
     const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
