@@ -98,4 +98,7 @@ function doPost(e) {
   return entryPoint?.url || null;
 }
 
-module.exports = { createContactFormScript };
+// ✅ Named export for compatibility with ES modules
+module.exports = {
+  createContactFormScript
+};
