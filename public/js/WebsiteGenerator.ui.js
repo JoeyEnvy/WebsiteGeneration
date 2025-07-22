@@ -1,4 +1,4 @@
-WebsiteGenerator.prototype.initializeEventListeners = function() {
+WebsiteGenerator.prototype.initializeEventListeners = function () {
   const nextStep4Btn = document.getElementById('nextStep4');
   if (nextStep4Btn) {
     nextStep4Btn.addEventListener('click', () => {
@@ -54,76 +54,48 @@ WebsiteGenerator.prototype.initializeEventListeners = function() {
   if (downloadBtn) {
     downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
   }
-};
 
-WebsiteGenerator.prototype.showPostGenerationOptions = function() {
-  const previewControls = document.querySelector('.preview-controls');
-  if (!previewControls || document.getElementById('postGenActions')) return;
-
-  const panel = document.createElement('div');
-  panel.id = 'postGenActions';
-  panel.className = 'post-gen-panel';
-  panel.innerHTML = `
-    <h3>✅ Your site is ready! What would you like to do next?</h3>
-    <div class="action-buttons">
-      <button class="btn btn-outline" id="editPagesBtn">🛠️ Edit Pages</button>
-      <button class="btn btn-outline" id="addBrandingBtn">✏️ Add Branding</button>
-      <button class="btn btn-outline" id="deploymentHelpBtn">🌍 Deployment Instructions</button>
-    </div>
-  `;
-
-  previewControls.appendChild(panel);
-
-  const editBtn = document.getElementById('editPagesBtn');
-  if (editBtn) {
-    editBtn.addEventListener('click', () => {
-      const customizationPanel = document.getElementById('customizationPanel');
-      const brandingPanel = document.getElementById('brandingPanel');
-
-      if (!customizationPanel || !brandingPanel) return;
-
-      brandingPanel.style.display = 'none';
-
-      const isHidden = (customizationPanel.style.display === 'none' || customizationPanel.style.display === '');
-      customizationPanel.style.display = isHidden ? 'block' : 'none';
-
-      const tools = customizationPanel.querySelector('.custom-tools');
-      if (tools) tools.style.display = isHidden ? 'flex' : 'none';
+  // General modal close behavior
+  document.querySelectorAll('.modal .close')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modal = btn.closest('.modal');
+      if (modal) modal.style.display = 'none';
     });
-  }
+  });
+};
+WebsiteGenerator.prototype.showPostGenerationOptions = function () {
+  const modal = document.getElementById('postGenerationModal');
+  if (!modal) return;
 
-  document.getElementById('addBrandingBtn')?.addEventListener('click', () => {
-    const panel = document.getElementById('brandingPanel');
-    const customPanel = document.getElementById('customizationPanel');
+  modal.style.display = 'flex';
 
-    if (customPanel) customPanel.style.display = 'none';
-    if (panel) {
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    }
+  const customizationModal = document.getElementById('customizationModal');
+  const brandingModal = document.getElementById('brandingModal');
+  const deploymentModal = document.getElementById('deploymentModal');
+
+  // Button triggers inside modal
+  const customizeBtn = modal.querySelector('button[onclick*="customizationModal"]');
+  const brandingBtn = modal.querySelector('button[onclick*="brandingModal"]');
+  const deployBtn = modal.querySelector('button[onclick*="deploymentModal"]');
+
+  customizeBtn?.addEventListener('click', () => {
+    if (customizationModal) customizationModal.style.display = 'flex';
   });
 
-  const deployBtn = document.getElementById('deploymentHelpBtn');
-  const deployModal = document.getElementById('deploymentModal');
-  const closeDeploy = document.getElementById('closeDeploymentModal');
+  brandingBtn?.addEventListener('click', () => {
+    if (brandingModal) brandingModal.style.display = 'flex';
+  });
 
-  if (deployBtn && deployModal && closeDeploy) {
-    deployBtn.addEventListener('click', () => {
-      deployModal.style.display = 'block';
-    });
-
-    closeDeploy.addEventListener('click', () => {
-      deployModal.style.display = 'none';
-    });
-  }
+  deployBtn?.addEventListener('click', () => {
+    if (deploymentModal) deploymentModal.style.display = 'flex';
+  });
 };
-
-
-WebsiteGenerator.prototype.initializeCustomizationPanel = function() {
-  const panel = document.getElementById('customizationPanel');
+WebsiteGenerator.prototype.initializeCustomizationPanel = function () {
+  const panel = document.getElementById('customizationModal');
   if (!panel) return;
 
   const tools = panel.querySelector('.custom-tools');
   if (tools) tools.style.display = 'flex';
-
-  // Optionally add any default state setup here
 };
+
+

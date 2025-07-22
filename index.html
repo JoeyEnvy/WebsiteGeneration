@@ -310,8 +310,10 @@
           </div> <!-- End Form Container -->
        
 
-  <!-- ====== CUSTOMIZATION PANEL ====== -->
-  <div class="customization-panel" id="customizationPanel" style="margin-top: 30px; display: none;">
+<!-- ====== CUSTOMIZATION MODAL ====== -->
+<div id="customizationModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('customizationModal').style.display='none'">&times;</span>
     <h3>🎨 Customize This Page</h3>
     <div class="custom-tools" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
       <button class="btn btn-outline" id="randomFontBtn">🆕 Randomize Fonts</button>
@@ -324,11 +326,13 @@
       <button class="btn btn-outline" id="addBackToTopBtn">⬆️ Add Back to Top Button</button>
       <button class="btn btn-outline" id="insertLinksBtn">🔗 Insert Custom Links</button>
     </div>
-    <p style="font-size: 0.9rem; color: #555;">These changes affect the current page only. Use the navigation to switch between pages.</p>
+    <p style="font-size: 0.9rem; color: #bbb;">These changes affect the current page only. Use the navigation to switch between pages.</p>
   </div>
-
-  <!-- ====== BRANDING PANEL ====== -->
-  <div id="brandingPanel" style="display:none; margin-top: 30px;">
+</div>
+<!-- ====== BRANDING MODAL ====== -->
+<div id="brandingModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('brandingModal').style.display='none'">&times;</span>
     <h3>✏️ Add Branding</h3>
 
     <div class="form-group">
@@ -348,7 +352,7 @@
     <h4>📇 Contact & Business Details</h4>
     <div class="form-group">
       <label for="businessNameInput">Business Name</label>
-      <input type="text" id="businessNameInput" name="businessName" placeholder="e.g. Apollo Heat Source" class="form-control" />
+      <input type="text" id="businessNameInput" placeholder="e.g. Apollo Heat Source" class="form-control" />
     </div>
     <div class="form-group">
       <label for="contactEmail">Email</label>
@@ -366,100 +370,34 @@
     <button class="btn btn-primary" id="applyContactDetailsBtn" style="margin-top: 12px;">📩 Apply Contact Info</button>
     <button id="saveBrandingBtn" class="btn btn-success" style="margin-top: 16px;">✅ Save Branding</button>
   </div>
-
-  <!-- ====== IFRAME USAGE HINTS ====== -->
-  <div id="iframeHintMessage" style="display:none; margin-top: 12px; background: #fff3cd; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #856404;">
-    Links inside the preview won't work until your site is downloaded or purchased. Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.
-  </div>
-
-  <div class="form-hint" style="margin-bottom: 20px; background: #f0f8ff; padding: 12px 16px; border-left: 4px solid #007bff; font-size: 0.95rem; color: #333;">
-    This page is interactive and scrollable. Use the <strong>Next</strong> and <strong>Previous</strong> buttons to navigate. Website links in preview are disabled.
+</div>
+<!-- ====== POST-GENERATION MODAL ====== -->
+<div id="postGenerationModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('postGenerationModal').style.display='none'">&times;</span>
+    <h2>🎉 Your Website is Ready!</h2>
+    <p>Choose what you'd like to do next:</p>
+    <div class="post-gen-buttons" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px;">
+      <button class="btn btn-primary" onclick="document.getElementById('customizationModal').style.display='flex'">🎨 Customize</button>
+      <button class="btn btn-primary" onclick="document.getElementById('brandingModal').style.display='flex'">✏️ Add Branding</button>
+      <button class="btn btn-primary" onclick="document.getElementById('deploymentModal').style.display='flex'">🌍 Deploy</button>
+    </div>
   </div>
 </div>
+<!-- ====== IFRAME USAGE HINT ====== -->
+<div id="iframeHintMessage" style="display:none; margin-top: 12px; background: #fff3cd; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #856404;">
+  Links inside the preview won't work until your site is downloaded or purchased. Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.
+</div>
 
+<!-- ====== FORM HINT ====== -->
+<div class="form-hint" style="margin-bottom: 20px; background: #f0f8ff; padding: 12px 16px; border-left: 4px solid #007bff; font-size: 0.95rem; color: #333;">
+  This page is interactive and scrollable. Use the <strong>Next</strong> and <strong>Previous</strong> buttons to navigate. Website links in preview are disabled.
+</div>
 
-
-            <!-- ====== CLICK-TO-EDIT HINT ====== -->
-            <div id="editNotice" style="display: none; background: #e3fcef; padding: 10px; margin-top: 10px; font-size: 0.9rem;">
-              📝 Click any text in the preview to edit it. Click outside to save.
-            </div>
-
-            <!-- ====== CUSTOMIZATION PANEL ====== -->
-            <div class="customization-panel" id="customizationPanel" style="margin-top: 30px; display: none;">
-              <h3>🎨 Customize This Page</h3>
-              <div class="custom-tools" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
-                <button class="btn btn-outline" id="randomFontBtn">🆕 Randomize Fonts</button>
-                <button class="btn btn-outline" id="randomNavBtn">🎨 Randomize Navbar Style</button>
-                <button class="btn btn-outline" id="randomColorsBtn">🌈 Randomize Section Colors</button>
-                <button class="btn btn-outline" id="toggleLayoutBtn">🪄 Toggle Layout Style</button>
-                <button class="btn btn-outline" id="editTextBtn">✍️ Edit Text Blocks</button>
-                <button class="btn btn-outline" id="swapHeroImageBtn">🖼️ Swap Hero Image</button>
-                <button class="btn btn-outline" id="reorderSectionsBtn">🔢 Reorder Sections</button>
-                <button class="btn btn-outline" id="addBackToTopBtn">⬆️ Add Back to Top Button</button>
-                <button class="btn btn-outline" id="insertLinksBtn">🔗 Insert Custom Links</button>
-              </div>
-              <p style="font-size: 0.9rem; color: #555;">These changes affect the current page only. Use the navigation to switch between pages.</p>
-            </div>
-
-            <!-- ====== BRANDING PANEL ====== -->
-            <div id="brandingPanel" style="display:none; margin-top: 30px;">
-              <h3>✏️ Add Branding</h3>
-
-              <div class="form-group">
-                <label for="logoUrl">Logo Image URL</label>
-                <input type="text" id="logoUrl" placeholder="https://example.com/logo.png" class="form-control" />
-                <button class="btn btn-outline" id="applyLogoBtn" style="margin-top: 8px;">Apply Logo</button>
-              </div>
-
-              <div class="form-group" style="margin-top: 20px;">
-                <label for="faviconUrl">Favicon URL</label>
-                <input type="text" id="faviconUrl" placeholder="https://example.com/favicon.ico" class="form-control" />
-                <button class="btn btn-outline" id="applyFaviconBtn" style="margin-top: 8px;">Apply Favicon</button>
-              </div>
-
-              <hr style="margin: 30px 0;" />
-
-              <h4>📇 Contact & Business Details</h4>
-              <div class="form-group">
-                <label for="businessNameInput">Business Name</label>
-                <input type="text" id="businessNameInput" name="businessName" placeholder="e.g. Apollo Heat Source" class="form-control" />
-              </div>
-              <div class="form-group">
-                <label for="contactEmail">Email</label>
-                <input type="email" id="contactEmail" placeholder="e.g. hello@business.com" class="form-control" />
-              </div>
-              <div class="form-group">
-                <label for="contactPhone">Phone</label>
-                <input type="text" id="contactPhone" placeholder="e.g. 07941 338 659" class="form-control" />
-              </div>
-              <div class="form-group">
-                <label for="contactAddress">Address</label>
-                <input type="text" id="contactAddress" placeholder="e.g. Doncaster, South Yorkshire" class="form-control" />
-              </div>
-
-              <button class="btn btn-primary" id="applyContactDetailsBtn" style="margin-top: 12px;">📩 Apply Contact Info</button>
-              <button id="saveBrandingBtn" class="btn btn-success" style="margin-top: 16px;">✅ Save Branding</button>
-            </div>
-
-            <!-- ====== IFRAME USAGE HINTS ====== -->
-            <div id="iframeHintMessage" style="display:none; margin-top: 12px; background: #fff3cd; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #856404;">
-              Links inside the preview won't work until your site is downloaded or purchased. Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.
-            </div>
-
-            <div class="form-hint" style="margin-bottom: 20px; background: #f0f8ff; padding: 12px 16px; border-left: 4px solid #007bff; font-size: 0.95rem; color: #333;">
-              This page is interactive and scrollable. Use the <strong>Next</strong> and <strong>Previous</strong> buttons to navigate. Website links in preview are disabled.
-            </div>
-          </div> <!-- End Preview Container -->
-        </div> <!-- End Generator Grid -->
-      </div> <!-- End Container -->
-    </section> <!-- End Generator Section --
-
-
-
-
-
-
->
+<!-- ====== CLICK-TO-EDIT HINT ====== -->
+<div id="editNotice" style="display: none; background: #e3fcef; padding: 10px; margin-top: 10px; font-size: 0.9rem;">
+  📝 Click any text in the preview to edit it. Click outside to save.
+</div>
 <!-- ====== DEPLOYMENT MODAL ====== -->
 <div id="deploymentModal" class="modal" style="display: none;">
   <div class="modal-content">
@@ -483,7 +421,6 @@
           <li>GitHub deployment</li>
           <li>Email support</li>
         </ul>
-
 
         <!-- 🔍 Domain Input -->
         <label for="customDomain">Check domain availability:</label>
@@ -551,8 +488,6 @@
     </div>
   </div>
 </div>
-
-
 
 
 

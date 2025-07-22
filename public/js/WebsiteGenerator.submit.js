@@ -5,18 +5,17 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
   try {
     const formData = new FormData(this.form);
 
-// If user selected 'Contact Form' feature and entered an email, store it
-const selectedFeatures = formData.getAll('features');
-if (selectedFeatures.includes('contact form')) {
-  const contactEmail = formData.get('contactEmail');
-  if (contactEmail) {
-    localStorage.setItem('contactEmail', contactEmail);
-  }
-}
+    // ✅ Store contact form preference
+    const selectedFeatures = formData.getAll('features');
+    let contactEmail = null;
+    if (selectedFeatures.includes('contact form')) {
+      contactEmail = formData.get('contactEmail');
+      if (contactEmail) {
+        localStorage.setItem('contactEmail', contactEmail);
+      }
+    }
 
     const finalPrompt = this.buildFinalPrompt(formData);
-
-    // ✅ Store businessName for later use (e.g., full-hosting checkout)
     localStorage.setItem('businessName', formData.get('businessName') || '');
 
     if (!localStorage.getItem('sessionId')) {
@@ -50,16 +49,86 @@ if (selectedFeatures.includes('contact form')) {
         })
       });
 
-      this.updatePreview();
-      this.showSuccess('Website generated successfully!');
-    } else {
-      throw new Error(data.error || 'Unknown error from server.');
-    }
-  } catch (error) {
-    this.showError('Failed to generate website: ' + error.message);
-  } finally {
-    this.hideLoading();
+// ✅ Inject working contact form if requested
+if (selectedFeatures.includes('contact form') && contactEmail) {
+  try {
+    const scriptRes = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: contactEmail })
+    });
+
+    const { scriptUrl } = await scriptRes.json();
+
+    const injectWorkingContactForm = (html, scriptUrl) => {
+      return html.replace(/<form[\s\S]*?<\/form>/i, `
+        <form id="contactForm" action="${scriptUrl}" method="POST"
+              class="g-recaptcha"
+              data-sitekey="6LdH04srAAAAANO8TB0GwW4DCTKT8rft_CFDCjPF"
+              data-callback="onRecaptchaSubmit">
+          <input type="text" name="name" placeholder="Your Name" required />
+          <input type="email" name="email" placeholder="Your Email" required />
+          <textarea name="message" placeholder="Your Message" required></textarea>
+          <button type="submit">Send Message</button>
+          <p id="formStatus" style="margin-top:10px;"></p>
+        </form>
+
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+        <script>
+          function onRecaptchaSubmit() {
+            const form = document.getElementById('contactForm');
+            const status = document.getElementById('formStatus');
+            status.textContent = 'Sending...';
+
+            fetch(form.action, {
+              method: 'POST',
+              body: new FormData(form)
+            }).then(response => {
+              if (response.ok) {
+                status.style.color = 'green';
+                status.textContent = '✅ Message sent successfully!';
+                form.reset();
+              } else {
+                throw new Error('Failed');
+              }
+            }).catch(() => {
+              status.style.color = 'red';
+              status.textContent = '❌ Failed to send. Try again.';
+            });
+          }
+
+          document.getElementById('contactForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            grecaptcha.execute(); // 🔥 Trigger reCAPTCHA
+          });
+        </script>
+      `);
+    };
+
+    this.generatedPages = this.generatedPages.map(page => {
+      if (page.filename === 'contact.html') {
+        page.content = injectWorkingContactForm(page.content, scriptUrl);
+      }
+      return page;
+    });
+
+    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+  } catch (err) {
+    console.error('❌ Failed to inject contact form:', err);
   }
+}
+
+this.updatePreview();
+this.showSuccess('Website generated successfully!');
+} else {
+  throw new Error(data.error || 'Unknown error from server.');
+}
+} catch (error) {
+  this.showError('Failed to generate website: ' + error.message);
+} finally {
+  this.hideLoading();
+}
 };
 
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {

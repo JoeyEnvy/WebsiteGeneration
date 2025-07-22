@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import sgMail from '@sendgrid/mail';
 import JSZip from 'jszip';
 import { tempSessions } from '../index.js';
+import { createContactFormScript } from '../utils/googleScripts.js'; // ✅ adjust if needed
 
 const router = express.Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -159,4 +160,24 @@ router.post('/log-download', (req, res) => {
   res.json({ success: true });
 });
 
+// ========================================================================
+// ✅ NEW: POST /create-contact-script — Create Google Apps Script for contact form
+// ========================================================================
+router.post('/create-contact-script', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid email.' });
+  }
+
+  try {
+    const scriptUrl = await createContactFormScript(email);
+    res.json({ scriptUrl });
+  } catch (err) {
+    console.error('❌ Contact script creation failed:', err);
+    res.status(500).json({ error: 'Failed to create contact form script.' });
+  }
+});
+
 export default router;
+
