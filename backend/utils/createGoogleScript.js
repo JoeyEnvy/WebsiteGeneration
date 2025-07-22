@@ -1,9 +1,14 @@
-const { google } = require('googleapis');
-const path = require('path');
+import { google } from 'googleapis';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 📍 __dirname workaround for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 🔐 Auth setup using your service account key
 const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, '../config/service-account-creds.json'), // ✅ Make sure this file exists!
+  keyFile: path.join(__dirname, '../config/service-account-creds.json'), // ✅ Ensure this file exists!
   scopes: [
     'https://www.googleapis.com/auth/script.projects',
     'https://www.googleapis.com/auth/drive',
@@ -17,7 +22,7 @@ const auth = new google.auth.GoogleAuth({
  * @param {string} userEmail - The user's email to receive contact form submissions
  * @returns {Promise<string>} The URL of the deployed web app (form endpoint)
  */
-async function createContactFormScript(userEmail) {
+export async function createContactFormScript(userEmail) {
   const authClient = await auth.getClient();
   const script = google.script({ version: 'v1', auth: authClient });
 
@@ -97,8 +102,3 @@ function doPost(e) {
   const entryPoint = deployRes.data.entryPoints?.find(p => p.type === 'WEB_APP');
   return entryPoint?.url || null;
 }
-
-// ✅ Named export for compatibility with ES modules
-module.exports = {
-  createContactFormScript
-};
