@@ -89,6 +89,10 @@ WebsiteGenerator.prototype.updatePreview = function () {
     this.showPostGenerationOptions();
   }
 
+  if (typeof this.updatePageIndicator === 'function') {
+    this.updatePageIndicator(); // 🔥 Update the "Page X of Y" display
+  }
+
   // Restore scroll position
   window.scrollTo({ top: scrollY, behavior: 'auto' });
 };
