@@ -5,8 +5,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ✅ Smart path logic: use env var if available (for Render), fallback to local path
+const keyFilePath = process.env.GOOGLE_CREDS_PATH || path.join(__dirname, '../config/service-account-creds.json');
+
 const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, '../config/service-account-creds.json'),
+  keyFile: keyFilePath,
   scopes: [
     'https://www.googleapis.com/auth/script.projects',
     'https://www.googleapis.com/auth/drive',

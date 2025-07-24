@@ -7,10 +7,16 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     const selectedFeatures = formData.getAll('features');
     let contactEmail = null;
 
-    if (selectedFeatures.includes('contact form')) {
-      contactEmail = formData.get('contactEmail');
-      if (contactEmail) localStorage.setItem('contactEmail', contactEmail);
-    }
+if (selectedFeatures.includes('contact form')) {
+  contactEmail = formData.get('contactEmail')?.trim();
+
+  // Only store if user *actually* entered a valid email
+  if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+    localStorage.setItem('contactEmail', contactEmail);
+  } else {
+    contactEmail = null; // Don't break if blank or invalid
+  }
+}
 
     const finalPrompt = this.buildFinalPrompt(formData);
     localStorage.setItem('businessName', formData.get('businessName') || '');
