@@ -1,1 +1,39 @@
+# 🛡️ Environment & Secrets
 .env
+.env.local
+.env.production
+/backend/config/service-account-creds.json
+
+# 📦 Node Modules
+node_modules/
+
+# 🚧 Build & Logs
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🧪 Tests
+coverage/
+.vscode/
+*.test.js
+*.spec.js
+
+# ⚙️ OS/Editor System Files
+.DS_Store
+Thumbs.db
+
+# 🧱 Temporary Files
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# 🚫 GitSafe
+*.pem
+*.key
+*.crt
+*.p12
+*.asc
