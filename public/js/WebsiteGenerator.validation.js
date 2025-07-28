@@ -6,7 +6,6 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
     return false;
   }
 
-  // ✅ Only validate visible required fields
   const requiredFields = Array.from(step.querySelectorAll('[required]'))
     .filter(field => field.offsetParent !== null);
 
@@ -21,7 +20,6 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
     }
   });
 
-  // ✅ At least one checkbox must be selected in each checkbox group
   const checkboxGroups = step.querySelectorAll('.checkbox-group');
 
   checkboxGroups.forEach(group => {
@@ -39,8 +37,6 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
 
   return isValid;
 };
-
-// ===== ERROR DISPLAY HELPERS =====
 
 WebsiteGenerator.prototype.showFieldError = function(field, message) {
   this.clearFieldError(field);
@@ -72,3 +68,4 @@ WebsiteGenerator.prototype.clearCheckboxError = function(field) {
   const errorDiv = group?.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
 };
+
