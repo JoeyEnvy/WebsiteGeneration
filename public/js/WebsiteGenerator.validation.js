@@ -16,8 +16,11 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
     }
   });
 
-  // ✅ At least one checkbox must be selected, if any exist
-  const checkboxes = step.querySelectorAll('input[type="checkbox"]');
+// ✅ At least one checkbox must be selected in each checkbox group (if any exist)
+const checkboxGroups = step.querySelectorAll('.checkbox-group');
+
+checkboxGroups.forEach(group => {
+  const checkboxes = group.querySelectorAll('input[type="checkbox"]');
   if (checkboxes.length) {
     const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
     if (!anyChecked) {
@@ -27,9 +30,8 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
       this.clearCheckboxError(checkboxes[0]);
     }
   }
+});
 
-  return isValid;
-};
 
 WebsiteGenerator.prototype.showFieldError = function(field, message) {
   this.clearFieldError(field);

@@ -1,5 +1,5 @@
 WebsiteGenerator.prototype.initializeEventListeners = function () {
-  // ===== Step Button Logic =====
+  // ===== Step Button Logic with Full Logging =====
   const stepButtons = [
     { id: 'nextStep1', step: 'step1', goTo: 2 },
     { id: 'nextStep2', step: 'step2', goTo: 3 },
@@ -14,8 +14,17 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     const btn = document.getElementById(id);
     if (btn) {
       btn.addEventListener('click', () => {
-        if (!step || this.validateStep(step)) this.goToStep(goTo);
+        console.log(`🟦 Clicked: ${id} → Requested goToStep(${goTo})`);
+
+        if (!step || this.validateStep(step)) {
+          console.log(`✅ Validation passed for ${step} → Navigating to step ${goTo}`);
+          this.goToStep(goTo);
+        } else {
+          console.warn(`❌ Validation failed for ${step}. Staying on current step.`);
+        }
       });
+    } else {
+      console.warn(`⚠️ Button with id "${id}" not found in DOM.`);
     }
   });
 
@@ -23,7 +32,9 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
   const previewButtons = document.querySelectorAll('.preview-controls button');
   previewButtons.forEach(button => {
     button.addEventListener('click', () => {
-      this.changePreviewDevice(button.id.replace('Preview', ''));
+      const device = button.id.replace('Preview', '');
+      console.log(`🖥️ Switching preview device to: ${device}`);
+      this.changePreviewDevice(device);
     });
   });
 
@@ -32,18 +43,27 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
   const nextPageBtn = document.getElementById('nextPage');
 
   if (prevPageBtn) {
-    prevPageBtn.addEventListener('click', () => this.changePage(-1));
+    prevPageBtn.addEventListener('click', () => {
+      console.log('⬅️ Previous Page clicked');
+      this.changePage(-1);
+    });
   }
   if (nextPageBtn) {
-    nextPageBtn.addEventListener('click', () => this.changePage(1));
+    nextPageBtn.addEventListener('click', () => {
+      console.log('➡️ Next Page clicked');
+      this.changePage(1);
+    });
   }
 
   // ===== Form Submission =====
   if (this.form) {
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();
+      console.log('📝 Form submitted');
       this.handleSubmit();
     });
+  } else {
+    console.warn('⚠️ Form element not found.');
   }
 
   // ===== Purchase + Download Buttons =====
@@ -57,13 +77,16 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
         this.userHasPaid = true;
         purchaseBtn.style.display = 'none';
         if (downloadBtn) downloadBtn.style.display = 'inline-block';
-        alert('Payment successful. You can now download your website.');
+        alert('✅ Payment successful. You can now download your website.');
       }
     });
   }
 
   if (downloadBtn) {
-    downloadBtn.addEventListener('click', () => this.downloadGeneratedSite());
+    downloadBtn.addEventListener('click', () => {
+      console.log('⬇️ Download Site button clicked');
+      this.downloadGeneratedSite();
+    });
   }
 
   // ===== Modal Close Logic =====
@@ -71,11 +94,43 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
   modalCloseButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.modal');
-      if (modal) modal.style.display = 'none';
+      if (modal) {
+        console.log('❌ Closing modal:', modal.id);
+        modal.style.display = 'none';
+      }
     });
   });
+
+  // ===== DEBUG: Step 4 Visibility Check =====
+  const step4 = document.getElementById('step4');
+  if (step4) {
+    console.log('✅ Step 4 detected in DOM');
+    // DEBUG: Uncomment below to force display for inspection
+    // step4.style.display = 'block';
+    // console.log('🔧 Forced Step 4 to display:block');
+  } else {
+    console.error('❌ Step 4 (#step4) NOT found in the DOM.');
+  }
 };
 
+// ===== goToStep with Debug Tracing =====
+WebsiteGenerator.prototype.goToStep = function (stepNumber) {
+  const allSteps = document.querySelectorAll('.form-step');
+  console.log(`➡️ goToStep(${stepNumber})`);
+  allSteps.forEach((step, index) => {
+    const show = index + 1 === stepNumber;
+    step.style.display = show ? 'block' : 'none';
+    console.log(`   Step ${index + 1} (${step.id}): ${show ? 'SHOW' : 'HIDE'}`);
+  });
+
+  // Extra visual confirmation
+  const visible = Array.from(document.querySelectorAll('.form-step'))
+    .filter(el => window.getComputedStyle(el).display !== 'none')
+    .map(el => el.id);
+  console.log('👀 Currently visible step(s):', visible);
+};
+
+// ===== Post-Generation Modal Logic =====
 WebsiteGenerator.prototype.showPostGenerationOptions = function () {
   const modal = document.getElementById('postGenerationModal');
   if (!modal) return;
@@ -92,29 +147,36 @@ WebsiteGenerator.prototype.showPostGenerationOptions = function () {
 
   if (customizeBtn && customizationModal) {
     customizeBtn.addEventListener('click', () => {
+      console.log('🎨 Opening customization modal');
       customizationModal.style.display = 'flex';
     });
   }
 
   if (brandingBtn && brandingModal) {
     brandingBtn.addEventListener('click', () => {
+      console.log('🖊️ Opening branding modal');
       brandingModal.style.display = 'flex';
     });
   }
 
   if (deployBtn && deploymentModal) {
     deployBtn.addEventListener('click', () => {
+      console.log('🌍 Opening deployment modal');
       deploymentModal.style.display = 'flex';
     });
   }
 };
 
+// ===== Customization Panel Init =====
 WebsiteGenerator.prototype.initializeCustomizationPanel = function () {
   const panel = document.getElementById('customizationModal');
   if (!panel) return;
 
   const tools = panel.querySelector('.custom-tools');
-  if (tools) tools.style.display = 'flex';
+  if (tools) {
+    console.log('🔧 Customization panel tools displayed');
+    tools.style.display = 'flex';
+  }
 };
 
 
