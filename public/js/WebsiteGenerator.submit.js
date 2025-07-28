@@ -1,3 +1,20 @@
+// ✅ Fix: Dynamically handle required field for contact email
+document.addEventListener('DOMContentLoaded', function () {
+  const checkbox = document.getElementById('contactFormCheckbox');
+  const emailInput = document.getElementById('contactEmail');
+  const container = document.getElementById('contactEmailContainer');
+
+  checkbox.addEventListener('change', function () {
+    if (this.checked) {
+      container.style.display = 'block';
+      emailInput.setAttribute('required', 'required');
+    } else {
+      container.style.display = 'none';
+      emailInput.removeAttribute('required');
+      emailInput.value = '';
+    }
+  });
+});
 WebsiteGenerator.prototype.handleSubmit = async function () {
   this.goToStep(5);
   this.showLoading();
@@ -7,16 +24,15 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     const selectedFeatures = formData.getAll('features');
     let contactEmail = null;
 
-if (selectedFeatures.includes('contact form')) {
-  contactEmail = formData.get('contactEmail')?.trim();
+    if (selectedFeatures.includes('contact form')) {
+      contactEmail = formData.get('contactEmail')?.trim();
 
-  // Only store if user *actually* entered a valid email
-  if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-    localStorage.setItem('contactEmail', contactEmail);
-  } else {
-    contactEmail = null; // Don't break if blank or invalid
-  }
-}
+      if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+        localStorage.setItem('contactEmail', contactEmail);
+      } else {
+        contactEmail = null;
+      }
+    }
 
     const finalPrompt = this.buildFinalPrompt(formData);
     localStorage.setItem('businessName', formData.get('businessName') || '');
@@ -62,7 +78,7 @@ if (selectedFeatures.includes('contact form')) {
           });
 
           const { scriptUrl } = await scriptRes.json();
-          const injectContactForm = (html, url) => html.replace(/<form[\s\S]*?<\/form>/i, `...`); // use same script block as before
+          const injectContactForm = (html, url) => html.replace(/<form[\s\S]*?<\/form>/i, `...`);
           this.generatedPages = this.generatedPages.map(page => {
             if (page.filename === 'contact.html') {
               page.content = injectContactForm(page.content, scriptUrl);
