@@ -1,6 +1,11 @@
 WebsiteGenerator.prototype.validateStep = function(stepId) {
   const step = document.getElementById(stepId);
 
+  if (!step) {
+    console.error(`❌ Step element not found: ${stepId}`);
+    return false;
+  }
+
   // ✅ Only validate visible required fields
   const requiredFields = Array.from(step.querySelectorAll('[required]'))
     .filter(field => field.offsetParent !== null);
@@ -16,22 +21,26 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
     }
   });
 
-// ✅ At least one checkbox must be selected in each checkbox group (if any exist)
-const checkboxGroups = step.querySelectorAll('.checkbox-group');
+  // ✅ At least one checkbox must be selected in each checkbox group
+  const checkboxGroups = step.querySelectorAll('.checkbox-group');
 
-checkboxGroups.forEach(group => {
-  const checkboxes = group.querySelectorAll('input[type="checkbox"]');
-  if (checkboxes.length) {
-    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-    if (!anyChecked) {
-      this.showCheckboxError(checkboxes[0], 'Select at least one option');
-      isValid = false;
-    } else {
-      this.clearCheckboxError(checkboxes[0]);
+  checkboxGroups.forEach(group => {
+    const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+    if (checkboxes.length) {
+      const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+      if (!anyChecked) {
+        this.showCheckboxError(checkboxes[0], 'Select at least one option');
+        isValid = false;
+      } else {
+        this.clearCheckboxError(checkboxes[0]);
+      }
     }
-  }
-});
+  });
 
+  return isValid;
+};
+
+// ===== ERROR DISPLAY HELPERS =====
 
 WebsiteGenerator.prototype.showFieldError = function(field, message) {
   this.clearFieldError(field);
