@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import sgMail from '@sendgrid/mail';
 import JSZip from 'jszip';
 import { tempSessions } from '../index.js';
-import { createContactFormScript } from '../utils/createGoogleScript.js'; // ✅ adjust if needed
+import { createContactFormScript } from '../utils/createGoogleScript.js';
 
 const router = express.Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -18,10 +18,17 @@ router.post('/generate', async (req, res) => {
   const expectedPageCount = parseInt(req.body.pageCount || '1');
 
   if (!prompt || prompt.trim().length === 0) {
+    console.warn('⚠️ Empty or invalid prompt received');
     return res.json({ success: false, error: 'Prompt is empty or invalid.' });
   }
 
-  console.log('✅ /generate prompt received:', prompt);
+  if (!OPENAI_API_KEY) {
+    console.error('❌ OPENAI_API_KEY is missing — cannot generate website.');
+    return res.status(500).json({ success: false, error: 'Server misconfigured: Missing OpenAI API key.' });
+  }
+
+  console.log('✅ /generate prompt received.');
+  console.log('🧠 Prompt:', prompt);
 
   const messages = [
     {
@@ -58,6 +65,8 @@ router.post('/generate', async (req, res) => {
 
   try {
     while (retries < maxRetries) {
+      console.log(`⏳ Attempt ${retries + 1} to generate content...`);
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -72,8 +81,19 @@ router.post('/generate', async (req, res) => {
         })
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ OpenAI API failed (HTTP ${response.status}):`, errorText);
+        return res.status(500).json({ success: false, error: `OpenAI API error: ${response.status}` });
+      }
+
       const data = await response.json();
+
       const content = data?.choices?.[0]?.message?.content || '';
+      if (!content.trim()) {
+        console.warn('⚠️ OpenAI returned empty content.');
+      }
+
       fullContent += '\n' + content.trim();
 
       const htmlCount = (fullContent.match(/<\/html>/gi) || []).length;
@@ -91,6 +111,7 @@ router.post('/generate', async (req, res) => {
       .filter(p => p.includes('</html>'));
 
     if (cleanedPages.length === 0) {
+      console.warn('⚠️ No valid HTML documents were parsed.');
       return res.json({
         success: false,
         error: 'No valid HTML documents were extracted.',
@@ -98,10 +119,12 @@ router.post('/generate', async (req, res) => {
       });
     }
 
+    console.log(`✅ Generated ${cleanedPages.length} HTML page(s).`);
     res.json({ success: true, pages: cleanedPages });
+
   } catch (err) {
-    console.error('❌ Generation error:', err);
-    res.json({ success: false, error: 'Server error: ' + err.toString() });
+    console.error('❌ Generation error:', err.stack || err);
+    res.status(500).json({ success: false, error: 'Server error during generation: ' + err.message });
   }
 });
 
@@ -161,7 +184,7 @@ router.post('/log-download', (req, res) => {
 });
 
 // ========================================================================
-// ✅ NEW: POST /create-contact-script — Create Google Apps Script for contact form
+// POST /create-contact-script — Deploys Google Apps Script for contact form
 // ========================================================================
 router.post('/create-contact-script', async (req, res) => {
   const { email } = req.body;
@@ -174,7 +197,7 @@ router.post('/create-contact-script', async (req, res) => {
     const scriptUrl = await createContactFormScript(email);
     res.json({ scriptUrl });
   } catch (err) {
-    console.error('❌ Contact script creation failed:', err);
+    console.error('❌ Contact script creation failed:', err.stack || err);
     res.status(500).json({ error: 'Failed to create contact form script.' });
   }
 });
