@@ -124,193 +124,188 @@
 <div class="section-divider"></div>
 
 
-    <!-- ========== GENERATOR SECTION ========== -->
-    <section class="generator-section" id="generator">
-      <div class="container">
-        <div class="generator-grid">
+  <!-- ========== GENERATOR SECTION ========== -->
+<section class="generator-section" id="generator">
+  <div class="container">
+    <div class="generator-grid">
 
-          <!-- ====== FORM CONTAINER ====== -->
-          <div class="form-container">
-            <h2>Create Your Website</h2>
+      <!-- ====== FORM CONTAINER ====== -->
+      <div class="form-container">
+        <h2>Create Your Website</h2>
 
-            <!-- Friendly guidance box -->
-            <div class="form-hint" style="margin-bottom: 20px; background: #fffbea; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #333;">
-              While it may be tempting to select every option, the best websites often come from focusing on only the features that matter most to you.
+        <!-- 🔔 Friendly Guidance Box -->
+        <div class="form-hint" style="margin-bottom: 20px; background: #fffbea; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #333;">
+          While it may be tempting to select every option, the best websites often come from focusing on only the features that matter most to you.
+        </div>
+
+        <!-- 🔢 Step Progress Bar -->
+        <div class="step-progress-bar">
+          <div class="step" id="indicator-step1">1</div>
+          <div class="step" id="indicator-step2">2</div>
+          <div class="step" id="indicator-step3">3</div>
+          <div class="step" id="indicator-step4">4</div>
+          <div class="step" id="indicator-step5">5</div>
+        </div>
+
+        <!-- FORM START -->
+        <form id="websiteGeneratorForm">
+
+          <!-- ========== STEP 1 ========== -->
+          <div class="form-step" id="step1">
+            <h3>Step 1: Website Type & Structure</h3>
+
+            <div class="form-group">
+              <label for="websiteType">Type of Website</label>
+              <select id="websiteType" name="websiteType" required>
+                <option value="">Select website type</option>
+                <option value="business">Business Website</option>
+                <option value="portfolio">Portfolio</option>
+                <option value="blog">Blog</option>
+                <option value="landing">Landing Page</option>
+              </select>
             </div>
 
-            <!-- Step Progress Bar -->
-            <div class="step-progress-bar">
-              <div class="step" id="indicator-step1">1</div>
-              <div class="step" id="indicator-step2">2</div>
-              <div class="step" id="indicator-step3">3</div>
-              <div class="step" id="indicator-step4">4</div>
-              <div class="step" id="indicator-step5">5</div>
+            <div class="form-group">
+              <label for="businessName">Business Name</label>
+              <input type="text" id="businessName" name="businessName" required>
             </div>
 
-            <!-- FORM BEGIN -->
-            <form id="websiteGeneratorForm">
+            <div class="form-group">
+              <label for="businessType">Business Type</label>
+              <select id="businessType" name="businessType" required>
+                <option value="">Select business type</option>
+                <option value="retail">Retail Store</option>
+                <option value="restaurant">Restaurant/Café</option>
+                <option value="professional">Professional Services</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="technology">Technology</option>
+              </select>
+            </div>
 
-              <!-- ========== STEP 1: Website Structure ========== -->
-              <div class="form-step" id="step1">
-                <h3>Step 1: Website Type & Structure</h3>
+            <div class="form-group">
+              <label for="pageCount">How many pages?</label>
+              <select id="pageCount" name="pageCount" required>
+                <option value="1">Single Page</option>
+                <option value="3">Basic (3 pages)</option>
+                <option value="5">Standard (5 pages)</option>
+              </select>
+            </div>
 
-                <div class="form-group">
-                  <label for="websiteType">Type of Website</label>
-                  <select id="websiteType" name="websiteType" required>
-                    <option value="">Select website type</option>
-                    <option value="business">Business Website</option>
-                    <option value="portfolio">Portfolio</option>
-                    <option value="blog">Blog</option>
-                    <option value="landing">Landing Page</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label for="businessName">Business Name</label>
-                  <input type="text" id="businessName" name="businessName" required>
-                </div>
-
-                <div class="form-group">
-                  <label for="businessType">Business Type</label>
-                  <select id="businessType" name="businessType" required>
-                    <option value="">Select business type</option>
-                    <option value="retail">Retail Store</option>
-                    <option value="restaurant">Restaurant/Café</option>
-                    <option value="professional">Professional Services</option>
-                    <option value="healthcare">Healthcare</option>
-                    <option value="technology">Technology</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label for="pageCount">How many pages?</label>
-                  <select id="pageCount" name="pageCount" required>
-                    <option value="1">Single Page</option>
-                    <option value="3">Basic (3 pages)</option>
-                    <option value="5">Standard (5 pages)</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label>Which pages do you need?</label>
-                  <div class="checkbox-group">
-                    <label><input type="checkbox" name="pages" value="Home"> Home</label>
-                    <label><input type="checkbox" name="pages" value="About"> About</label>
-                    <label><input type="checkbox" name="pages" value="Services"> Services</label>
-                    <label><input type="checkbox" name="pages" value="Contact"> Contact</label>
-                    <label><input type="checkbox" name="pages" value="FAQ"> FAQ</label>
-                  </div>
-                </div>
-
-                <button type="button" class="btn btn-primary" id="nextStep1">Next</button>
+            <div class="form-group">
+              <label>Which pages do you need?</label>
+              <div class="checkbox-group">
+                <label><input type="checkbox" name="pages" value="Home"> Home</label>
+                <label><input type="checkbox" name="pages" value="About"> About</label>
+                <label><input type="checkbox" name="pages" value="Services"> Services</label>
+                <label><input type="checkbox" name="pages" value="Contact"> Contact</label>
+                <label><input type="checkbox" name="pages" value="FAQ"> FAQ</label>
               </div>
-              <!-- ========== STEP 2: Design Preferences ========== -->
-              <div class="form-step" id="step2" style="display:none;">
-                <h3>Step 2: Design Preferences</h3>
+            </div>
 
-                <div class="form-group">
-                  <label for="colorScheme">Color Scheme</label>
-                  <select id="colorScheme" name="colorScheme" required>
-                    <option value="">Select color scheme</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                    <option value="colorful">Colorful</option>
-                    <option value="monochrome">Monochrome</option>
-                  </select>
-                </div>
+            <button type="button" class="btn btn-primary" id="nextStep1">Next</button>
+          </div>
 
-                <div class="form-group">
-                  <label for="fontStyle">Font Style</label>
-                  <select id="fontStyle" name="fontStyle" required>
-                    <option value="">Select font style</option>
-                    <option value="modern">Modern</option>
-                    <option value="classic">Classic</option>
-                    <option value="playful">Playful</option>
-                    <option value="minimalist">Minimalist</option>
-                  </select>
-                </div>
+          <!-- ========== STEP 2 ========== -->
+          <div class="form-step" id="step2" style="display:none;">
+            <h3>Step 2: Design Preferences</h3>
 
-                <div class="form-group">
-                  <label for="layoutPreference">Layout Preference</label>
-                  <select id="layoutPreference" name="layoutPreference" required>
-                    <option value="">Select layout preference</option>
-                    <option value="grid">Grid</option>
-                    <option value="singleColumn">Single Column</option>
-                    <option value="asymmetric">Asymmetric</option>
-                    <option value="magazine">Magazine Style</option>
-                  </select>
-                </div>
+            <div class="form-group">
+              <label for="colorScheme">Color Scheme</label>
+              <select id="colorScheme" name="colorScheme" required>
+                <option value="">Select color scheme</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="colorful">Colorful</option>
+                <option value="monochrome">Monochrome</option>
+              </select>
+            </div>
 
-                <button type="button" class="btn" id="prevStep2">Back</button>
-                <button type="button" class="btn btn-primary" id="nextStep2">Next</button>
+            <div class="form-group">
+              <label for="fontStyle">Font Style</label>
+              <select id="fontStyle" name="fontStyle" required>
+                <option value="">Select font style</option>
+                <option value="modern">Modern</option>
+                <option value="classic">Classic</option>
+                <option value="playful">Playful</option>
+                <option value="minimalist">Minimalist</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="layoutPreference">Layout Preference</label>
+              <select id="layoutPreference" name="layoutPreference" required>
+                <option value="">Select layout preference</option>
+                <option value="grid">Grid</option>
+                <option value="singleColumn">Single Column</option>
+                <option value="asymmetric">Asymmetric</option>
+                <option value="magazine">Magazine Style</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn" id="prevStep2">Back</button>
+            <button type="button" class="btn btn-primary" id="nextStep2">Next</button>
+          </div>
+
+          <!-- ========== STEP 3 ========== -->
+          <div class="form-step" id="step3" style="display:none;">
+            <h3>Step 3: Business Description & Features</h3>
+
+            <!-- 📝 Description -->
+            <div class="form-group">
+              <label for="businessDescription">Brief Description</label>
+              <textarea id="businessDescription" name="businessDescription" rows="4" required></textarea>
+            </div>
+
+            <!-- 🧩 Extra Features -->
+            <div class="form-group">
+              <label>Extra Features</label>
+              <div class="checkbox-group">
+                <label><input type="checkbox" name="features" value="booking"> Online Booking</label>
+                <label><input type="checkbox" name="features" value="newsletter"> Newsletter</label>
+                <label><input type="checkbox" name="features" value="social"> Social Media</label>
+                <label><input type="checkbox" name="features" value="contact form" id="contactFormCheckbox"> Contact Form</label>
               </div>
+            </div>
 
-         <!-- ========== STEP 3: Description & Features ========== -->
-<div class="form-step" id="step3" style="display:none;">
-  <h3>Step 3: Business Description & Features</h3>
+            <!-- 📧 Conditional Email -->
+            <div class="form-group" id="contactEmailContainer" style="display: none; margin-top: 1rem;">
+              <label for="contactEmail">Enter your email to receive contact form messages:</label>
+              <input type="email" id="contactEmail" name="contactEmail" placeholder="you@example.com" />
+            </div>
 
-  <div class="form-group">
-    <label for="businessDescription">Brief Description</label>
-    <textarea id="businessDescription" name="businessDescription" rows="4" required></textarea>
+            <button type="button" class="btn" id="prevStep3">Back</button>
+            <button type="button" class="btn btn-primary" id="nextStep3">Next</button>
+          </div>
+
+          <!-- ========== STEP 4 ========== -->
+          <div class="form-step" id="step4" style="display:none;">
+            <h3>Step 4: Optional Enhancements</h3>
+            <p>Select any enhancements you'd like to include in your site:</p>
+
+            <div class="form-group checkbox-group">
+              <label><input type="checkbox" name="enhancements" value="light animation"> Light Animation</label>
+              <label><input type="checkbox" name="enhancements" value="enhanced styling"> Enhanced Styling</label>
+              <label><input type="checkbox" name="enhancements" value="icons"> Icons</label>
+              <label><input type="checkbox" name="enhancements" value="hover effects"> Hover Effects</label>
+              <label><input type="checkbox" name="enhancements" value="enhanced details"> Enhanced Details (more detailed content)</label>
+            </div>
+
+            <button type="button" class="btn" id="prevStep4">Back</button>
+            <button type="button" class="btn btn-primary" id="nextStep4">Generate Website</button>
+          </div>
+
+          <!-- ========== STEP 5 ========== -->
+          <div class="form-step" id="step5" style="display:none;">
+            <h3>Generating Your Website...</h3>
+            <p>Please wait while your website is being generated. This may take a moment.</p>
+            <div class="loading-bar"></div>
+          </div>
+
+        </form> <!-- END FORM -->
+      </div> <!-- END FORM CONTAINER -->
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>Extra Features</label>
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" name="features" value="booking"> Online Booking
-      </label>
-      <label>
-        <input type="checkbox" name="features" value="newsletter"> Newsletter
-      </label>
-      <label>
-        <input type="checkbox" name="features" value="social"> Social Media
-      </label>
-  <label>
-    <input type="checkbox" name="features" value="contact form" id="contactFormCheckbox">
-    Contact Form
-  </label>
-</div>
-
-<!-- ✅ Conditional Email Input (initially hidden) -->
-<div class="form-group" id="contactEmailContainer" style="display: none; margin-top: 1rem;">
-  <label for="contactEmail">Enter your email to receive contact form messages:</label>
-  <input type="email" id="contactEmail" name="contactEmail" placeholder="you@example.com" />
-</div>
-
-
-  <button type="button" class="btn" id="prevStep3">Back</button>
-  <button type="button" class="btn btn-primary" id="nextStep3">Next</button>
-</div>
-
-
-              <!-- ========== STEP 4: Enhancements ========== -->
-              <div class="form-step" id="step4" style="display:none;">
-                <h3>Step 4: Optional Enhancements</h3>
-                <p>Select any enhancements you'd like to include in your site:</p>
-
-                <div class="form-group checkbox-group">
-                  <label><input type="checkbox" name="enhancements" value="light animation"> Light Animation</label>
-                  <label><input type="checkbox" name="enhancements" value="enhanced styling"> Enhanced Styling</label>
-                  <label><input type="checkbox" name="enhancements" value="icons"> Icons</label>
-                  <label><input type="checkbox" name="enhancements" value="hover effects"> Hover Effects</label>
-                  <label><input type="checkbox" name="enhancements" value="enhanced details"> Enhanced Details (more detailed content)</label>
-                </div>
-
-                <button type="button" class="btn" id="prevStep4">Back</button>
-                <button type="button" class="btn btn-primary" id="nextStep4">Generate Website</button>
-
-              </div>
-
-              <!-- ========== STEP 5: Loading ========= -->
-              <div class="form-step" id="step5" style="display:none;">
-                <h3>Generating Your Website...</h3>
-                <p>Please wait while your website is being generated. This may take a moment.</p>
-                <div class="loading-bar"></div>
-              </div>
-
-            </form> <!-- End Form -->
-          </div> <!-- End Form Container -->
        
 
 <!-- ====== CUSTOMIZATION MODAL ====== -->
@@ -855,20 +850,6 @@ document.addEventListener('DOMContentLoaded', function () {
     hamburger.addEventListener('click', () => {
       navLinks.classList.toggle('show');
       hamburger.classList.toggle('active');
-    });
-  }
-
-  // ===== 📧 Contact Form Toggle Logic =====
-  // Shows or hides email field if contact option is selected
-  const contactCheckbox = document.getElementById('contactFormCheckbox');
-  const emailContainer = document.getElementById('contactEmailContainer');
-
-  if (contactCheckbox && emailContainer) {
-    contactCheckbox.addEventListener('change', () => {
-      emailContainer.style.display = contactCheckbox.checked ? 'block' : 'none';
-      if (!contactCheckbox.checked) {
-        document.getElementById('contactEmail').value = '';
-      }
     });
   }
 

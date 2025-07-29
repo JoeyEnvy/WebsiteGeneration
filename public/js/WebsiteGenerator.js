@@ -21,14 +21,18 @@ class WebsiteGenerator {
   initializeContactFormToggle() {
     const contactCheckbox = document.querySelector('input[name="features"][value="contact form"]');
     const emailContainer = document.getElementById('contactEmailContainer');
+    const emailInput = document.getElementById('contactEmail');
 
-    if (contactCheckbox && emailContainer) {
-      contactCheckbox.addEventListener('change', () => {
-        emailContainer.style.display = contactCheckbox.checked ? 'block' : 'none';
-        if (!contactCheckbox.checked) {
-          document.getElementById('contactEmail').value = '';
-        }
-      });
+    if (contactCheckbox && emailContainer && emailInput) {
+      const toggleVisibility = () => {
+        const isChecked = contactCheckbox.checked;
+        emailContainer.style.display = isChecked ? 'block' : 'none';
+        emailInput.required = isChecked;
+        if (!isChecked) emailInput.value = '';
+      };
+
+      toggleVisibility(); // initial state
+      contactCheckbox.addEventListener('change', toggleVisibility);
     }
   }
 
@@ -148,13 +152,11 @@ window.WebsiteGenerator = WebsiteGenerator;
 // ✅ Validation Methods
 // =======================
 
-WebsiteGenerator.prototype.validateStep = function(stepId) {
+WebsiteGenerator.prototype.validateStep = function (stepId) {
   const step = document.getElementById(stepId);
   if (!step) return false;
 
-  const requiredFields = Array.from(step.querySelectorAll('[required]'))
-    .filter(field => field.offsetParent !== null);
-
+  const requiredFields = Array.from(step.querySelectorAll('[required]')).filter(field => field.offsetParent !== null);
   let isValid = true;
 
   requiredFields.forEach(field => {
@@ -183,7 +185,7 @@ WebsiteGenerator.prototype.validateStep = function(stepId) {
   return isValid;
 };
 
-WebsiteGenerator.prototype.showFieldError = function(field, message) {
+WebsiteGenerator.prototype.showFieldError = function (field, message) {
   this.clearFieldError(field);
   const errorDiv = document.createElement('div');
   errorDiv.className = 'field-error';
@@ -192,13 +194,13 @@ WebsiteGenerator.prototype.showFieldError = function(field, message) {
   field.classList.add('error');
 };
 
-WebsiteGenerator.prototype.clearFieldError = function(field) {
+WebsiteGenerator.prototype.clearFieldError = function (field) {
   const errorDiv = field.parentNode.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
   field.classList.remove('error');
 };
 
-WebsiteGenerator.prototype.showCheckboxError = function(field, message) {
+WebsiteGenerator.prototype.showCheckboxError = function (field, message) {
   const group = field.closest('.checkbox-group');
   if (group && !group.querySelector('.field-error')) {
     const errorDiv = document.createElement('div');
@@ -208,8 +210,9 @@ WebsiteGenerator.prototype.showCheckboxError = function(field, message) {
   }
 };
 
-WebsiteGenerator.prototype.clearCheckboxError = function(field) {
+WebsiteGenerator.prototype.clearCheckboxError = function (field) {
   const group = field.closest('.checkbox-group');
   const errorDiv = group?.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
 };
+
