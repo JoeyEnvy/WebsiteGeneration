@@ -1,7 +1,5 @@
 # 🛡️ Environment & Secrets
-.env
-.env.local
-.env.production
+# (NOTE: .env files will now be tracked — be careful with secrets!)
 /backend/config/service-account-creds.json
 
 # 📦 Node Modules
