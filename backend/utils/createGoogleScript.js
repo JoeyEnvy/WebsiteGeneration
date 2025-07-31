@@ -1,15 +1,9 @@
 import { google } from 'googleapis';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// ✅ Smart path logic: use env var if available (for Render), fallback to local path
-const keyFilePath = process.env.GOOGLE_CREDS_PATH || path.join(__dirname, '../config/service-account-creds.json');
+const creds = JSON.parse(process.env.GOOGLE_CREDS_JSON);
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: keyFilePath,
+  credentials: creds,
   scopes: [
     'https://www.googleapis.com/auth/script.projects',
     'https://www.googleapis.com/auth/drive',
@@ -95,3 +89,4 @@ function doPost(e) {
 
   return entryPoint.url;
 }
+
