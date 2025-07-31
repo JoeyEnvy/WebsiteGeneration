@@ -74,7 +74,8 @@ app.use((err, req, res, next) => {
 // ========================================================================
 // ✅ Server Startup (FIXED FOR RENDER)
 // ========================================================================
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT) || 3000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
