@@ -29,6 +29,25 @@ import utilityRoutes from './routes/utilityRoutes.js';
 // ========================================================================
 // App setup
 // ========================================================================
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sgMail from '@sendgrid/mail';
+import Stripe from 'stripe';
+import fetch from 'node-fetch';
+import JSZip from 'jszip';
+import { v4 as uuidv4 } from 'uuid';
+
+import sessionRoutes from './routes/sessionRoutes.js';
+import domainRoutes from './routes/domainRoutes.js';
+import stripeRoutes from './routes/stripeRoutes.js';
+import deployRoutes from './routes/deployRoutes.js';
+import utilityRoutes from './routes/utilityRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -71,12 +90,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
+// ✅ Debug route to confirm server is live (optional)
+app.get('/ping', (req, res) => res.send('pong'));
+
 // ========================================================================
 // ✅ Server Startup (FIXED FOR RENDER)
 // ========================================================================
-const PORT = parseInt(process.env.PORT) || 3000;
+const PORT = process.env.PORT;
 
-app.listen(PORT, () => {
+if (!PORT) {
+  throw new Error('❌ process.env.PORT must be defined. Render requires binding to this port.');
+}
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
