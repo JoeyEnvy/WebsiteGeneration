@@ -14,7 +14,6 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 
 // Resolve __dirname in CommonJS (already native)
-const __dirname = __dirname;
 
 // Import routes (converted modules must use `module.exports`)
 const sessionRoutes = require('./routes/sessionRoutes');
