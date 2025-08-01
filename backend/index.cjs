@@ -16,11 +16,11 @@ const path = require('path');
 // Resolve __dirname in CommonJS (already native)
 
 // Import routes (converted modules must use `module.exports`)
-const sessionRoutes = require('./routes/sessionRoutes');
-const domainRoutes = require('./routes/domainRoutes');
-const stripeRoutes = require('./routes/stripeRoutes');
-const deployRoutes = require('./routes/deployRoutes');
-const utilityRoutes = require('./routes/utilityRoutes');
+const sessionRoutes = require('./routes/sessionRoutes.cjs');
+const domainRoutes = require('./routes/domainRoutes.cjs');
+const stripeRoutes = require('./routes/stripeRoutes.cjs');
+const deployRoutes = require('./routes/deployRoutes.cjs');
+const utilityRoutes = require('./routes/utilityRoutes.cjs');
 
 // ========================================================================
 // App setup
