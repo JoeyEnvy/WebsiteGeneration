@@ -353,4 +353,5 @@ router.post('/deploy-full-hosting', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router; // ✅ Correct CommonJS export
+
