@@ -1,18 +1,25 @@
-import express from 'express';
-import { tempSessions } from '../index.js';
-
+const express = require('express');
 const router = express.Router();
+
+// Import shared session store from index.js
+const { tempSessions } = require('../index');
 
 // ========================================================================
 // POST /store-step — Saves generator step progress
 // ========================================================================
 router.post('/store-step', (req, res) => {
   const { sessionId, step, content } = req.body;
+
   if (!sessionId || !step || !content) {
-    return res.status(400).json({ success: false, error: 'Missing sessionId, step, or content' });
+    return res.status(400).json({
+      success: false,
+      error: 'Missing sessionId, step, or content'
+    });
   }
+
   if (!tempSessions[sessionId]) tempSessions[sessionId] = {};
   tempSessions[sessionId][step] = content;
+
   res.json({ success: true });
 });
 
@@ -46,4 +53,5 @@ router.get('/get-status', (req, res) => {
   res.json({ success: true, statusLog });
 });
 
-export default router;
+module.exports = router;
+

@@ -6,7 +6,6 @@ import * as cheerio from 'cheerio';
 import simpleGit from 'simple-git';
 import slugify from 'slugify';
 
-
 import { tempSessions } from '../index.js';
 import {
   sanitizeRepoName,
@@ -17,69 +16,54 @@ import {
 import { deployToNetlify } from '../utils/netlifyDeploy.js';
 import { createNetlifySite } from '../utils/createNetlifySite.js';
 import { deployViaNetlifyApi } from '../utils/deployToNetlifyApi.js';
-
-// ✅ Add this for Google Apps Script support:
+import { setGitHubDNS } from '../utils/dnsUtils.js';
 import { createContactFormScript } from '../utils/createGoogleScript.js';
-
 
 const router = express.Router();
 
-const staticYaml = [
-  'name: Deploy static content to Pages',
-  '',
-  'on:',
-  '  push:',
-  '    branches: [ "main" ]',
-  '',
-  'permissions:',
-  '  contents: read',
-  '  pages: write',
-  '  id-token: write',
-  '',
-  'concurrency:',
-  '  group: "pages"',
-  '  cancel-in-progress: true',
-  '',
-  'jobs:',
-  '  deploy:',
-  '    environment:',
-  '      name: github-pages',
-  '    runs-on: ubuntu-latest',
-  '    steps:',
-  '      - name: Checkout repository',
-  '        uses: actions/checkout@v4',
-  '      - name: Setup Pages',
-  '        uses: actions/configure-pages@v5',
-  '      - name: Upload site artifact',
-  '        uses: actions/upload-pages-artifact@v3',
-  '        with:',
-  "          path: '.'",
-  '      - name: Debug echo',
-  '        run: echo "GitHub Pages workflow triggered"',
-  '      - name: Deploy to GitHub Pages',
-  '        id: deployment',
-  '        uses: actions/deploy-pages@v4'
-].join('\n');
+const staticYaml = `name: Deploy static content to Pages
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Debug echo
+        run: echo "GitHub Pages workflow triggered"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4`;
 
 function generateSlug(base, attempt) {
   const suffix = attempt > 0 ? `-${attempt}` : '';
   return `${slugify(base, { lower: true, strict: true }).slice(0, 40 - suffix.length)}${suffix}`;
 }
 
-async function createUniqueNetlifySite(token, baseSlug) {
-  for (let i = 0; i < 10; i++) {
-    const slug = generateSlug(baseSlug, i);
-    try {
-      const { siteId, siteUrl } = await createNetlifySite(token, slug);
-      return { siteId, siteUrl };
-    } catch (err) {
-      if (err.message.includes('name already taken')) continue;
-      throw err;
-    }
-  }
-  throw new Error('Could not create a unique Netlify site after 10 attempts.');
-}
-
+// ==========================
+// POST /deploy-live
+// ==========================
 router.post('/deploy-live', async (req, res) => {
   try {
     const { sessionId = '', businessName = '' } = req.body;
@@ -91,11 +75,9 @@ router.post('/deploy-live', async (req, res) => {
 
     const repoName = `site-${sessionId}`;
     const folderPath = path.join('/tmp', repoName);
-
     await fs.remove(folderPath);
     await fs.ensureDir(folderPath);
 
-    // Build session.structure from <title> tags if not already defined
     if (!session.structure) {
       session.structure = session.pages.map((html, i) => {
         const $ = cheerio.load(html);
@@ -107,12 +89,9 @@ router.post('/deploy-live', async (req, res) => {
       });
     }
 
-    // Fix links and write full valid HTML files
     for (let i = 0; i < session.pages.length; i++) {
-      const html = session.pages[i];
+      const $ = cheerio.load(session.pages[i]);
       const fileName = session.structure[i].file;
-
-      const $ = cheerio.load(html);
 
       $('a').each((_, el) => {
         const linkText = $(el).text().trim().toLowerCase();
@@ -122,16 +101,12 @@ router.post('/deploy-live', async (req, res) => {
         }
       });
 
-      // ✅ Correct full document output for Netlify (not escaped text)
       await fs.writeFile(path.join(folderPath, fileName), $.root().html(), 'utf-8');
     }
 
-    // Create Netlify site
     const baseSlug = businessName || `site-${sessionId}`;
     const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
-
-    let siteId = null;
-    let siteUrl = null;
+    let siteId = null, siteUrl = null;
 
     for (let i = 0; i < 10; i++) {
       const slug = i === 0 ? slugifiedBase : `${slugifiedBase}-${i}`;
@@ -141,26 +116,24 @@ router.post('/deploy-live', async (req, res) => {
         siteUrl = result.siteUrl;
         break;
       } catch (err) {
-        if (err.message.includes('name already taken')) continue;
-        throw err;
+        if (!err.message.includes('name already taken')) throw err;
       }
     }
 
-    if (!siteId || !siteUrl) {
-      throw new Error('Could not create a unique Netlify site or retrieve its URL.');
-    }
+    if (!siteId || !siteUrl) throw new Error('Could not create a unique Netlify site.');
 
     await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
 
     res.json({ success: true, pagesUrl: siteUrl });
-
   } catch (err) {
     console.error('❌ Netlify deploy failed:', err);
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
 
-// ✅ GitHub-only deployment (no domain)
+// ==========================
+// POST /deploy-github
+// ==========================
 router.post('/deploy-github', async (req, res) => {
   try {
     const { sessionId = '', businessName = '' } = req.body || {};
@@ -181,7 +154,6 @@ router.post('/deploy-github', async (req, res) => {
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    // Create GitHub repository
     await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
@@ -192,7 +164,6 @@ router.post('/deploy-github', async (req, res) => {
       body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
 
-    // Write files locally
     await fs.remove(localDir);
     await fs.ensureDir(localDir);
     await fs.writeFile(path.join(localDir, 'README.md'), `# ${repoName}`);
@@ -208,7 +179,6 @@ router.post('/deploy-github', async (req, res) => {
     await fs.ensureDir(workflowDir);
     await fs.writeFile(path.join(workflowDir, 'static.yml'), staticYaml);
 
-    // Git operations
     const git = simpleGit(localDir);
     await git.init(['--initial-branch=main']);
     await git.addRemote('origin', repoUrl);
@@ -224,7 +194,6 @@ router.post('/deploy-github', async (req, res) => {
     await git.commit('Trigger GitHub Actions workflow');
     await git.push('origin', 'main');
 
-    // Enable GitHub Pages
     let pagesUrl = `https://${owner}.github.io/${repoName}/`;
     try {
       pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
@@ -249,10 +218,9 @@ router.post('/deploy-github', async (req, res) => {
   }
 });
 
-
-// ✅ Full hosting with GitHub Pages and custom domain
-import { setGitHubDNS } from '../utils/dnsUtils.js';
-
+// ==========================
+// POST /deploy-full-hosting
+// ==========================
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
     const {
@@ -270,10 +238,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(404).json({ error: 'Session not found or empty.' });
     }
 
-    // ✅ GoDaddy domain purchase logic (unchanged)
-    // ...
-
-    // ✅ GitHub setup
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing.');
@@ -297,8 +261,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await fs.writeFile(path.join(localDir, 'README.md'), `# ${repoName}`);
 
     let scriptUrl = null;
-
-    // ✅ Generate Google Apps Script IF user selected contact form
     if (wantsContactForm && contactEmail) {
       try {
         scriptUrl = await createContactFormScript(contactEmail);
@@ -308,7 +270,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
       }
     }
 
-    // ✅ Write website pages (inject contact form script URL if needed)
     for (let i = 0; i < session.pages.length; i++) {
       const fileName = session.structure?.[i]?.file || (i === 0 ? 'index.html' : `page${i + 1}.html`);
       let pageContent = session.pages[i];
@@ -337,12 +298,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await git.commit('Initial commit with CNAME and site files');
     await git.push('origin', 'main');
 
-    await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
-    await git.add('.');
-    await git.commit('Trigger GitHub Actions workflow');
-    await git.push('origin', 'main');
-
-    // ✅ GitHub Pages + DNS logic (unchanged)
     await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
       method: 'POST',
       headers: {
@@ -397,6 +352,5 @@ router.post('/deploy-full-hosting', async (req, res) => {
     res.status(500).json({ error: 'Full hosting deployment failed', detail: err.message });
   }
 });
-
 
 export default router;

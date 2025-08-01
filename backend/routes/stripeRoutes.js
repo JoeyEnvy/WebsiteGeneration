@@ -1,6 +1,6 @@
-import express from 'express';
-import Stripe from 'stripe';
-import { tempSessions } from '../index.js';
+const express = require('express');
+const Stripe = require('stripe');
+const { tempSessions } = require('../index');
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -9,7 +9,14 @@ router.post('/create-checkout-session', async (req, res) => {
   const { type, sessionId, businessName, domain, duration, email } = req.body;
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log('📥 Incoming Stripe checkout request:', { type, sessionId, businessName, domain, duration, email });
+    console.log('📥 Incoming Stripe checkout request:', {
+      type,
+      sessionId,
+      businessName,
+      domain,
+      duration,
+      email
+    });
   }
 
   if (!type || !sessionId) {
@@ -30,14 +37,8 @@ router.post('/create-checkout-session', async (req, res) => {
     'zip-download': { price: 50, name: 'ZIP File Only (Test Mode)' },
     'github-instructions': { price: 50, name: 'GitHub Self-Deployment Instructions (Test Mode)' },
     'github-hosted': { price: 50, name: 'GitHub Hosting + Support (Test Mode)' },
-    'full-hosting': {
-      price: 50,
-      name: 'Full Hosting + Custom Domain (Test Mode)'
-    },
-    'netlify-hosted': {
-      price: 50,
-      name: 'Netlify Hosted Deployment (Test Mode)'
-    }
+    'full-hosting': { price: 50, name: 'Full Hosting + Custom Domain (Test Mode)' },
+    'netlify-hosted': { price: 50, name: 'Netlify Hosted Deployment (Test Mode)' }
   };
 
   const product = priceMap[type];
@@ -86,5 +87,5 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
 

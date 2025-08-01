@@ -1,53 +1,31 @@
 // ========================================================================
-// Express + Modular API Backend for AI Website Generator
+// Express + Modular API Backend for AI Website Generator (CommonJS)
 // ========================================================================
 
-import dotenv from 'dotenv';
-dotenv.config();
+require('dotenv').config();
 
-import express from 'express';
-import cors from 'cors';
-import Stripe from 'stripe';
-import fetch from 'node-fetch';
-import sgMail from '@sendgrid/mail';
-import JSZip from 'jszip';
-import { v4 as uuidv4 } from 'uuid';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const cors = require('cors');
+const Stripe = require('stripe');
+const fetch = require('node-fetch');
+const sgMail = require('@sendgrid/mail');
+const JSZip = require('jszip');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
-// Resolve __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Resolve __dirname in CommonJS (already native)
+const __dirname = __dirname;
 
-// Import routes
-import sessionRoutes from './routes/sessionRoutes.js';
-import domainRoutes from './routes/domainRoutes.js';
-import stripeRoutes from './routes/stripeRoutes.js';
-import deployRoutes from './routes/deployRoutes.js';
-import utilityRoutes from './routes/utilityRoutes.js';
+// Import routes (converted modules must use `module.exports`)
+const sessionRoutes = require('./routes/sessionRoutes');
+const domainRoutes = require('./routes/domainRoutes');
+const stripeRoutes = require('./routes/stripeRoutes');
+const deployRoutes = require('./routes/deployRoutes');
+const utilityRoutes = require('./routes/utilityRoutes');
 
 // ========================================================================
 // App setup
 // ========================================================================
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import sgMail from '@sendgrid/mail';
-import Stripe from 'stripe';
-import fetch from 'node-fetch';
-import JSZip from 'jszip';
-import { v4 as uuidv4 } from 'uuid';
-
-import sessionRoutes from './routes/sessionRoutes.js';
-import domainRoutes from './routes/domainRoutes.js';
-import stripeRoutes from './routes/stripeRoutes.js';
-import deployRoutes from './routes/deployRoutes.js';
-import utilityRoutes from './routes/utilityRoutes.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -59,10 +37,11 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ✅ In-memory session store
-export const tempSessions = {};
+const tempSessions = {};
+module.exports.tempSessions = tempSessions;
 
 // ✅ Export shared utilities (no Octokit anymore)
-export const thirdParty = {
+module.exports.thirdParty = {
   stripe,
   fetch,
   sgMail,

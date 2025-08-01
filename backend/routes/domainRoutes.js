@@ -1,6 +1,6 @@
-import express from 'express';
-import fetch from 'node-fetch';
-import { getDomainPriceInPounds } from '../utils/domainPricing.js'; // ✅ Import pricing map
+const express = require('express');
+const fetch = require('node-fetch');
+const { getDomainPriceInPounds } = require('../utils/domainPricing'); // ✅ Pricing map
 
 const router = express.Router();
 
@@ -15,6 +15,7 @@ router.post('/check-domain', async (req, res) => {
   const apiBase = process.env.GODADDY_ENV === 'production'
     ? 'https://api.godaddy.com'
     : 'https://api.ote-godaddy.com';
+
   const checkUrl = `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}&checkType=FAST&forTransfer=false`;
 
   try {
@@ -36,7 +37,7 @@ router.post('/check-domain', async (req, res) => {
     }
 
     const data = await response.json();
-    const domainPrice = getDomainPriceInPounds(cleanedDomain); // 🔁 Use local pricing instead of GoDaddy price
+    const domainPrice = getDomainPriceInPounds(cleanedDomain); // 🔁 Local pricing
     const currency = 'GBP';
 
     res.json({
@@ -53,7 +54,7 @@ router.post('/check-domain', async (req, res) => {
   }
 });
 
-// ✅ Domain Price Estimator (now uses local utility instead of GoDaddy API)
+// ✅ Domain Price Estimator (local utility)
 router.post('/get-domain-price', async (req, res) => {
   const { domain, duration } = req.body;
   const cleanedDomain = domain?.trim().toLowerCase();
@@ -82,6 +83,4 @@ router.get('/ping-domain-routes', (req, res) => {
   res.json({ ok: true, message: '✅ domainRoutes.js is live' });
 });
 
-export default router;
-
-
+module.exports = router; // ✅ CommonJS export

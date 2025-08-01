@@ -1,9 +1,9 @@
-import express from 'express';
-import fetch from 'node-fetch';
-import sgMail from '@sendgrid/mail';
-import JSZip from 'jszip';
-import { tempSessions } from '../index.js';
-import { createContactFormScript } from '../utils/createGoogleScript.js';
+const express = require('express');
+const fetch = require('node-fetch');
+const sgMail = require('@sendgrid/mail');
+const JSZip = require('jszip');
+const { tempSessions } = require('../index');
+const { createContactFormScript } = require('../utils/createGoogleScript');
 
 const router = express.Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -88,8 +88,8 @@ router.post('/generate', async (req, res) => {
       }
 
       const data = await response.json();
-
       const content = data?.choices?.[0]?.message?.content || '';
+
       if (!content.trim()) {
         console.warn('⚠️ OpenAI returned empty content.');
       }
@@ -202,5 +202,5 @@ router.post('/create-contact-script', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
 
