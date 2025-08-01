@@ -2,13 +2,14 @@ const express = require('express');
 const fetch = require('node-fetch');
 const sgMail = require('@sendgrid/mail');
 const JSZip = require('jszip');
-const { tempSessions } = require('../index');
+const { tempSessions } = require('../index.cjs'); // ✅ FIXED
 const { createContactFormScript } = require('../utils/createGoogleScript');
 
 const router = express.Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 
 // ========================================================================
 // POST /generate — Calls OpenAI to generate HTML pages

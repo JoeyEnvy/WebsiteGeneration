@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 // Import shared session store from index.js
-const { tempSessions } = require('../index');
+const { tempSessions } = require('../index.cjs');
+
 
 // ========================================================================
 // POST /store-step — Saves generator step progress

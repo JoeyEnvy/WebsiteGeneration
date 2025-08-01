@@ -1,23 +1,23 @@
-import express from 'express';
-import fetch from 'node-fetch';
-import fs from 'fs-extra';
-import path from 'path';
-import * as cheerio from 'cheerio';
-import simpleGit from 'simple-git';
-import slugify from 'slugify';
+const express = require('express');
+const fetch = require('node-fetch');
+const fs = require('fs-extra');
+const path = require('path');
+const cheerio = require('cheerio');
+const simpleGit = require('simple-git');
+const slugify = require('slugify');
 
-import { tempSessions } from '../index.js';
-import {
+const { tempSessions } = require('../index.cjs');
+const {
   sanitizeRepoName,
   getUniqueRepoName,
   enableGitHubPagesWorkflow,
   retryRequest
-} from '../utils/githubUtils.js';
-import { deployToNetlify } from '../utils/netlifyDeploy.js';
-import { createNetlifySite } from '../utils/createNetlifySite.js';
-import { deployViaNetlifyApi } from '../utils/deployToNetlifyApi.js';
-import { setGitHubDNS } from '../utils/dnsUtils.js';
-import { createContactFormScript } from '../utils/createGoogleScript.js';
+} = require('../utils/githubUtils');
+const { deployToNetlify } = require('../utils/netlifyDeploy');
+const { createNetlifySite } = require('../utils/createNetlifySite');
+const { deployViaNetlifyApi } = require('../utils/deployToNetlifyApi');
+const { setGitHubDNS } = require('../utils/dnsUtils');
+const { createContactFormScript } = require('../utils/createGoogleScript');
 
 const router = express.Router();
 
