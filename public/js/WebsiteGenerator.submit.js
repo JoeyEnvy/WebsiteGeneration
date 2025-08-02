@@ -1,4 +1,4 @@
-// ✅ Fix: Dynamically handle required field for contact email
+// ✅ Handle dynamic contact email field
 document.addEventListener('DOMContentLoaded', function () {
   const checkbox = document.getElementById('contactFormCheckbox');
   const emailInput = document.getElementById('contactEmail');
@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
+
+// ✅ Submit handler
 WebsiteGenerator.prototype.handleSubmit = async function () {
   this.goToStep(5);
   this.showLoading();
@@ -26,7 +28,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     if (selectedFeatures.includes('contact form')) {
       contactEmail = formData.get('contactEmail')?.trim();
-
       if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
         localStorage.setItem('contactEmail', contactEmail);
       } else {
@@ -34,131 +35,141 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       }
     }
 
-const finalPrompt = this.buildFinalPrompt(formData);
-console.log('🚀 FINAL PROMPT:', finalPrompt);
-console.log('📦 Sending to /generate →', {
-  query: finalPrompt,
-  pageCount: formData.get('pageCount') || '1'
-});
-localStorage.setItem('businessName', formData.get('businessName') || '');
+    const finalPrompt = this.buildFinalPrompt(formData);
+    const pageCount = formData.get('pageCount') || '1';
+    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
 
-if (!localStorage.getItem('sessionId')) {
-  localStorage.setItem('sessionId', crypto.randomUUID());
-}
+    localStorage.setItem('sessionId', sessionId);
+    localStorage.setItem('businessName', formData.get('businessName') || '');
 
-    const response = await fetch('https://websitegeneration.onrender.com/generate', {
+    console.log('🚀 FINAL PROMPT:', finalPrompt);
+    console.log('📦 Sending to /generate →', { query: finalPrompt, pageCount });
+
+    const generateResponse = await fetch('https://websitegeneration.onrender.com/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: finalPrompt,
-        pageCount: formData.get('pageCount') || '1'
-      })
+      body: JSON.stringify({ query: finalPrompt, pageCount })
     });
 
-    const data = await response.json();
+    const data = await generateResponse.json();
+    if (!data.success || !Array.isArray(data.pages)) {
+      throw new Error(data.error || 'Server did not return valid pages.');
+    }
 
-    if (data.success) {
-      this.generatedPages = data.pages;
-      localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-      this.currentPage = 0;
+    this.generatedPages = data.pages;
+    this.currentPage = 0;
+    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
-      const sessionId = localStorage.getItem('sessionId');
-      await fetch('https://websitegeneration.onrender.com/store-step', {
+    try {
+      const storeRes = await fetch('https://websitegeneration.onrender.com/store-step', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: sessionId,
+          sessionId,
           step: 'pages',
-          content: data.pages
+          content: this.generatedPages
         })
       });
 
-      // ✅ Inject contact form
-      if (selectedFeatures.includes('contact form') && contactEmail) {
-        try {
-          const scriptRes = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: contactEmail })
-          });
+      if (!storeRes.ok) {
+        const err = await storeRes.text();
+        console.warn('❌ Failed to store step data:', err);
+      }
+    } catch (err) {
+      console.error('❌ /store-step fetch failed:', err);
+    }
 
-          const { scriptUrl } = await scriptRes.json();
-          const injectContactForm = (html, url) => html.replace(/<form[\s\S]*?<\/form>/i, `...`);
-          this.generatedPages = this.generatedPages.map(page => {
-            if (page.filename === 'contact.html') {
-              page.content = injectContactForm(page.content, scriptUrl);
-            }
-            return page;
-          });
+    if (selectedFeatures.includes('contact form') && contactEmail) {
+      try {
+        const scriptRes = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: contactEmail })
+        });
 
-          localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-        } catch (err) {
-          console.error('❌ Failed to inject contact form:', err);
+        const { scriptUrl } = await scriptRes.json();
+        const injectContactForm = (html, url) =>
+          html.replace(/<form[\s\S]*?<\/form>/i, `
+            <form action="${url}" method="POST">
+              <input name="name" required placeholder="Your name">
+              <input name="email" type="email" required placeholder="Your email">
+              <textarea name="message" required placeholder="Message"></textarea>
+              <button type="submit">Send</button>
+            </form>`);
+
+        this.generatedPages = this.generatedPages.map(page => {
+          if (page.filename === 'contact.html') {
+            page.content = injectContactForm(page.content, scriptUrl);
+          }
+          return page;
+        });
+
+        localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+      } catch (err) {
+        console.error('❌ Failed to inject contact form:', err);
+      }
+    }
+
+    const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
+    const isSinglePage = this.generatedPages.length === 1;
+
+    this.generatedPages = this.generatedPages.map(page => {
+      const availableAnchors = knownSections.filter(id =>
+        page.content.includes(`id="${id}"`) || page.content.includes(`id='${id}'`)
+      );
+
+      const navHTML = () => {
+        let nav = `<nav style="position: sticky; top: 0; background: #111; z-index: 999; padding: 10px 20px;">
+          <ul style="display: flex; gap: 20px; list-style: none; justify-content: center;">`;
+        for (const id of availableAnchors) {
+          nav += `<li><a href="#${id}" style="color: #fff; text-decoration: none;">${id.charAt(0).toUpperCase() + id.slice(1)}</a></li>`;
         }
+        nav += `</ul></nav>`;
+        return nav;
+      };
+
+      if (isSinglePage || availableAnchors.length > 3) {
+        page.content = page.content.replace(/<nav[\s\S]*?<\/nav>/i, navHTML());
+        page.content = page.content.replace('</body>', `
+          <style>
+            html { scroll-behavior: smooth; }
+            nav a.active {
+              color: #ff8800 !important;
+              border-bottom: 2px solid #ff8800;
+            }
+          </style>
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const links = document.querySelectorAll('nav a');
+              const sections = Array.from(links).map(link => document.querySelector(link.getAttribute('href')));
+              function activateLink() {
+                let index = sections.findIndex(section => section && section.getBoundingClientRect().top >= 0);
+                links.forEach(link => link.classList.remove('active'));
+                if (index !== -1 && links[index]) {
+                  links[index].classList.add('active');
+                }
+              }
+              window.addEventListener('scroll', activateLink);
+              activateLink();
+            });
+          </script>
+        </body>`);
       }
 
-      // ✅ Inject smart navbar behavior
-      const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
-      const isSinglePage = this.generatedPages.length === 1;
+      return page;
+    });
 
-      this.generatedPages = this.generatedPages.map(page => {
-        const availableAnchors = knownSections.filter(id =>
-          page.content.includes(`id="${id}"`) || page.content.includes(`id='${id}'`)
-        );
-
-        const navReplacement = () => {
-          let nav = `<nav style="position: sticky; top: 0; background: #111; z-index: 999; padding: 10px 20px;">
-            <ul style="display: flex; gap: 20px; list-style: none; justify-content: center;">`;
-          for (const id of availableAnchors) {
-            nav += `<li><a href="#${id}" style="color: #fff; text-decoration: none;">${id.charAt(0).toUpperCase() + id.slice(1)}</a></li>`;
-          }
-          nav += `</ul></nav>`;
-          return nav;
-        };
-
-        if (isSinglePage || availableAnchors.length > 3) {
-          page.content = page.content.replace(/<nav[\s\S]*?<\/nav>/i, navReplacement());
-          page.content = page.content.replace('</body>', `
-            <style>
-              html { scroll-behavior: smooth; }
-              nav a.active {
-                color: #ff8800 !important;
-                border-bottom: 2px solid #ff8800;
-              }
-            </style>
-            <script>
-              document.addEventListener('DOMContentLoaded', () => {
-                const links = document.querySelectorAll('nav a');
-                const sections = Array.from(links).map(link => document.querySelector(link.getAttribute('href')));
-                function activateLink() {
-                  let index = sections.findIndex(section => section && section.getBoundingClientRect().top >= 0);
-                  links.forEach(link => link.classList.remove('active'));
-                  if (index !== -1 && links[index]) {
-                    links[index].classList.add('active');
-                  }
-                }
-                window.addEventListener('scroll', activateLink);
-                activateLink();
-              });
-            </script>
-          </body>`);
-        }
-
-        return page;
-      });
-
-      this.updatePreview();
-      this.showSuccess('Website generated successfully!');
-    } else {
-      throw new Error(data.error || 'Unknown error from server.');
-    }
+    this.updatePreview();
+    this.showSuccess('Website generated successfully!');
   } catch (error) {
+    console.error('❌ Website generation failed:', error);
     this.showError('Failed to generate website: ' + error.message);
   } finally {
     this.hideLoading();
   }
 };
 
+// ✅ Final prompt builder
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
   const websiteType = formData.get('websiteType');
   const pageCount = formData.get('pageCount');

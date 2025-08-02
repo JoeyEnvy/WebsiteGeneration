@@ -8,32 +8,51 @@ const { tempSessions } = require('../index.cjs');
 // POST /store-step — Saves generator step progress
 // ========================================================================
 router.post('/store-step', (req, res) => {
-  const { sessionId, step, content, stepData } = req.body;
+  try {
+    const body = req.body || {};
+    const { sessionId, step, content, stepData } = body;
 
-  console.log('📥 Incoming /store-step payload:', req.body);
+    console.log('📥 RAW BODY:', JSON.stringify(body, null, 2));
 
-  // 🧠 Handle shape: { sessionId, stepData: { step1: {...}, step2: {...} } }
-  if (sessionId && stepData && typeof stepData === 'object') {
-    tempSessions[sessionId] = tempSessions[sessionId] || {};
-    Object.assign(tempSessions[sessionId], stepData);
-    console.log(`✅ Stored stepData object for session ${sessionId}`);
-    return res.json({ success: true });
+    if (!sessionId || typeof sessionId !== 'string') {
+      console.error('❌ Missing or invalid sessionId');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing or invalid sessionId'
+      });
+    }
+
+    // 🔁 Handle shape: { sessionId, stepData: { step1: {...}, step2: {...} } }
+    if (stepData && typeof stepData === 'object' && !Array.isArray(stepData)) {
+      tempSessions[sessionId] = tempSessions[sessionId] || {};
+      Object.assign(tempSessions[sessionId], stepData);
+      console.log(`✅ Stored full stepData for session ${sessionId}`);
+      return res.json({ success: true });
+    }
+
+    // 🔁 Handle shape: { sessionId, step: 'stepX', content: {...} }
+    if (step && typeof step === 'string' && typeof content !== 'undefined') {
+      tempSessions[sessionId] = tempSessions[sessionId] || {};
+      tempSessions[sessionId][step] = content;
+      console.log(`✅ Stored [${step}] for session ${sessionId}`);
+      return res.json({ success: true });
+    }
+
+    // ❌ If nothing matched
+    console.error('❌ Invalid structure — step or stepData missing or malformed');
+    return res.status(400).json({
+      success: false,
+      error: 'Missing stepData or content structure'
+    });
+
+  } catch (err) {
+    console.error('🔥 CRITICAL /store-step error:', err.stack || err.message || err);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      detail: err.message || 'Unknown'
+    });
   }
-
-  // 🧠 Handle shape: { sessionId, step: 'step3', content: { ... } }
-  if (sessionId && step && typeof content !== 'undefined') {
-    tempSessions[sessionId] = tempSessions[sessionId] || {};
-    tempSessions[sessionId][step] = content;
-    console.log(`✅ Stored [${step}] for session ${sessionId}`);
-    return res.json({ success: true });
-  }
-
-  // ❌ If neither shape is valid
-  console.error('❌ Invalid /store-step payload:', req.body);
-  return res.status(400).json({
-    success: false,
-    error: 'Missing or invalid sessionId, step, content, or stepData.'
-  });
 });
 
 // ========================================================================
@@ -50,7 +69,7 @@ router.get('/get-steps/:sessionId', (req, res) => {
 });
 
 // ========================================================================
-// ✅ GET /get-status — Returns current statusLog for frontend polling
+// GET /get-status — Returns current statusLog for frontend polling
 // ========================================================================
 router.get('/get-status', (req, res) => {
   const { sessionId } = req.query;
