@@ -30,7 +30,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     localStorage.setItem('businessName', formData.get('businessName') || '');
 
     let contactEmail = null;
-    const wantsContactForm = selectedFeatures.some(f => f.toLowerCase().includes('contact form'));
+    const wantsContactForm = selectedFeatures.some(f => f?.toLowerCase().includes('contact form'));
     if (wantsContactForm) {
       contactEmail = formData.get('contactEmail')?.trim();
       if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
@@ -52,11 +52,17 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     });
 
     const data = await generateResponse.json();
+    console.log('✅ /generate response:', data);
+
     if (!data.success || !Array.isArray(data.pages)) {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    this.generatedPages = data.pages;
+    this.generatedPages = data.pages.map(page => {
+      if (!page || typeof page.content !== 'string') return { ...page, content: '' };
+      return page;
+    });
+
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
@@ -88,23 +94,26 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
         });
 
         const { scriptUrl } = await scriptRes.json();
-        const injectContactForm = (html, url) =>
-          html.replace(/<form[\s\S]*?<\/form>/i, `
-            <form action="${url}" method="POST">
-              <input name="name" required placeholder="Your name">
-              <input name="email" type="email" required placeholder="Your email">
-              <textarea name="message" required placeholder="Message"></textarea>
-              <button type="submit">Send</button>
-            </form>`);
 
-        this.generatedPages = this.generatedPages.map(page => {
-          if (page.filename === 'contact.html') {
-            page.content = injectContactForm(page.content, scriptUrl);
-          }
-          return page;
-        });
+        if (scriptUrl) {
+          const injectContactForm = (html, url) =>
+            html.replace(/<form[\s\S]*?<\/form>/i, `
+              <form action="${url}" method="POST">
+                <input name="name" required placeholder="Your name">
+                <input name="email" type="email" required placeholder="Your email">
+                <textarea name="message" required placeholder="Message"></textarea>
+                <button type="submit">Send</button>
+              </form>`);
 
-        localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+          this.generatedPages = this.generatedPages.map(page => {
+            if (page && page.filename === 'contact.html' && typeof page.content === 'string') {
+              page.content = injectContactForm(page.content, scriptUrl);
+            }
+            return page;
+          });
+
+          localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+        }
       } catch (err) {
         console.error('❌ Failed to inject contact form:', err);
       }
@@ -114,6 +123,8 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     const isSinglePage = this.generatedPages.length === 1;
 
     this.generatedPages = this.generatedPages.map(page => {
+      if (!page || typeof page.content !== 'string') return page;
+
       const availableAnchors = knownSections.filter(id =>
         page.content.includes(`id="${id}"`) || page.content.includes(`id='${id}'`)
       );
@@ -240,3 +251,4 @@ No comments or explanations.
 Make the website feel premium, original, and fully functional. Avoid repetition. No lorem ipsum.
 `.trim();
 };
+
