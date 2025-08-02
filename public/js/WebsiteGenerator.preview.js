@@ -215,7 +215,8 @@ WebsiteGenerator.prototype.clearCheckboxError = function (field) {
 WebsiteGenerator.prototype.updatePreview = function () {
   if (!this.generatedPages || this.generatedPages.length === 0) return;
 
-  const currentPageContent = this.generatedPages[this.currentPage];
+  const currentPageContent = this.generatedPages[this.currentPage]?.content || '<html><body><h1>Page failed to load.</h1></body></html>';
+
   const scrollY = window.scrollY;
 
   if (!this.previewFrame) {

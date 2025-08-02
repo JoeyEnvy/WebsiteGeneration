@@ -58,10 +58,19 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    this.generatedPages = data.pages.map(page => {
-      if (!page || typeof page.content !== 'string') return { ...page, content: '' };
-      return page;
-    });
+this.generatedPages = data.pages.map((page, i) => {
+  if (!page || typeof page.content !== 'string') {
+    return {
+      filename: `page${i + 1}.html`,
+      content: `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
+    };
+  }
+  return {
+    filename: page.filename || `page${i + 1}.html`,
+    content: page.content
+  };
+});
+
 
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
