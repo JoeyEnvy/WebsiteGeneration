@@ -1,5 +1,7 @@
 const express = require('express');
-const fetch = require('node-fetch');
+// ✅ Enable fetch in CommonJS
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
 const sgMail = require('@sendgrid/mail');
 const JSZip = require('jszip');
 const { tempSessions } = require('../index.cjs'); // ✅ FIXED
