@@ -1,63 +1,43 @@
 const express = require('express');
-// ✅ Enable fetch in CommonJS
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
 const sgMail = require('@sendgrid/mail');
 const JSZip = require('jszip');
-const { tempSessions } = require('../index.cjs'); // ✅ FIXED
+const { tempSessions } = require('../index.cjs');
 const { createContactFormScript } = require('../utils/createGoogleScript');
 
 const router = express.Router();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-
 // ========================================================================
-// POST /generate — Calls OpenAI to generate HTML pages
+// ✅ POST /generate — AI Website Generation (OpenAI)
 // ========================================================================
 router.post('/generate', async (req, res) => {
   const prompt = req.body.query;
   const expectedPageCount = parseInt(req.body.pageCount || '1');
 
   if (!prompt || prompt.trim().length === 0) {
-    console.warn('⚠️ Empty or invalid prompt received');
-    return res.json({ success: false, error: 'Prompt is empty or invalid.' });
+    console.warn('⚠️ /generate: Empty or invalid prompt received');
+    return res.status(400).json({ success: false, error: 'Prompt is empty or invalid.' });
   }
 
   if (!OPENAI_API_KEY) {
-    console.error('❌ OPENAI_API_KEY is missing — cannot generate website.');
+    console.error('❌ OPENAI_API_KEY is missing');
     return res.status(500).json({ success: false, error: 'Server misconfigured: Missing OpenAI API key.' });
   }
-
-  console.log('✅ /generate prompt received.');
-  console.log('🧠 Prompt:', prompt);
 
   const messages = [
     {
       role: 'system',
       content: `You are a professional website developer tasked with generating full standalone HTML5 websites.
 
-🔧 Output Rules:
-- Every page must be a complete HTML5 document (start with <!DOCTYPE html>, end with </html>).
-- All CSS and JavaScript must be inline.
-- You MAY use external assets if they are public, reliable, and required for visuals (e.g., images, icons).
-
-📐 Structure Requirements:
-- Each page must contain a minimum of 5 clearly defined, responsive sections.
-- Use semantic HTML5: <header>, <nav>, <main>, <section>, <footer>, etc.
-
-🖼️ Media & Icons:
-- Embed at least 2–3 royalty-free images per page from **Unsplash**, **Pexels**, or **Pixabay** via direct URLs.
-- Include icons using the **FontAwesome CDN**:
-  https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css
-
-📋 Content Requirements:
-- Do not use 'Lorem Ipsum'.
-- Generate context-aware content using any description provided.
-- Each section should be unique and useful: hero, about, services, testimonials, contact, etc.
-
-🚫 Do not use markdown, placeholder filenames, or non-functional links.`.trim()
+Output Rules:
+- Must be complete HTML5 documents with DOCTYPE and </html>
+- All CSS/JS inline unless needed (e.g. FontAwesome CDN)
+- Use <header>, <main>, <section>, etc.
+- Embed 2–3 royalty-free images via Unsplash, Pexels, or Pixabay
+- Use real content (no lorem ipsum)
+- Do not use markdown or placeholder links.`
     },
     { role: 'user', content: prompt }
   ];
@@ -68,7 +48,7 @@ router.post('/generate', async (req, res) => {
 
   try {
     while (retries < maxRetries) {
-      console.log(`⏳ Attempt ${retries + 1} to generate content...`);
+      console.log(`⏳ [OpenAI] Attempt ${retries + 1}`);
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -86,8 +66,8 @@ router.post('/generate', async (req, res) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ OpenAI API failed (HTTP ${response.status}):`, errorText);
-        return res.status(500).json({ success: false, error: `OpenAI API error: ${response.status}` });
+        console.error(`❌ OpenAI API error (${response.status}):`, errorText);
+        return res.status(500).json({ success: false, error: `OpenAI error: ${response.status}` });
       }
 
       const data = await response.json();
@@ -98,7 +78,6 @@ router.post('/generate', async (req, res) => {
       }
 
       fullContent += '\n' + content.trim();
-
       const htmlCount = (fullContent.match(/<\/html>/gi) || []).length;
       if (htmlCount >= expectedPageCount) break;
 
@@ -114,30 +93,26 @@ router.post('/generate', async (req, res) => {
       .filter(p => p.includes('</html>'));
 
     if (cleanedPages.length === 0) {
-      console.warn('⚠️ No valid HTML documents were parsed.');
-      return res.json({
-        success: false,
-        error: 'No valid HTML documents were extracted.',
-        debug: fullContent
-      });
+      console.warn('⚠️ No valid HTML parsed');
+      return res.status(500).json({ success: false, error: 'No valid HTML documents extracted.', debug: fullContent });
     }
 
-    console.log(`✅ Generated ${cleanedPages.length} HTML page(s).`);
+    console.log(`✅ Generated ${cleanedPages.length} page(s)`);
     res.json({ success: true, pages: cleanedPages });
 
   } catch (err) {
-    console.error('❌ Generation error:', err.stack || err);
+    console.error('❌ /generate error:', err.stack || err);
     res.status(500).json({ success: false, error: 'Server error during generation: ' + err.message });
   }
 });
 
 // ========================================================================
-// POST /email-zip — Sends a ZIP file of pages via SendGrid
+// ✅ POST /email-zip — Send ZIP via SendGrid
 // ========================================================================
 router.post('/email-zip', async (req, res) => {
   const { email, pages, extraNote = '' } = req.body;
 
-  if (!email || !Array.isArray(pages) || pages.length === 0) {
+  if (!email || typeof email !== 'string' || !Array.isArray(pages) || pages.length === 0) {
     return res.status(400).json({ success: false, error: 'Missing or invalid email/pages.' });
   }
 
@@ -154,26 +129,26 @@ router.post('/email-zip', async (req, res) => {
       from: 'c.fear.907@gmail.com',
       subject: 'Your AI-Generated Website ZIP',
       text: extraNote || 'Attached is your AI-generated website in ZIP format.',
-      attachments: [
-        {
-          content,
-          filename: 'my-website.zip',
-          type: 'application/zip',
-          disposition: 'attachment'
-        }
-      ]
+      attachments: [{
+        content,
+        filename: 'my-website.zip',
+        type: 'application/zip',
+        disposition: 'attachment'
+      }]
     };
 
     await sgMail.send(msg);
+    console.log(`📤 ZIP sent to ${email}`);
     res.json({ success: true });
+
   } catch (err) {
-    console.error('❌ Email ZIP error:', err);
+    console.error('❌ /email-zip error:', err.stack || err);
     res.status(500).json({ success: false, error: 'Failed to send ZIP.' });
   }
 });
 
 // ========================================================================
-// POST /log-download — Logs when someone downloads or views ZIP
+// ✅ POST /log-download — Log download activity
 // ========================================================================
 router.post('/log-download', (req, res) => {
   const { sessionId, type, timestamp } = req.body;
@@ -187,7 +162,7 @@ router.post('/log-download', (req, res) => {
 });
 
 // ========================================================================
-// POST /create-contact-script — Deploys Google Apps Script for contact form
+// ✅ POST /create-contact-script — Deploys Google Apps Script
 // ========================================================================
 router.post('/create-contact-script', async (req, res) => {
   const { email } = req.body;
@@ -200,10 +175,11 @@ router.post('/create-contact-script', async (req, res) => {
     const scriptUrl = await createContactFormScript(email);
     res.json({ scriptUrl });
   } catch (err) {
-    console.error('❌ Contact script creation failed:', err.stack || err);
+    console.error('❌ /create-contact-script error:', err.stack || err);
     res.status(500).json({ error: 'Failed to create contact form script.' });
   }
 });
 
 module.exports = router;
+
 

@@ -22,20 +22,16 @@ const { createContactFormScript } = require('../utils/createGoogleScript');
 const router = express.Router();
 
 const staticYaml = `name: Deploy static content to Pages
-
 on:
   push:
     branches: [ "main" ]
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: true
-
 jobs:
   deploy:
     environment:
@@ -50,8 +46,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-      - name: Debug echo
-        run: echo "GitHub Pages workflow triggered"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4`;
@@ -62,7 +56,7 @@ function generateSlug(base, attempt) {
 }
 
 // ==========================
-// POST /deploy-live
+// ✅ POST /deploy-live — Netlify
 // ==========================
 router.post('/deploy-live', async (req, res) => {
   try {
@@ -70,7 +64,7 @@ router.post('/deploy-live', async (req, res) => {
     const session = tempSessions[sessionId];
 
     if (!session?.pages?.length) {
-      return res.status(400).json({ error: 'Session not found or empty.' });
+      return res.status(400).json({ error: 'Session not found or pages missing.' });
     }
 
     const repoName = `site-${sessionId}`;
@@ -96,20 +90,17 @@ router.post('/deploy-live', async (req, res) => {
       $('a').each((_, el) => {
         const linkText = $(el).text().trim().toLowerCase();
         const match = session.structure.find(p => p.title.toLowerCase() === linkText);
-        if (match) {
-          $(el).attr('href', match.file);
-        }
+        if (match) $(el).attr('href', match.file);
       });
 
       await fs.writeFile(path.join(folderPath, fileName), $.root().html(), 'utf-8');
     }
 
-    const baseSlug = businessName || `site-${sessionId}`;
-    const slugifiedBase = slugify(baseSlug, { lower: true, strict: true }).slice(0, 40);
+    const slugBase = slugify(businessName || `site-${sessionId}`, { lower: true, strict: true }).slice(0, 40);
     let siteId = null, siteUrl = null;
 
     for (let i = 0; i < 10; i++) {
-      const slug = i === 0 ? slugifiedBase : `${slugifiedBase}-${i}`;
+      const slug = i === 0 ? slugBase : `${slugBase}-${i}`;
       try {
         const result = await createNetlifySite(process.env.NETLIFY_TOKEN, slug);
         siteId = result.siteId;
@@ -120,35 +111,32 @@ router.post('/deploy-live', async (req, res) => {
       }
     }
 
-    if (!siteId || !siteUrl) throw new Error('Could not create a unique Netlify site.');
+    if (!siteId || !siteUrl) throw new Error('Netlify site creation failed');
 
     await deployViaNetlifyApi(folderPath, siteId, process.env.NETLIFY_TOKEN);
-
     res.json({ success: true, pagesUrl: siteUrl });
+
   } catch (err) {
-    console.error('❌ Netlify deploy failed:', err);
+    console.error('❌ Netlify deploy failed:', err.stack || err);
     res.status(500).json({ error: 'Deployment failed', detail: err.message });
   }
 });
 
 // ==========================
-// POST /deploy-github
+// ✅ POST /deploy-github
 // ==========================
 router.post('/deploy-github', async (req, res) => {
   try {
-    const { sessionId = '', businessName = '' } = req.body || {};
-    if (!sessionId || !businessName) {
-      return res.status(400).json({ error: 'Invalid session ID or business name.' });
-    }
-
+    const { sessionId = '', businessName = '' } = req.body;
     const session = tempSessions[sessionId];
-    if (!session?.pages?.length) {
-      return res.status(404).json({ error: 'Session not found or empty.' });
+
+    if (!sessionId || !businessName || !session?.pages?.length) {
+      return res.status(400).json({ error: 'Missing session or pages.' });
     }
 
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
-    if (!owner || !token) throw new Error('GitHub credentials missing.');
+    if (!owner || !token) throw new Error('GitHub credentials missing');
 
     const repoName = await getUniqueRepoName(sanitizeRepoName(businessName), owner);
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
@@ -184,28 +172,18 @@ router.post('/deploy-github', async (req, res) => {
     await git.addRemote('origin', repoUrl);
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
-
     await git.add('.');
-    await git.commit('Initial commit with README and site files');
-    await git.push('origin', 'main');
-
-    await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Trigger rebuild -->');
-    await git.add('.');
-    await git.commit('Trigger GitHub Actions workflow');
+    await git.commit('Initial commit');
     await git.push('origin', 'main');
 
     let pagesUrl = `https://${owner}.github.io/${repoName}/`;
     try {
       pagesUrl = await retryRequest(() => enableGitHubPagesWorkflow(owner, repoName, token), 3, 2000);
     } catch (err) {
-      console.warn('⚠️ GitHub Pages API failed — using fallback:', err.message);
+      console.warn('⚠️ GitHub Pages activation failed:', err.message);
     }
 
-    tempSessions[sessionId] = {
-      ...session,
-      deployed: true,
-      repo: repoName
-    };
+    tempSessions[sessionId] = { ...session, deployed: true, repo: repoName };
 
     res.json({
       success: true,
@@ -213,13 +191,13 @@ router.post('/deploy-github', async (req, res) => {
       repoUrl: `https://github.com/${owner}/${repoName}`
     });
   } catch (err) {
-    console.error('❌ GitHub-only deployment failed:', err);
+    console.error('❌ GitHub deploy failed:', err.stack || err);
     res.status(500).json({ error: 'GitHub deployment failed', detail: err.message });
   }
 });
 
 // ==========================
-// POST /deploy-full-hosting
+// ✅ POST /deploy-full-hosting — GitHub + Domain + DNS
 // ==========================
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
@@ -231,27 +209,27 @@ router.post('/deploy-full-hosting', async (req, res) => {
       contactEmail = '',
       wantsContactForm = false
     } = req.body || {};
-    const cleanedDomain = domain.trim().toLowerCase();
 
+    const cleanedDomain = domain.trim().toLowerCase();
     const session = tempSessions[sessionId];
-    if (!session?.pages?.length) {
-      return res.status(404).json({ error: 'Session not found or empty.' });
+
+    if (!sessionId || !session?.pages?.length || !cleanedDomain) {
+      return res.status(400).json({ error: 'Missing session or domain' });
     }
 
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
-    if (!owner || !token) throw new Error('GitHub credentials missing.');
+    if (!owner || !token) throw new Error('GitHub credentials missing');
 
     const repoName = await getUniqueRepoName(sanitizeRepoName(businessName), owner);
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    await fetch('https://api.github.com/user/repos', {
+    await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
         Authorization: `token ${token}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'website-generator'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
@@ -264,21 +242,20 @@ router.post('/deploy-full-hosting', async (req, res) => {
     if (wantsContactForm && contactEmail) {
       try {
         scriptUrl = await createContactFormScript(contactEmail);
-        console.log('✅ Google Script created:', scriptUrl);
       } catch (err) {
-        console.warn('⚠️ Failed to create Google Script:', err.message);
+        console.warn('⚠️ Contact script creation failed:', err.message);
       }
     }
 
     for (let i = 0; i < session.pages.length; i++) {
       const fileName = session.structure?.[i]?.file || (i === 0 ? 'index.html' : `page${i + 1}.html`);
-      let pageContent = session.pages[i];
+      let page = session.pages[i];
 
-      if (scriptUrl && pageContent.includes('form action="CONTACT_FORM_SCRIPT_HERE"')) {
-        pageContent = pageContent.replace('form action="CONTACT_FORM_SCRIPT_HERE"', `form action="${scriptUrl}"`);
+      if (scriptUrl && page.includes('CONTACT_FORM_SCRIPT_HERE')) {
+        page = page.replace('form action="CONTACT_FORM_SCRIPT_HERE"', `form action="${scriptUrl}"`);
       }
 
-      await fs.writeFile(path.join(localDir, fileName), pageContent);
+      await fs.writeFile(path.join(localDir, fileName), page);
     }
 
     await fs.writeFile(path.join(localDir, '.nojekyll'), '');
@@ -293,9 +270,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await git.addRemote('origin', repoUrl);
     await git.addConfig('user.name', 'Website Generator Bot');
     await git.addConfig('user.email', 'support@websitegenerator.co.uk');
-
     await git.add('.');
-    await git.commit('Initial commit with CNAME and site files');
+    await git.commit('Deploy with domain and contact form');
     await git.push('origin', 'main');
 
     await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
@@ -304,9 +280,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
         Authorization: `token ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        source: { branch: 'main', path: '/' }
-      })
+      body: JSON.stringify({ source: { branch: 'main', path: '/' } })
     });
 
     await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
@@ -324,18 +298,17 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn(`⚠️ DNS setup failed for ${cleanedDomain}:`, err.message);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Final DNS rebind -->');
+    await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Final DNS Rebind -->');
     await git.add('.');
-    await git.commit('Final push to ensure CNAME binding');
+    await git.commit('Final push to bind DNS');
     await git.push('origin', 'main');
 
     tempSessions[sessionId] = {
       ...session,
       deployed: true,
       domainPurchased: true,
-      repo: repoName,
       domain: cleanedDomain,
+      repo: repoName,
       contactScriptUrl: scriptUrl
     };
 
@@ -348,10 +321,10 @@ router.post('/deploy-full-hosting', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Full hosting deployment failed:', err);
+    console.error('❌ Full hosting deploy failed:', err.stack || err);
     res.status(500).json({ error: 'Full hosting deployment failed', detail: err.message });
   }
 });
 
-module.exports = router; // ✅ Correct CommonJS export
+module.exports = router;
 
