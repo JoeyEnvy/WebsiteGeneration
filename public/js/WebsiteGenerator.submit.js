@@ -23,10 +23,15 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
   try {
     const formData = new FormData(this.form);
-    const selectedFeatures = formData.getAll('features');
-    let contactEmail = null;
+    const selectedFeatures = formData.getAll('features') || [];
+    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
+    const pageCount = formData.get('pageCount') || '1';
+    localStorage.setItem('sessionId', sessionId);
+    localStorage.setItem('businessName', formData.get('businessName') || '');
 
-    if (selectedFeatures.includes('contact form')) {
+    let contactEmail = null;
+    const wantsContactForm = selectedFeatures.some(f => f.toLowerCase().includes('contact form'));
+    if (wantsContactForm) {
       contactEmail = formData.get('contactEmail')?.trim();
       if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
         localStorage.setItem('contactEmail', contactEmail);
@@ -36,11 +41,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     }
 
     const finalPrompt = this.buildFinalPrompt(formData);
-    const pageCount = formData.get('pageCount') || '1';
-    const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
-
-    localStorage.setItem('sessionId', sessionId);
-    localStorage.setItem('businessName', formData.get('businessName') || '');
 
     console.log('🚀 FINAL PROMPT:', finalPrompt);
     console.log('📦 Sending to /generate →', { query: finalPrompt, pageCount });
@@ -79,7 +79,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       console.error('❌ /store-step fetch failed:', err);
     }
 
-    if (selectedFeatures.includes('contact form') && contactEmail) {
+    if (wantsContactForm && contactEmail) {
       try {
         const scriptRes = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
           method: 'POST',
@@ -169,7 +169,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
   }
 };
 
-// ✅ Final prompt builder
+// ✅ Final prompt builder — massively improved
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
   const websiteType = formData.get('websiteType');
   const pageCount = formData.get('pageCount');
@@ -191,52 +191,52 @@ Each page must be a complete, fully working HTML5 document using <style> and <sc
 No comments or explanations.
 
 ✅ Core Design Guidelines:
-- Each website must use semantic HTML5 with <header>, <nav>, <main>, <section>, <footer>.
-- Structure layout with flexbox or CSS grid, with balanced spacing and good typography hierarchy.
-- Add full responsive design with breakpoints for 1024px, 768px, 480px, and 360px.
-- Ensure a clean, professional, modern style — unless otherwise varied below.
+- Use semantic HTML5 with <header>, <nav>, <main>, <section>, <footer>.
+- Fully responsive using CSS grid/flexbox with breakpoints for 1024px, 768px, 480px, 360px.
+- Style using clean, modern design principles and accessible color contrast.
 
-📦 Input Details:
+📦 Project Details:
 - Website Type: ${websiteType}
 - Business: "${businessName}" (${businessType})
 - Pages: ${pages}
 - Features: ${features}
-- Design: ${colorScheme} color scheme, ${fontStyle} fonts, ${layoutPreference} layout
+- Visuals: ${colorScheme} color scheme, ${fontStyle} fonts, ${layoutPreference} layout
 
-📝 Business Description:
-"${businessDescription}" — expand this into 2–3 descriptive paragraphs (300–500 words), using a realistic tone. Then list 4–6 bullet points in columns or grids.
+📣 Expand on Description:
+"${businessDescription}" — Expand this into a 2–3 paragraph About section (300–500 words), realistic tone, followed by a grid of 4–6 bullet point highlights.
 
-🎨 Required Visual Variation:
-- Must not reuse any images between pages.
-- Each page must include at least 3 images, pulled from different public sources (e.g. Unsplash, Pexels, Pixabay).
-- Include at least 3 FontAwesome icons on every page.
-- Use image styling: soft drop shadows, border-radius, padding.
+🎯 Required Features:
+- Newsletter signup form on homepage
+- Testimonial slider (JS)
+- Image gallery (lightbox optional)
+- FAQ accordion with smooth toggle
+- Pricing table
+- Floating call-to-action button
+- Modal popup (triggered on click)
+- Contact form if requested
 
-🎭 Layout & Aesthetic Randomization:
-- For each site or page, vary one or more of the following:
-  - Font pairings using Google Fonts (random, but aesthetic combinations).
-  - Navbar styles: top, side, vertical, floating, full-width.
-  - Unconventional layouts: mobile-style UIs on desktop, vertical scrolling cards, grid-based panels.
-  - Section separators: use SVG curves, slants, or clip-path effects.
-  - Transitions and animations: fade-ins, slide-ups, zoom-ins (on load or scroll).
-  - Themes: occasionally apply styles like brutalist, retro vaporwave, glassmorphism, neon, or Apple-style minimalism.
+🎨 Visual Variation:
+- Must not reuse images between pages
+- 3+ public domain images per page
+- Use FontAwesome icons, unique styling (shadows, border-radius, overlays)
 
-🧱 Required Sections:
-Each page must include 6–8 sections, for example:
-1. Hero Banner
-2. Business Overview or About
-3. Features or Services Grid
-4. Testimonials or Reviews
-5. Image Gallery or Showcase
-6. Call-to-Action or Signup Panel
-7. Contact Form
-8. Footer with business details
+🧠 Smart Variation:
+- Vary font pairings using Google Fonts
+- Vary navbar types: top, side, floating, pill tabs, full-width
+- Use animations (fade-in, scroll-reveal, zoom-in)
+- Apply random visual themes per site: glassmorphism, brutalist, minimal, vaporwave, etc.
+- At least one section must use SVG separators or CSS clip-paths
 
-📋 Content Notes:
-- All content must be realistic and relevant.
-- No Lorem Ipsum. No placeholder content.
-- Include strong CTAs, icon-enhanced bullet lists, headings, and styled quotes.
+🧱 Required Sections (per page):
+- Hero Banner
+- About or Business Overview
+- Services / Features Grid
+- Pricing or Plans Table
+- Image Showcase or Gallery
+- Testimonials or Quotes
+- Newsletter Signup or Contact Form
+- Footer with location, socials, copyright
 
-Ensure maximum visual uniqueness and modern appeal for each website.
+Make the website feel premium, original, and fully functional. Avoid repetition. No lorem ipsum.
 `.trim();
 };
