@@ -12,19 +12,18 @@ class WebsiteGenerator {
       this.generatedPages = JSON.parse(savedPages);
     }
 
-    this.initializeEventListeners();
+    if (typeof this.initializeEventListeners === 'function') {
+      this.initializeEventListeners();
+    }
+
     this.initializeDeploymentButtons();
     this.initializeContactFormToggle();
-    this.highlightStep(this.currentStep);
-  }
-
-  initializeEventListeners() {
-    const nextBtn = document.getElementById('nextStep4');
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => this.handleSubmit());
+    if (typeof this.highlightStep === 'function') {
+      this.highlightStep(this.currentStep);
     }
   }
 
+  // ✅ Contact Form Toggle
   initializeContactFormToggle() {
     const contactCheckbox = document.querySelector('input[name="features"][value="contact form"]');
     const emailContainer = document.getElementById('contactEmailContainer');
@@ -38,11 +37,12 @@ class WebsiteGenerator {
         if (!isChecked) emailInput.value = '';
       };
 
-      toggleVisibility(); // initial state
+      toggleVisibility(); // initial
       contactCheckbox.addEventListener('change', toggleVisibility);
     }
   }
 
+  // ✅ Deployment Buttons
   initializeDeploymentButtons() {
     document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
       this.startStripeCheckout('github-instructions');
@@ -108,12 +108,16 @@ class WebsiteGenerator {
     });
   }
 
+  // ✅ Page Navigation
   changePage(direction) {
     this.currentPage += direction;
     this.currentPage = Math.max(0, Math.min(this.currentPage, this.generatedPages.length - 1));
-    this.updatePreview();
+    if (typeof this.updatePreview === 'function') {
+      this.updatePreview();
+    }
   }
 
+  // ✅ Preview Device Resizing
   changePreviewDevice(device) {
     const sizes = {
       mobile: '375px',
@@ -121,9 +125,15 @@ class WebsiteGenerator {
       desktop: '100%'
     };
 
+    if (!this.previewFrame) {
+      this.previewFrame = document.getElementById('previewFrame');
+    }
+
+    if (!this.previewFrame) return;
+
     const iframe = this.previewFrame.querySelector('iframe');
     if (iframe) {
-      iframe.style.width = sizes[device];
+      iframe.style.width = sizes[device] || '100%';
     }
 
     document.querySelectorAll('.preview-controls button').forEach(button => {
@@ -131,6 +141,7 @@ class WebsiteGenerator {
     });
   }
 
+  // ✅ ZIP Download
   downloadGeneratedSite() {
     if (!this.userHasPaid) {
       alert('Please purchase access to download your website.');
@@ -155,16 +166,22 @@ class WebsiteGenerator {
 
 window.WebsiteGenerator = WebsiteGenerator;
 
+//
 // =======================
 // ✅ Validation Methods
 // =======================
 
 WebsiteGenerator.prototype.validateStep = function (stepId) {
   const step = document.getElementById(stepId);
-  if (!step) return false;
+  if (!step) {
+    console.error(`❌ Step not found: ${stepId}`);
+    return false;
+  }
 
-  const requiredFields = Array.from(step.querySelectorAll('[required]')).filter(field => field.offsetParent !== null);
   let isValid = true;
+
+  // ✅ Required field check
+  const requiredFields = Array.from(step.querySelectorAll('[required]')).filter(field => field.offsetParent !== null);
 
   requiredFields.forEach(field => {
     if (!field.value.trim()) {
@@ -175,17 +192,16 @@ WebsiteGenerator.prototype.validateStep = function (stepId) {
     }
   });
 
+  // ✅ Checkbox group validation
   const checkboxGroups = step.querySelectorAll('.checkbox-group');
   checkboxGroups.forEach(group => {
     const checkboxes = group.querySelectorAll('input[type="checkbox"]');
-    if (checkboxes.length) {
-      const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-      if (!anyChecked) {
-        this.showCheckboxError(checkboxes[0], 'Select at least one option');
-        isValid = false;
-      } else {
-        this.clearCheckboxError(checkboxes[0]);
-      }
+    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+    if (!anyChecked) {
+      this.showCheckboxError(checkboxes[0], 'Select at least one option');
+      isValid = false;
+    } else {
+      this.clearCheckboxError(checkboxes[0]);
     }
   });
 
@@ -196,9 +212,10 @@ WebsiteGenerator.prototype.showFieldError = function (field, message) {
   this.clearFieldError(field);
   const errorDiv = document.createElement('div');
   errorDiv.className = 'field-error';
-  errorDiv.innerHTML = message;
+  errorDiv.textContent = message;
   field.parentNode.appendChild(errorDiv);
   field.classList.add('error');
+  field.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
 WebsiteGenerator.prototype.clearFieldError = function (field) {
@@ -212,7 +229,7 @@ WebsiteGenerator.prototype.showCheckboxError = function (field, message) {
   if (group && !group.querySelector('.field-error')) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'field-error';
-    errorDiv.innerHTML = message;
+    errorDiv.textContent = message;
     group.appendChild(errorDiv);
   }
 };
@@ -223,34 +240,41 @@ WebsiteGenerator.prototype.clearCheckboxError = function (field) {
   if (errorDiv) errorDiv.remove();
 };
 
+//
 // =======================
-// ✅ handleSubmit Method
+// ✅ handleSubmit (placeholder)
 // =======================
 
 WebsiteGenerator.prototype.handleSubmit = async function () {
-  this.goToStep(5);
-  this.showLoading?.(); // Optional visual cue
+  this.goToStep?.(5);
+  this.showLoading?.();
 
   try {
+    if (!this.form) {
+      console.error('❌ Form element not found.');
+      return;
+    }
+
     const formData = new FormData(this.form);
     const selectedFeatures = formData.getAll('features');
     let contactEmail = null;
 
     if (selectedFeatures.includes('contact form')) {
       contactEmail = formData.get('contactEmail')?.trim();
-
       if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
         this.showFieldError(document.getElementById('contactEmail'), 'Enter a valid email address');
         return;
       }
     }
 
-    console.log('📝 Form submitted:', Object.fromEntries(formData.entries()));
+    console.log('📝 Form data:', Object.fromEntries(formData.entries()));
 
-    // TODO: Add /generate fetch here
+    // TODO: Implement /generate fetch logic here
   } catch (err) {
-    console.error('❌ Form submission error:', err);
+    console.error('❌ Submission failed:', err);
     alert('An error occurred while generating your website.');
+  } finally {
+    this.hideLoading?.();
   }
 };
 

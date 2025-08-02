@@ -1,3 +1,6 @@
+// =======================
+// ✅ initializeEventListeners
+// =======================
 WebsiteGenerator.prototype.initializeEventListeners = function () {
   // ===== Step Button Logic with Full Logging =====
   const stepButtons = [
@@ -15,7 +18,6 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     if (btn) {
       btn.addEventListener('click', () => {
         console.log(`🟦 Clicked: ${id} → Requested goToStep(${goTo})`);
-
         if (!step || this.validateStep(step)) {
           console.log(`✅ Validation passed for ${step} → Navigating to step ${goTo}`);
           this.goToStep(goTo);
@@ -38,7 +40,7 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     });
   });
 
-  // ===== Page Navigation =====
+  // ===== Page Navigation Buttons =====
   const prevPageBtn = document.getElementById('prevPage');
   const nextPageBtn = document.getElementById('nextPage');
 
@@ -48,6 +50,7 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
       this.changePage(-1);
     });
   }
+
   if (nextPageBtn) {
     nextPageBtn.addEventListener('click', () => {
       console.log('➡️ Next Page clicked');
@@ -60,13 +63,17 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();
       console.log('📝 Form submitted');
-      this.handleSubmit();
+      if (typeof this.handleSubmit === 'function') {
+        this.handleSubmit(); // must be bound from within class context
+      } else {
+        console.warn('❌ this.handleSubmit is not a function');
+      }
     });
   } else {
     console.warn('⚠️ Form element not found.');
   }
 
-  // ===== Purchase + Download Buttons =====
+  // ===== Simulated Purchase + Download Button =====
   const purchaseBtn = document.getElementById('purchaseBtn');
   const downloadBtn = document.getElementById('downloadSiteBtn');
 
@@ -89,13 +96,13 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     });
   }
 
-  // ===== Modal Close Logic =====
+  // ===== Modal Close Buttons =====
   const modalCloseButtons = document.querySelectorAll('.modal .close');
   modalCloseButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.modal');
       if (modal) {
-        console.log('❌ Closing modal:', modal.id);
+        console.log(`❌ Closing modal: ${modal.id}`);
         modal.style.display = 'none';
       }
     });
@@ -105,32 +112,33 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
   const step4 = document.getElementById('step4');
   if (step4) {
     console.log('✅ Step 4 detected in DOM');
-    // DEBUG: Uncomment below to force display for inspection
-    // step4.style.display = 'block';
-    // console.log('🔧 Forced Step 4 to display:block');
   } else {
     console.error('❌ Step 4 (#step4) NOT found in the DOM.');
   }
 };
 
-// ===== goToStep with Debug Tracing =====
+// =======================
+// ✅ goToStep with Debug Tracing
+// =======================
 WebsiteGenerator.prototype.goToStep = function (stepNumber) {
   const allSteps = document.querySelectorAll('.form-step');
   console.log(`➡️ goToStep(${stepNumber})`);
+
   allSteps.forEach((step, index) => {
     const show = index + 1 === stepNumber;
     step.style.display = show ? 'block' : 'none';
     console.log(`   Step ${index + 1} (${step.id}): ${show ? 'SHOW' : 'HIDE'}`);
   });
 
-  // Extra visual confirmation
   const visible = Array.from(document.querySelectorAll('.form-step'))
     .filter(el => window.getComputedStyle(el).display !== 'none')
     .map(el => el.id);
   console.log('👀 Currently visible step(s):', visible);
 };
 
-// ===== Post-Generation Modal Logic =====
+// =======================
+// ✅ showPostGenerationOptions
+// =======================
 WebsiteGenerator.prototype.showPostGenerationOptions = function () {
   const modal = document.getElementById('postGenerationModal');
   if (!modal) return;
@@ -167,7 +175,9 @@ WebsiteGenerator.prototype.showPostGenerationOptions = function () {
   }
 };
 
-// ===== Customization Panel Init =====
+// =======================
+// ✅ initializeCustomizationPanel
+// =======================
 WebsiteGenerator.prototype.initializeCustomizationPanel = function () {
   const panel = document.getElementById('customizationModal');
   if (!panel) return;
@@ -178,5 +188,4 @@ WebsiteGenerator.prototype.initializeCustomizationPanel = function () {
     tools.style.display = 'flex';
   }
 };
-
 
