@@ -8,31 +8,32 @@ const { tempSessions } = require('../index.cjs');
 // POST /store-step — Saves generator step progress
 // ========================================================================
 router.post('/store-step', (req, res) => {
-  const { sessionId, step, content } = req.body;
+  const { sessionId, step, content, stepData } = req.body;
 
-  // Log input for debugging
-  console.log('📥 Incoming /store-step:', { sessionId, step, content });
+  console.log('📥 Incoming /store-step payload:', req.body);
 
-  // Validate all fields are present
-  if (!sessionId || !step || typeof content === 'undefined') {
-    console.error('❌ Missing sessionId, step, or content in request');
-    return res.status(400).json({
-      success: false,
-      error: 'Missing sessionId, step, or content'
-    });
+  // 🧠 Handle shape: { sessionId, stepData: { step1: {...}, step2: {...} } }
+  if (sessionId && stepData && typeof stepData === 'object') {
+    tempSessions[sessionId] = tempSessions[sessionId] || {};
+    Object.assign(tempSessions[sessionId], stepData);
+    console.log(`✅ Stored stepData object for session ${sessionId}`);
+    return res.json({ success: true });
   }
 
-  // Initialize session if missing
-  if (!tempSessions[sessionId]) {
-    console.warn(`⚠️ Creating new tempSession for ${sessionId}`);
-    tempSessions[sessionId] = {};
+  // 🧠 Handle shape: { sessionId, step: 'step3', content: { ... } }
+  if (sessionId && step && typeof content !== 'undefined') {
+    tempSessions[sessionId] = tempSessions[sessionId] || {};
+    tempSessions[sessionId][step] = content;
+    console.log(`✅ Stored [${step}] for session ${sessionId}`);
+    return res.json({ success: true });
   }
 
-  // Assign step data safely
-  tempSessions[sessionId][step] = content;
-
-  console.log(`✅ Stored [${step}] for session ${sessionId}`);
-  res.json({ success: true });
+  // ❌ If neither shape is valid
+  console.error('❌ Invalid /store-step payload:', req.body);
+  return res.status(400).json({
+    success: false,
+    error: 'Missing or invalid sessionId, step, content, or stepData.'
+  });
 });
 
 // ========================================================================
@@ -68,4 +69,5 @@ router.get('/get-status', (req, res) => {
 });
 
 module.exports = router;
+
 
