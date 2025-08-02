@@ -34,12 +34,17 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       }
     }
 
-    const finalPrompt = this.buildFinalPrompt(formData);
-    localStorage.setItem('businessName', formData.get('businessName') || '');
+const finalPrompt = this.buildFinalPrompt(formData);
+console.log('🚀 FINAL PROMPT:', finalPrompt);
+console.log('📦 Sending to /generate →', {
+  query: finalPrompt,
+  pageCount: formData.get('pageCount') || '1'
+});
+localStorage.setItem('businessName', formData.get('businessName') || '');
 
-    if (!localStorage.getItem('sessionId')) {
-      localStorage.setItem('sessionId', crypto.randomUUID());
-    }
+if (!localStorage.getItem('sessionId')) {
+  localStorage.setItem('sessionId', crypto.randomUUID());
+}
 
     const response = await fetch('https://websitegeneration.onrender.com/generate', {
       method: 'POST',
