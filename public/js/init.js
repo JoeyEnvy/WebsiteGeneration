@@ -7,5 +7,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setupDomainChecker();
-  new WebsiteGenerator();
+
+  // ✅ Create global WebsiteGenerator instance
+  window.generator = new WebsiteGenerator();
+
+  // ✅ Hook up generate button
+  const generateButton = document.getElementById('nextStep4');
+  if (generateButton) {
+    generateButton.addEventListener('click', () => {
+      if (window.generator) {
+        window.generator.handleSubmit();
+      } else {
+        console.error('❌ WebsiteGenerator not initialized');
+      }
+    });
+  }
 });

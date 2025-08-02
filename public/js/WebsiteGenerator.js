@@ -18,6 +18,13 @@ class WebsiteGenerator {
     this.highlightStep(this.currentStep);
   }
 
+  initializeEventListeners() {
+    const nextBtn = document.getElementById('nextStep4');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => this.handleSubmit());
+    }
+  }
+
   initializeContactFormToggle() {
     const contactCheckbox = document.querySelector('input[name="features"][value="contact form"]');
     const emailContainer = document.getElementById('contactEmailContainer');
@@ -214,5 +221,36 @@ WebsiteGenerator.prototype.clearCheckboxError = function (field) {
   const group = field.closest('.checkbox-group');
   const errorDiv = group?.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
+};
+
+// =======================
+// ✅ handleSubmit Method
+// =======================
+
+WebsiteGenerator.prototype.handleSubmit = async function () {
+  this.goToStep(5);
+  this.showLoading?.(); // Optional visual cue
+
+  try {
+    const formData = new FormData(this.form);
+    const selectedFeatures = formData.getAll('features');
+    let contactEmail = null;
+
+    if (selectedFeatures.includes('contact form')) {
+      contactEmail = formData.get('contactEmail')?.trim();
+
+      if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+        this.showFieldError(document.getElementById('contactEmail'), 'Enter a valid email address');
+        return;
+      }
+    }
+
+    console.log('📝 Form submitted:', Object.fromEntries(formData.entries()));
+
+    // TODO: Add /generate fetch here
+  } catch (err) {
+    console.error('❌ Form submission error:', err);
+    alert('An error occurred while generating your website.');
+  }
 };
 
