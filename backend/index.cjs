@@ -35,9 +35,6 @@ app.use(express.json());
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ✅ In-memory session store
-const tempSessions = {};
-module.exports.tempSessions = tempSessions;
 
 // ✅ Export shared utilities (no Octokit anymore)
 module.exports.thirdParty = {
