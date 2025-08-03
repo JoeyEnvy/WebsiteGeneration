@@ -1,3 +1,6 @@
+// =======================
+// ✅ validateStep with Step 4 flexibility + full checkbox group support
+// =======================
 WebsiteGenerator.prototype.validateStep = function (stepId) {
   const step = document.getElementById(stepId);
 
@@ -22,12 +25,16 @@ WebsiteGenerator.prototype.validateStep = function (stepId) {
     }
   });
 
-  // ✅ Validate all checkbox groups (at least one selected)
+  // ✅ Validate checkbox groups — except skip step4 enhancements
   const checkboxGroups = step.querySelectorAll('.checkbox-group');
   checkboxGroups.forEach(group => {
     const checkboxes = group.querySelectorAll('input[type="checkbox"]');
     const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-    if (!anyChecked) {
+
+    const isEnhancementGroup = stepId === 'step4' && group.closest('#step4');
+    const isRequired = !isEnhancementGroup;
+
+    if (isRequired && !anyChecked) {
       this.showCheckboxError(checkboxes[0], 'Select at least one option');
       isValid = false;
     } else {
@@ -62,7 +69,9 @@ WebsiteGenerator.prototype.validateStep = function (stepId) {
   return isValid;
 };
 
+// =======================
 // 🔴 Show input error for text/textarea/email
+// =======================
 WebsiteGenerator.prototype.showFieldError = function (field, message) {
   this.clearFieldError(field);
   const errorDiv = document.createElement('div');
@@ -72,14 +81,18 @@ WebsiteGenerator.prototype.showFieldError = function (field, message) {
   field.parentNode.appendChild(errorDiv);
 };
 
+// =======================
 // 🟢 Remove input error display
+// =======================
 WebsiteGenerator.prototype.clearFieldError = function (field) {
   const errorDiv = field.parentNode.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
   field.classList.remove('error');
 };
 
+// =======================
 // 🔴 Show error on checkbox group
+// =======================
 WebsiteGenerator.prototype.showCheckboxError = function (field, message) {
   const group = field.closest('.checkbox-group');
   if (group && !group.querySelector('.field-error')) {
@@ -90,9 +103,12 @@ WebsiteGenerator.prototype.showCheckboxError = function (field, message) {
   }
 };
 
+// =======================
 // 🟢 Clear error from checkbox group
+// =======================
 WebsiteGenerator.prototype.clearCheckboxError = function (field) {
   const group = field.closest('.checkbox-group');
   const errorDiv = group?.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
 };
+
