@@ -26,8 +26,10 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     const selectedFeatures = formData.getAll('features') || [];
     const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
     const pageCount = formData.get('pageCount') || '1';
+    const businessName = formData.get('businessName') || '';
+
     localStorage.setItem('sessionId', sessionId);
-    localStorage.setItem('businessName', formData.get('businessName') || '');
+    localStorage.setItem('businessName', businessName);
 
     let contactEmail = null;
     const wantsContactForm = selectedFeatures.some(f => f?.toLowerCase().includes('contact form'));
@@ -41,8 +43,9 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     }
 
     const finalPrompt = this.buildFinalPrompt(formData);
+    console.log('📋 Raw FormData:', Object.fromEntries(formData.entries()));
     console.log('🚀 FINAL PROMPT:', finalPrompt);
-    console.log('📦 Sending to /generate →', { query: finalPrompt, pageCount });
+    console.log('🌐 FINAL FETCH PAYLOAD:', JSON.stringify({ query: finalPrompt, pageCount }));
 
     const generateResponse = await fetch('https://websitegeneration.onrender.com/generate', {
       method: 'POST',
@@ -57,12 +60,13 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
+    // Normalize response (either string pages or {filename, content} objects)
     this.generatedPages = data.pages.map((page, i) => {
-      const content = page?.content || '';
+      const content = typeof page === 'string' ? page : page?.content || '';
+      const filename = typeof page === 'object' && page.filename ? page.filename : `page${i + 1}.html`;
       const isValid = typeof content === 'string' && content.includes('<html');
-
       return {
-        filename: page.filename || `page${i + 1}.html`,
+        filename,
         content: isValid
           ? content
           : `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
@@ -179,37 +183,37 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       return page;
     });
 
-// ✅ Final check before preview
-try {
-  const previewCandidate = this.generatedPages[this.currentPage];
-  if (!previewCandidate || !previewCandidate.includes('<html')) {
-    console.error('❌ currentPageContent is invalid:', this.currentPage);
-    this.showError('Preview failed: Invalid HTML content.');
-    return;
-  }
+    // ✅ Final check before preview
+    const previewCandidate = this.generatedPages[this.currentPage];
+    if (!previewCandidate || !previewCandidate.content.includes('<html')) {
+      console.error('❌ currentPageContent is invalid:', this.currentPage);
+      this.showError('Preview failed: Invalid HTML content.');
+      return;
+    }
 
-  this.updatePreview();
-  this.showSuccess('Website generated successfully!');
-} catch (error) {
-  console.error('❌ Website generation failed:', error);
-  this.showError('Failed to generate website: ' + error.message);
-} finally {
-  this.hideLoading();
-}
+    this.updatePreview();
+    this.showSuccess('Website generated successfully!');
+  } catch (error) {
+    console.error('❌ Website generation failed:', error);
+    this.showError('Failed to generate website: ' + error.message);
+  } finally {
+    this.hideLoading();
+  }
+};
 
 // ✅ Final prompt builder
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
-  const websiteType = formData.get('websiteType');
-  const pageCount = formData.get('pageCount');
-  const pages = Array.from(formData.getAll('pages')).join(', ');
-  const businessName = formData.get('businessName');
-  const businessType = formData.get('businessType');
-  const businessDescription = formData.get('businessDescription');
-  const features = Array.from(formData.getAll('features')).join(', ');
-  const colorScheme = formData.get('colorScheme');
-  const fontStyle = formData.get('fontStyle');
-  const layoutPreference = formData.get('layoutPreference');
-  const enhancements = Array.from(formData.getAll('enhancements')).join(', ');
+  const websiteType = formData.get('websiteType') || '';
+  const pageCount = formData.get('pageCount') || '1';
+  const pages = Array.from(formData.getAll('pages')).join(', ') || '';
+  const businessName = formData.get('businessName') || '';
+  const businessType = formData.get('businessType') || '';
+  const businessDescription = formData.get('businessDescription') || '';
+  const features = Array.from(formData.getAll('features')).join(', ') || '';
+  const colorScheme = formData.get('colorScheme') || '';
+  const fontStyle = formData.get('fontStyle') || '';
+  const layoutPreference = formData.get('layoutPreference') || '';
+  const enhancements = Array.from(formData.getAll('enhancements')).join(', ') || '';
 
   return `
 You are a professional website developer.
@@ -268,4 +272,3 @@ No comments or explanations.
 Make the website feel premium, original, and fully functional. Avoid repetition. No lorem ipsum.
 `.trim();
 };
-
