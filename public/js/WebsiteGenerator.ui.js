@@ -127,7 +127,8 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
 // ✅ goToStep with Debug Tracing
 // =======================
 WebsiteGenerator.prototype.goToStep = function (stepNumber) {
-  const allSteps = document.querySelectorAll('.form-step');
+  const allSteps = document.querySelectorAll('#formStepsWrapper > .form-step');
+
   console.log(`➡️ goToStep(${stepNumber})`);
 
   allSteps.forEach((step, index) => {

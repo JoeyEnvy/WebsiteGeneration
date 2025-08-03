@@ -4,7 +4,8 @@ WebsiteGenerator.prototype.updatePreview = function () {
     return;
   }
 
-  const currentPageContent = this.generatedPages[this.currentPage];
+  const currentPage = this.generatedPages[this.currentPage];
+  const currentPageContent = currentPage?.content;
   if (!currentPageContent || typeof currentPageContent !== 'string') {
     console.error('❌ currentPageContent is invalid:', this.currentPage);
     return;
@@ -32,10 +33,8 @@ WebsiteGenerator.prototype.updatePreview = function () {
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
 
-
-// Safely inject full HTML into iframe
-doc.documentElement.innerHTML = currentPageContent;
-
+    // Safely inject full HTML into iframe
+    doc.documentElement.innerHTML = currentPageContent;
 
     // Inject style
     const style = doc.createElement('style');

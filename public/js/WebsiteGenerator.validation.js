@@ -31,8 +31,9 @@ WebsiteGenerator.prototype.validateStep = function (stepId) {
     const checkboxes = group.querySelectorAll('input[type="checkbox"]');
     const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
 
-    const isEnhancementGroup = stepId === 'step4' && group.closest('#step4');
-    const isRequired = !isEnhancementGroup;
+const isOptionalGroup = group.classList.contains('optional-group');
+const isRequired = !isOptionalGroup;
+
 
     if (isRequired && !anyChecked) {
       this.showCheckboxError(checkboxes[0], 'Select at least one option');
@@ -76,7 +77,7 @@ WebsiteGenerator.prototype.showFieldError = function (field, message) {
   this.clearFieldError(field);
   const errorDiv = document.createElement('div');
   errorDiv.className = 'field-error';
-  errorDiv.innerHTML = message;
+  errorDiv.textContent = message;
   field.classList.add('error');
   field.parentNode.appendChild(errorDiv);
 };

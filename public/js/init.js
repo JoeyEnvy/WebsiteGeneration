@@ -1,3 +1,10 @@
+// init.js
+
+document.addEventListener('DOMContentLoaded', () => {
+  debugger; // ⏸️ pauses JS right when the DOM is ready but before your custom JS executes
+});
+
+
 document.addEventListener('DOMContentLoaded', () => {
   // Hide customization tools initially
   const customizationPanel = document.getElementById('customizationPanel');

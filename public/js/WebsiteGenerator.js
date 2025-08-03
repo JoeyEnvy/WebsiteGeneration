@@ -256,12 +256,16 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 };
 
 // =======================
-// ✅ updatePreview (was missing)
+// ✅ updatePreview (fixed for .content injection)
 // =======================
 WebsiteGenerator.prototype.updatePreview = function () {
   if (!this.generatedPages || this.generatedPages.length === 0) return;
 
-  const currentPageContent = this.generatedPages[this.currentPage];
+  const currentPage = this.generatedPages[this.currentPage];
+  const currentPageContent = typeof currentPage === 'object' && currentPage.content
+    ? currentPage.content
+    : currentPage;
+
   const scrollY = window.scrollY;
 
   if (!this.previewFrame) {
@@ -282,7 +286,14 @@ WebsiteGenerator.prototype.updatePreview = function () {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
 
     // Inject the HTML
-    doc.documentElement.innerHTML = currentPageContent;
+    if (typeof currentPageContent === 'string' && currentPageContent.includes('<html')) {
+      doc.documentElement.innerHTML = currentPageContent;
+    } else {
+      console.warn('⚠️ Invalid or empty page content:', currentPageContent);
+      doc.documentElement.innerHTML = `
+        <html><body><h1 style="color: red; padding: 2rem;">⚠️ Failed to load generated page preview.</h1></body></html>
+      `;
+    }
 
     // Optional injected style
     const style = doc.createElement('style');

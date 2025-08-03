@@ -63,26 +63,20 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     }
 
     // ✅ Normalize response (string or object format — safe and flexible)
-    this.generatedPages = data.pages.map((page, i) => {
-      let content = '';
-      let filename = `page${i + 1}.html`;
+this.generatedPages = data.pages.map((rawHtml, i) => {
+  const content = typeof rawHtml === 'string'
+    ? rawHtml
+    : (typeof rawHtml?.content === 'string' ? rawHtml.content : '');
 
-      if (typeof page === 'string') {
-        content = page;
-      } else if (typeof page === 'object' && page !== null) {
-        content = typeof page.content === 'string' ? page.content : '';
-        filename = page.filename || filename;
-      }
+  const isValid = content.includes('<html>');
 
-      const isValid = typeof content === 'string' && content.includes('<html');
-
-      return {
-        filename,
-        content: isValid
-          ? content
-          : `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
-      };
-    });
+  return {
+    filename: `page${i + 1}.html`,
+    content: isValid
+      ? content
+      : `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
+  };
+});
 
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
