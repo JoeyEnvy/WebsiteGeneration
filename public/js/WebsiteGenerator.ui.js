@@ -64,7 +64,7 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     });
   }
 
-  // ===== Form Submission (not used directly, kept as fallback) =====
+  // ===== Form Submission (fallback) =====
   if (this.form) {
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();

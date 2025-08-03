@@ -3,12 +3,12 @@ const OpenAI = require('openai');
 
 const router = express.Router();
 
-// ✅ New v5.11 OpenAI client
+// ✅ OpenAI v5.11 client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// 🧠 Splits raw OpenAI reply into multiple full HTML pages
+// ✅ Utility: Split OpenAI response into full HTML pages
 function splitIntoPages(rawText) {
   return rawText
     .split(/(?=<html>)/i)
@@ -16,24 +16,42 @@ function splitIntoPages(rawText) {
     .filter(p => p.toLowerCase().includes('<html'));
 }
 
+// ✅ POST /generate — Generates full HTML pages via OpenAI
 router.post('/generate', async (req, res) => {
   console.log('🧠 /generate hit');
   try {
     const { query, pageCount = 1 } = req.body || {};
-    const pageNum = parseInt(pageCount);
+    const pageNum = Math.min(parseInt(pageCount), 5); // max 5 pages
 
-    if (!query || isNaN(pageNum)) {
-      return res.status(400).json({ success: false, error: 'Missing or invalid query/pageCount' });
+    if (!query || isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ success: false, error: 'Invalid or missing query/pageCount' });
     }
 
-    // ✅ New v5.11 API call
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: query }],
-      temperature: 0.7
-    });
+    console.log('🧾 Prompt length:', query.length);
+    console.log('📦 Requested page count:', pageNum);
 
-    const raw = response.choices?.[0]?.message?.content?.trim() || '';
+    let raw = '';
+    let attempt = 0;
+
+    // ✅ Retry up to 2 times if OpenAI fails or gives empty
+    while (!raw && attempt < 2) {
+      attempt++;
+      console.log(`🔁 OpenAI generation attempt ${attempt}...`);
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: query }],
+        temperature: 0.7
+      });
+
+      raw = response.choices?.[0]?.message?.content?.trim() || '';
+    }
+
+    if (!raw) {
+      console.error('❌ Empty OpenAI response after retries.');
+      return res.status(502).json({ success: false, error: 'OpenAI returned no content' });
+    }
+
     console.log('📥 OpenAI response length:', raw.length);
 
     const chunks = splitIntoPages(raw);
@@ -52,3 +70,4 @@ router.post('/generate', async (req, res) => {
 });
 
 module.exports = router;
+
