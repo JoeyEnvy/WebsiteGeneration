@@ -1,13 +1,12 @@
 const express = require('express');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 
 const router = express.Router();
 
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY
-  })
-);
+// ✅ New v5.11 OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // 🧠 Splits raw OpenAI reply into multiple full HTML pages
 function splitIntoPages(rawText) {
@@ -27,13 +26,14 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing or invalid query/pageCount' });
     }
 
-    const response = await openai.createChatCompletion({
+    // ✅ New v5.11 API call
+    const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [{ role: 'user', content: query }],
       temperature: 0.7
     });
 
-    const raw = response.data.choices[0]?.message?.content || '';
+    const raw = response.choices?.[0]?.message?.content?.trim() || '';
     console.log('📥 OpenAI response length:', raw.length);
 
     const chunks = splitIntoPages(raw);
