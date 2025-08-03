@@ -523,7 +523,7 @@
   <div class="preview-inner-container">
 
 
->
+
 <div class="preview-container" id="previewContainer">
   <h2>Live Preview</h2>
 
@@ -765,57 +765,14 @@
 
 <!-- Optional Inline Script -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
 
-  // ===== 💬 Click Preview Hint Logic =====
-  const previewFrame = document.getElementById('previewFrame');
-  const hintMessage = document.getElementById('iframeHintMessage');
 
-  if (previewFrame && hintMessage) {
-    previewFrame.addEventListener('click', () => {
-      hintMessage.style.display = 'block';
-      clearTimeout(hintMessage._timeout);
-      hintMessage._timeout = setTimeout(() => {
-        hintMessage.style.display = 'none';
-      }, 5000);
-    });
-  }
 
-  // ===== 📈 Scroll Progress Bar =====
-  const scrollProgress = document.getElementById('scrollProgressBar');
-  window.addEventListener('scroll', () => {
-    if (!scrollProgress) return;
-    const scrollTop = window.scrollY;
-    const docHeight = document.body.scrollHeight - window.innerHeight;
-    const scrollPercent = (scrollTop / docHeight) * 100;
-    scrollProgress.style.width = scrollPercent + "%";
-  });
 
-  // ===== 🚀 Always Show Preview Enhancements =====
-  const previewContainer = document.getElementById('previewContainer');
-  const controls = document.querySelector('.preview-controls');
 
-  if (previewContainer) {
-    previewContainer.classList.add('fullscreen');
-    previewContainer.style.display = 'block'; // make sure it's visible
-  }
 
-  if (controls) {
-    controls.classList.add('post-gen-ui');
-  }
 
-  // ===== 📱 Mobile Hamburger Nav Toggle =====
-  const hamburger = document.getElementById('hamburger');
-  const navLinks = document.querySelector('.nav-links');
 
-  if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => {
-      navLinks.classList.toggle('show');
-      hamburger.classList.toggle('active');
-    });
-  }
-
-});
 </script>
 
 

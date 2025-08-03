@@ -281,6 +281,10 @@ WebsiteGenerator.prototype.updatePreview = function () {
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
 
+    // Inject the HTML
+    doc.documentElement.innerHTML = currentPageContent;
+
+    // Optional injected style
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -317,10 +321,6 @@ WebsiteGenerator.prototype.updatePreview = function () {
     }
   };
 
-  iframe.contentWindow.document.open();
-  iframe.contentWindow.document.write(currentPageContent);
-  iframe.contentWindow.document.close();
-
   this.previewFrame.classList.add('fullscreen');
 
   const controls = document.querySelector('.preview-controls');
@@ -342,5 +342,3 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   window.scrollTo({ top: scrollY, behavior: 'auto' });
 };
-
-

@@ -1,11 +1,15 @@
-// =======================
-// ✅ Preview Functions
-// =======================
-
 WebsiteGenerator.prototype.updatePreview = function () {
-  if (!this.generatedPages || this.generatedPages.length === 0) return;
+  if (!this.generatedPages || this.generatedPages.length === 0) {
+    console.error('❌ No generatedPages available.');
+    return;
+  }
 
   const currentPageContent = this.generatedPages[this.currentPage];
+  if (!currentPageContent || typeof currentPageContent !== 'string') {
+    console.error('❌ currentPageContent is invalid:', this.currentPage);
+    return;
+  }
+
   const scrollY = window.scrollY;
 
   if (!this.previewFrame) {
@@ -28,6 +32,12 @@ WebsiteGenerator.prototype.updatePreview = function () {
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
 
+
+// Safely inject full HTML into iframe
+doc.documentElement.innerHTML = currentPageContent;
+
+
+    // Inject style
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -56,17 +66,15 @@ WebsiteGenerator.prototype.updatePreview = function () {
     `;
     doc.head.appendChild(style);
 
+    // Hide customization panel
     const panel = document.getElementById('customizationPanel');
     if (panel) panel.style.display = 'none';
 
+    // Init customization tools
     if (typeof this.initializeCustomizationPanel === 'function') {
       this.initializeCustomizationPanel();
     }
   };
-
-  iframe.contentWindow.document.open();
-  iframe.contentWindow.document.write(currentPageContent);
-  iframe.contentWindow.document.close();
 
   this.previewFrame.classList.add('fullscreen');
 
@@ -89,4 +97,3 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   window.scrollTo({ top: scrollY, behavior: 'auto' });
 };
-
