@@ -21,6 +21,12 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
         if (!step || this.validateStep(step)) {
           console.log(`✅ Validation passed for ${step} → Navigating to step ${goTo}`);
           this.goToStep(goTo);
+
+          // ✅ Trigger generation after step 4
+          if (id === 'nextStep4' && typeof this.handleSubmit === 'function') {
+            console.log('🚀 Triggering handleSubmit() after Step 4...');
+            this.handleSubmit();
+          }
         } else {
           console.warn(`❌ Validation failed for ${step}. Staying on current step.`);
         }
@@ -58,13 +64,13 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     });
   }
 
-  // ===== Form Submission =====
+  // ===== Form Submission (not used directly, kept as fallback) =====
   if (this.form) {
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();
       console.log('📝 Form submitted');
       if (typeof this.handleSubmit === 'function') {
-        this.handleSubmit(); // must be bound from within class context
+        this.handleSubmit();
       } else {
         console.warn('❌ this.handleSubmit is not a function');
       }
