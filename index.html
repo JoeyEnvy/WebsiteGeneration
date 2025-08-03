@@ -768,7 +768,6 @@
 document.addEventListener('DOMContentLoaded', function () {
 
   // ===== 💬 Click Preview Hint Logic =====
-  // Shows hint message when user clicks inside the preview iframe
   const previewFrame = document.getElementById('previewFrame');
   const hintMessage = document.getElementById('iframeHintMessage');
 
@@ -783,7 +782,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ===== 📈 Scroll Progress Bar =====
-  // Calculates how far user has scrolled and updates the scroll bar width
   const scrollProgress = document.getElementById('scrollProgressBar');
   window.addEventListener('scroll', () => {
     if (!scrollProgress) return;
@@ -793,59 +791,23 @@ document.addEventListener('DOMContentLoaded', function () {
     scrollProgress.style.width = scrollPercent + "%";
   });
 
-  // ===== 🧭 Navbar Styling on Scroll (DISABLED) =====
-  // Removed to allow CSS gradient to remain untouched
-  // const navbar = document.querySelector('.navbar');
-  // window.addEventListener('scroll', () => {
-  //   if (!navbar) return;
-  //   if (window.scrollY > 60) {
-  //     navbar.style.background = "rgba(0, 0, 0, 0.85)";
-  //     navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
-  //   } else {
-  //     navbar.style.background = "rgba(0, 0, 0, 0.6)";
-  //     navbar.style.boxShadow = "var(--shadow)";
-  //   }
-  // });
-
-  // ===== 🚀 Post-Generation UI Enhancements =====
-  // Expands preview section and branding tools after generation step
+  // ===== 🚀 Always Show Preview Enhancements =====
   const previewContainer = document.getElementById('previewContainer');
-  const brandingPanel = document.getElementById('brandingPanel');
   const controls = document.querySelector('.preview-controls');
-  const finalStep = document.getElementById('step5');
 
-  function showPreviewEnhancements() {
-    if (previewContainer) previewContainer.classList.add('fullscreen');
-    if (controls) controls.classList.add('post-gen-ui');
-    if (brandingPanel) brandingPanel.style.display = 'block';
-
-    setTimeout(() => {
-      previewContainer?.scrollIntoView({ behavior: 'smooth' });
-    }, 300);
+  if (previewContainer) {
+    previewContainer.classList.add('fullscreen');
+    previewContainer.style.display = 'block'; // make sure it's visible
   }
 
-  // Watch for the final step becoming visible to trigger the enhancements
-  if (finalStep) {
-    const observer = new MutationObserver((mutationsList) => {
-      for (const mutation of mutationsList) {
-        if (
-          mutation.type === 'attributes' &&
-          mutation.attributeName === 'style' &&
-          mutation.target.style.display !== 'none'
-        ) {
-          showPreviewEnhancements();
-          observer.disconnect();
-          break;
-        }
-      }
-    });
-    observer.observe(finalStep, { attributes: true, attributeFilter: ['style'] });
+  if (controls) {
+    controls.classList.add('post-gen-ui');
   }
 
   // ===== 📱 Mobile Hamburger Nav Toggle =====
-  // Shows or hides mobile navigation links
   const hamburger = document.getElementById('hamburger');
   const navLinks = document.querySelector('.nav-links');
+
   if (hamburger && navLinks) {
     hamburger.addEventListener('click', () => {
       navLinks.classList.toggle('show');
@@ -855,6 +817,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script>
+
 
 
 
