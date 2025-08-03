@@ -41,7 +41,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     }
 
     const finalPrompt = this.buildFinalPrompt(formData);
-
     console.log('🚀 FINAL PROMPT:', finalPrompt);
     console.log('📦 Sending to /generate →', { query: finalPrompt, pageCount });
 
@@ -58,23 +57,22 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-this.generatedPages = data.pages.map((page, i) => {
-  if (!page || typeof page.content !== 'string') {
-    return {
-      filename: `page${i + 1}.html`,
-      content: `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
-    };
-  }
-  return {
-    filename: page.filename || `page${i + 1}.html`,
-    content: page.content
-  };
-});
+    this.generatedPages = data.pages.map((page, i) => {
+      const content = page?.content || '';
+      const isValid = typeof content === 'string' && content.includes('<html');
 
+      return {
+        filename: page.filename || `page${i + 1}.html`,
+        content: isValid
+          ? content
+          : `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
+      };
+    });
 
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
+    // ✅ Store session pages
     try {
       const storeRes = await fetch('https://websitegeneration.onrender.com/store-step', {
         method: 'POST',
@@ -94,6 +92,7 @@ this.generatedPages = data.pages.map((page, i) => {
       console.error('❌ /store-step fetch failed:', err);
     }
 
+    // ✅ Inject contact form if needed
     if (wantsContactForm && contactEmail) {
       try {
         const scriptRes = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
@@ -115,7 +114,7 @@ this.generatedPages = data.pages.map((page, i) => {
               </form>`);
 
           this.generatedPages = this.generatedPages.map(page => {
-            if (page && page.filename === 'contact.html' && typeof page.content === 'string') {
+            if (page?.filename === 'contact.html' && typeof page.content === 'string') {
               page.content = injectContactForm(page.content, scriptUrl);
             }
             return page;
@@ -128,6 +127,7 @@ this.generatedPages = data.pages.map((page, i) => {
       }
     }
 
+    // ✅ Inject smart navigation
     const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
     const isSinglePage = this.generatedPages.length === 1;
 
@@ -179,17 +179,25 @@ this.generatedPages = data.pages.map((page, i) => {
       return page;
     });
 
-    this.updatePreview();
-    this.showSuccess('Website generated successfully!');
-  } catch (error) {
-    console.error('❌ Website generation failed:', error);
-    this.showError('Failed to generate website: ' + error.message);
-  } finally {
-    this.hideLoading();
+// ✅ Final check before preview
+try {
+  const previewCandidate = this.generatedPages[this.currentPage];
+  if (!previewCandidate || !previewCandidate.includes('<html')) {
+    console.error('❌ currentPageContent is invalid:', this.currentPage);
+    this.showError('Preview failed: Invalid HTML content.');
+    return;
   }
-};
 
-// ✅ Final prompt builder — massively improved
+  this.updatePreview();
+  this.showSuccess('Website generated successfully!');
+} catch (error) {
+  console.error('❌ Website generation failed:', error);
+  this.showError('Failed to generate website: ' + error.message);
+} finally {
+  this.hideLoading();
+}
+
+// ✅ Final prompt builder
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
   const websiteType = formData.get('websiteType');
   const pageCount = formData.get('pageCount');
