@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const emailInput = document.getElementById('contactEmail');
   const container = document.getElementById('contactEmailContainer');
 
+  if (!checkbox || !emailInput || !container) return;
+
   checkbox.addEventListener('change', function () {
     if (this.checked) {
       container.style.display = 'block';
@@ -60,11 +62,20 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    // Normalize response (either string pages or {filename, content} objects)
+    // ✅ Normalize response (string or object format — safe and flexible)
     this.generatedPages = data.pages.map((page, i) => {
-      const content = typeof page === 'string' ? page : page?.content || '';
-      const filename = typeof page === 'object' && page.filename ? page.filename : `page${i + 1}.html`;
+      let content = '';
+      let filename = `page${i + 1}.html`;
+
+      if (typeof page === 'string') {
+        content = page;
+      } else if (typeof page === 'object' && page !== null) {
+        content = typeof page.content === 'string' ? page.content : '';
+        filename = page.filename || filename;
+      }
+
       const isValid = typeof content === 'string' && content.includes('<html');
+
       return {
         filename,
         content: isValid
@@ -272,3 +283,5 @@ No comments or explanations.
 Make the website feel premium, original, and fully functional. Avoid repetition. No lorem ipsum.
 `.trim();
 };
+
+
