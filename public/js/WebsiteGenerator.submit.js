@@ -25,7 +25,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
   this.goToStep(5);
   this.showLoading();
 
-
   try {
     const formData = new FormData(this.form);
     const selectedFeatures = formData.getAll('features') || [];
@@ -67,7 +66,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     // ✅ Normalize response with semantic filenames and fallback content
     const logicalPageNames = ['home', 'about', 'services', 'contact', 'faq'];
-
     this.generatedPages = data.pages.map((rawHtml, i) => {
       const content = typeof rawHtml === 'string'
         ? rawHtml
@@ -145,7 +143,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       }
     }
 
-    // ✅ Inject smart navigation if needed
+    // ✅ Inject smart navigation
     const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
     const isSinglePage = this.generatedPages.length === 1;
 
@@ -197,15 +195,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       return page;
     });
 
-  } catch (err) {
-    console.error('❌ Website generation failed:', err);
-    this.showError('Something went wrong. Please try again.');
-  } finally {
-    this.hideLoading();
-  }
-};
-
-
     // ✅ Final check before preview
     const previewCandidate = this.generatedPages[this.currentPage];
     if (!previewCandidate || !previewCandidate.content.includes('<html')) {
@@ -216,6 +205,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     this.updatePreview();
     this.showSuccess('Website generated successfully!');
+
   } catch (error) {
     console.error('❌ Website generation failed:', error);
     this.showError('Failed to generate website: ' + error.message);
@@ -295,5 +285,4 @@ No comments or explanations.
 Make the website feel premium, original, and fully functional. Avoid repetition. No lorem ipsum.
 `.trim();
 };
-
 
