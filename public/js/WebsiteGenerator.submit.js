@@ -62,21 +62,27 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    // ✅ Normalize response (string or object format — safe and flexible)
-this.generatedPages = data.pages.map((rawHtml, i) => {
-  const content = typeof rawHtml === 'string'
-    ? rawHtml
-    : (typeof rawHtml?.content === 'string' ? rawHtml.content : '');
+    // ✅ Normalize response with semantic filenames and fallback content
+    const logicalPageNames = ['home', 'about', 'services', 'contact', 'faq'];
 
-  const isValid = content.includes('<html>');
+    this.generatedPages = data.pages.map((rawHtml, i) => {
+      const content = typeof rawHtml === 'string'
+        ? rawHtml
+        : (typeof rawHtml?.content === 'string' ? rawHtml.content : '');
 
-  return {
-    filename: `page${i + 1}.html`,
-    content: isValid
-      ? content
-      : `<html><body><h1>Page ${i + 1} failed to generate.</h1></body></html>`
-  };
-});
+      const isGarbage = content.includes('Page') && content.toLowerCase().includes('failed to generate');
+      const filename = `${logicalPageNames[i] || `page${i + 1}`}.html`;
+
+      return {
+        filename,
+        content: !content || isGarbage
+          ? `<html><body style="font-family:sans-serif;padding:3rem;">
+               <h1 style="color:red;">❌ ${filename} failed to generate.</h1>
+               <p>Try simplifying your prompt, reducing features, or shortening your description.</p>
+             </body></html>`
+          : content
+      };
+    });
 
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
@@ -136,7 +142,7 @@ this.generatedPages = data.pages.map((rawHtml, i) => {
       }
     }
 
-    // ✅ Inject smart navigation
+    // ✅ Inject smart navigation if needed
     const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
     const isSinglePage = this.generatedPages.length === 1;
 
@@ -187,6 +193,15 @@ this.generatedPages = data.pages.map((rawHtml, i) => {
 
       return page;
     });
+
+  } catch (err) {
+    console.error('❌ Website generation failed:', err);
+    this.showError('Something went wrong. Please try again.');
+  } finally {
+    this.hideLoading();
+  }
+};
+
 
     // ✅ Final check before preview
     const previewCandidate = this.generatedPages[this.currentPage];

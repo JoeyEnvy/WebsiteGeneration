@@ -1,3 +1,6 @@
+// =======================
+// ✅ updatePreview (with fallback + iframe injection)
+// =======================
 WebsiteGenerator.prototype.updatePreview = function () {
   if (!this.generatedPages || this.generatedPages.length === 0) {
     console.error('❌ No generatedPages available.');
@@ -5,11 +8,9 @@ WebsiteGenerator.prototype.updatePreview = function () {
   }
 
   const currentPage = this.generatedPages[this.currentPage];
-  const currentPageContent = currentPage?.content;
-  if (!currentPageContent || typeof currentPageContent !== 'string') {
-    console.error('❌ currentPageContent is invalid:', this.currentPage);
-    return;
-  }
+  const currentPageContent = typeof currentPage === 'object' && currentPage.content
+    ? currentPage.content
+    : currentPage;
 
   const scrollY = window.scrollY;
 
@@ -21,22 +22,59 @@ WebsiteGenerator.prototype.updatePreview = function () {
     }
   }
 
+  this.previewFrame.innerHTML = '';
+
+  // ✅ Detect fallback error page
+  const isFallbackError = typeof currentPageContent === 'string' &&
+    currentPageContent.includes('failed to generate') &&
+    currentPageContent.toLowerCase().includes('try simplifying');
+
+  if (isFallbackError) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'preview-placeholder error';
+    errorDiv.style.padding = '40px';
+    errorDiv.style.textAlign = 'center';
+    errorDiv.style.color = 'white';
+    errorDiv.style.background = '#1a1a1a';
+    errorDiv.innerHTML = `
+      <h2>❌ Website generation failed</h2>
+      <p>Please try again with a simpler description or fewer features selected.</p>
+    `;
+    this.previewFrame.appendChild(errorDiv);
+    return;
+  }
+
+  // ✅ Create and inject iframe
   const iframe = document.createElement('iframe');
   iframe.style.width = '100%';
   iframe.style.minHeight = '600px';
   iframe.style.border = 'none';
   iframe.style.background = '#111';
-
-  this.previewFrame.innerHTML = '';
   this.previewFrame.appendChild(iframe);
 
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
 
-    // Safely inject full HTML into iframe
-    doc.documentElement.innerHTML = currentPageContent;
+    console.log('📄 Injecting into iframe:', { currentPageContent });
 
-    // Inject style
+    if (typeof currentPageContent === 'string' && currentPageContent.includes('<html')) {
+      doc.open();
+      doc.write(currentPageContent);
+      doc.close();
+    } else {
+      console.warn('⚠️ Invalid or empty page content:', currentPageContent);
+      doc.open();
+      doc.write(`
+        <html>
+          <body style="background: #111; color: red; font-family: sans-serif; padding: 2rem;">
+            <h1>⚠️ Failed to load generated page preview.</h1>
+          </body>
+        </html>
+      `);
+      doc.close();
+    }
+
+    // ✅ Inject local styles
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -65,16 +103,17 @@ WebsiteGenerator.prototype.updatePreview = function () {
     `;
     doc.head.appendChild(style);
 
-    // Hide customization panel
+    // ✅ Hide customization panel
     const panel = document.getElementById('customizationPanel');
     if (panel) panel.style.display = 'none';
 
-    // Init customization tools
+    // ✅ Init customization logic
     if (typeof this.initializeCustomizationPanel === 'function') {
       this.initializeCustomizationPanel();
     }
   };
 
+  // ✅ Preview container styling and scrolling
   this.previewFrame.classList.add('fullscreen');
 
   const controls = document.querySelector('.preview-controls');
@@ -96,3 +135,43 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   window.scrollTo({ top: scrollY, behavior: 'auto' });
 };
+
+// =======================
+// ✅ updatePageNavigation
+// =======================
+WebsiteGenerator.prototype.updatePageNavigation = function () {
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+
+  if (!prevBtn || !nextBtn || !Array.isArray(this.generatedPages)) return;
+
+  prevBtn.disabled = this.currentPage === 0;
+  nextBtn.disabled = this.currentPage >= this.generatedPages.length - 1;
+
+  prevBtn.onclick = () => {
+    if (this.currentPage > 0) {
+      this.currentPage--;
+      this.updatePreview();
+    }
+  };
+
+  nextBtn.onclick = () => {
+    if (this.currentPage < this.generatedPages.length - 1) {
+      this.currentPage++;
+      this.updatePreview();
+    }
+  };
+};
+
+// =======================
+// ✅ updatePageIndicator
+// =======================
+WebsiteGenerator.prototype.updatePageIndicator = function () {
+  const indicator = document.getElementById('pageIndicator');
+  if (!indicator || !Array.isArray(this.generatedPages)) return;
+
+  const total = this.generatedPages.length;
+  const current = this.currentPage + 1;
+  indicator.textContent = `Page ${current} of ${total}`;
+};
+
