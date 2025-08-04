@@ -20,8 +20,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ✅ Submit handler
 WebsiteGenerator.prototype.handleSubmit = async function () {
+  console.log('🔥 handleSubmit() triggered');
+
   this.goToStep(5);
   this.showLoading();
+
 
   try {
     const formData = new FormData(this.form);

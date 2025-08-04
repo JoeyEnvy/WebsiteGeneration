@@ -1,27 +1,35 @@
 class WebsiteGenerator {
-  constructor() {
-    this.form = document.getElementById('websiteGeneratorForm');
-    this.previewFrame = document.getElementById('previewFrame');
-    this.currentPage = 0;
-    this.generatedPages = [];
-    this.currentStep = 1;
-    this.userHasPaid = false;
+constructor(form) {
+  this.form = form || document.getElementById('websiteGeneratorForm');
+  this.previewFrame = document.getElementById('previewFrame');
+  this.currentPage = 0;
+  this.generatedPages = [];
+  this.currentStep = 1;
+  this.userHasPaid = false;
 
-    const savedPages = localStorage.getItem('generatedPages');
-    if (savedPages) {
-      this.generatedPages = JSON.parse(savedPages);
-    }
-
-    if (typeof this.initializeEventListeners === 'function') {
-      this.initializeEventListeners();
-    }
-
-    this.initializeDeploymentButtons();
-    this.initializeContactFormToggle();
-    if (typeof this.highlightStep === 'function') {
-      this.highlightStep(this.currentStep);
-    }
+  if (this.form) {
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleSubmit();
+    });
   }
+
+  const savedPages = localStorage.getItem('generatedPages');
+  if (savedPages) {
+    this.generatedPages = JSON.parse(savedPages);
+  }
+
+  if (typeof this.initializeEventListeners === 'function') {
+    this.initializeEventListeners();
+  }
+
+  this.initializeDeploymentButtons();
+  this.initializeContactFormToggle();
+  if (typeof this.highlightStep === 'function') {
+    this.highlightStep(this.currentStep);
+  }
+}
+
 
   initializeContactFormToggle() {
     const contactCheckbox = document.querySelector('input[name="features"][value="contact form"]');
