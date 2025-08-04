@@ -24,6 +24,11 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   this.previewFrame.innerHTML = '';
 
+  // ✅ Log and test if content is suspiciously short or empty
+  if (!currentPageContent || currentPageContent.length < 50) {
+    console.warn('⚠️ currentPageContent is very short or empty:', currentPageContent);
+  }
+
   // ✅ Detect fallback error page
   const isFallbackError = typeof currentPageContent === 'string' &&
     currentPageContent.includes('failed to generate') &&
@@ -54,7 +59,6 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
-
     console.log('📄 Injecting into iframe:', { currentPageContent });
 
     if (typeof currentPageContent === 'string' && currentPageContent.includes('<html')) {
@@ -68,6 +72,7 @@ WebsiteGenerator.prototype.updatePreview = function () {
         <html>
           <body style="background: #111; color: red; font-family: sans-serif; padding: 2rem;">
             <h1>⚠️ Failed to load generated page preview.</h1>
+            <p>The HTML was invalid or missing.</p>
           </body>
         </html>
       `);
@@ -174,4 +179,6 @@ WebsiteGenerator.prototype.updatePageIndicator = function () {
   const current = this.currentPage + 1;
   indicator.textContent = `Page ${current} of ${total}`;
 };
+
+
 
