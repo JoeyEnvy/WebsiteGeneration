@@ -14,13 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDomainChecker();
   }
 
-  // ✅ Initialize WebsiteGenerator
-  const form = document.getElementById('generatorForm');
+  // ✅ Initialize WebsiteGenerator with correct form ID
+  const form = document.getElementById('websiteGeneratorForm');
   if (form) {
     window.generator = new WebsiteGenerator(form);
     console.log('🧠 WebsiteGenerator instance created');
   } else {
-    console.error('❌ generatorForm not found');
+    console.error('❌ websiteGeneratorForm not found in DOM');
   }
 
   // ✅ Hook up "Generate" button
@@ -39,3 +39,4 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('❌ nextStep4 button not found');
   }
 });
+
