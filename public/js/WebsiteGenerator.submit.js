@@ -64,20 +64,29 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    // ✅ Normalize response with semantic filenames and fallback content
+    // ✅ Normalize response with semantic filenames and structural enforcement
     const logicalPageNames = ['home', 'about', 'services', 'contact', 'faq'];
     this.generatedPages = data.pages.map((rawHtml, i) => {
-      const content = typeof rawHtml === 'string'
+      let content = typeof rawHtml === 'string'
         ? rawHtml
         : (typeof rawHtml?.content === 'string' ? rawHtml.content : '');
 
-      const isGarbage = content.includes('Page') && content.toLowerCase().includes('failed to generate');
       const filename = `${logicalPageNames[i] || `page${i + 1}`}.html`;
+
+      // Ensure valid structure
+      if (!content.trim().startsWith('<html')) {
+        content = `<html><head><meta charset="UTF-8"><title>${filename}</title></head><body>${content}`;
+      }
+      if (!content.trim().endsWith('</html>')) {
+        content = `${content}</body></html>`;
+      }
+
+      const isGarbage = content.includes('Page') && content.toLowerCase().includes('failed to generate');
 
       return {
         filename,
         content: !content || isGarbage
-          ? `<html><body style="font-family:sans-serif;padding:3rem;">
+          ? `<html><head><meta charset="UTF-8"><title>${filename} (Failed)</title></head><body style="font-family:sans-serif;padding:3rem;">
                <h1 style="color:red;">❌ ${filename} failed to generate.</h1>
                <p>Try simplifying your prompt, reducing features, or shortening your description.</p>
              </body></html>`
@@ -197,8 +206,15 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     // ✅ Final check before preview
     const previewCandidate = this.generatedPages[this.currentPage];
-    if (!previewCandidate || !previewCandidate.content.includes('<html')) {
-      console.error('❌ currentPageContent is invalid:', this.currentPage);
+    const pageHtml = previewCandidate?.content?.trim() || '';
+
+    if (
+      !previewCandidate ||
+      !pageHtml.startsWith('<html') ||
+      !pageHtml.endsWith('</html>') ||
+      !pageHtml.includes('<body')
+    ) {
+      console.error('❌ Page HTML is malformed or missing.');
       this.showError('Preview failed: Invalid HTML content.');
       return;
     }
@@ -231,9 +247,14 @@ WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
   return `
 You are a professional website developer.
 
-Generate exactly ${pageCount} fully standalone HTML pages: ${pages}.
-Each page must be a complete, fully working HTML5 document using <style> and <script> (no external CSS or JS).
-No comments or explanations.
+Generate exactly ${pageCount} fully standalone HTML pages named: ${pages}.
+Each page must:
+- Be a complete HTML5 document, starting with <html> and ending with </html>
+- Contain <head> and <body> sections
+- Embed all <style> and <script> inline — no external files
+- Include a <title> matching the page's name
+- Be fully viewable when opened directly in a browser
+- Never include Markdown, explanations, or raw text — ONLY HTML
 
 ✅ Core Design Guidelines:
 - Use semantic HTML5 with <header>, <nav>, <main>, <section>, <footer>.

@@ -1,35 +1,35 @@
 class WebsiteGenerator {
-constructor(form) {
-  this.form = form || document.getElementById('websiteGeneratorForm');
-  this.previewFrame = document.getElementById('previewFrame');
-  this.currentPage = 0;
-  this.generatedPages = [];
-  this.currentStep = 1;
-  this.userHasPaid = false;
+  constructor(form) {
+    this.form = form || document.getElementById('websiteGeneratorForm');
+    this.previewFrame = document.getElementById('previewFrame');
+    this.currentPage = 0;
+    this.generatedPages = [];
+    this.currentStep = 1;
+    this.userHasPaid = false;
 
-  if (this.form) {
-    this.form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.handleSubmit();
-    });
+    if (this.form) {
+      this.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleSubmit();
+      });
+    }
+
+    const savedPages = localStorage.getItem('generatedPages');
+    if (savedPages) {
+      this.generatedPages = JSON.parse(savedPages);
+    }
+
+    if (typeof this.initializeEventListeners === 'function') {
+      this.initializeEventListeners();
+    }
+
+    this.initializeDeploymentButtons();
+    this.initializeContactFormToggle();
+
+    if (typeof this.highlightStep === 'function') {
+      this.highlightStep(this.currentStep);
+    }
   }
-
-  const savedPages = localStorage.getItem('generatedPages');
-  if (savedPages) {
-    this.generatedPages = JSON.parse(savedPages);
-  }
-
-  if (typeof this.initializeEventListeners === 'function') {
-    this.initializeEventListeners();
-  }
-
-  this.initializeDeploymentButtons();
-  this.initializeContactFormToggle();
-  if (typeof this.highlightStep === 'function') {
-    this.highlightStep(this.currentStep);
-  }
-}
-
 
   initializeContactFormToggle() {
     const contactCheckbox = document.querySelector('input[name="features"][value="contact form"]');
@@ -113,9 +113,7 @@ constructor(form) {
   changePage(direction) {
     this.currentPage += direction;
     this.currentPage = Math.max(0, Math.min(this.currentPage, this.generatedPages.length - 1));
-    if (typeof this.updatePreview === 'function') {
-      this.updatePreview();
-    }
+    this.updatePreview?.();
   }
 
   changePreviewDevice(device) {
@@ -153,8 +151,9 @@ constructor(form) {
     }
 
     const zip = new JSZip();
-    this.generatedPages.forEach((html, i) => {
-      zip.file(`page${i + 1}.html`, html);
+    this.generatedPages.forEach((page, i) => {
+      const html = typeof page === 'object' && page.content ? page.content : page;
+      zip.file(page?.filename || `page${i + 1}.html`, html);
     });
 
     zip.generateAsync({ type: 'blob' }).then(blob => {
@@ -168,7 +167,6 @@ window.WebsiteGenerator = WebsiteGenerator;
 // =======================
 // ✅ Validation Methods
 // =======================
-
 WebsiteGenerator.prototype.validateStep = function (stepId) {
   const step = document.getElementById(stepId);
   if (!step) return false;
@@ -254,7 +252,8 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       }
     }
 
-    // 🔧 You can now safely call this.updatePreview() later
+    // 🔧 This is a placeholder skeleton — logic continues in WebsiteGenerator.submit.js
+
   } catch (err) {
     console.error('❌ Submission failed:', err);
     alert('An error occurred while generating your website.');
@@ -262,4 +261,3 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     this.hideLoading?.();
   }
 };
-

@@ -1,16 +1,17 @@
 // =======================
-// ✅ updatePreview (with fallback + iframe injection)
+// ✅ updatePreview (iframe injection + fallback + logging)
 // =======================
 WebsiteGenerator.prototype.updatePreview = function () {
-  if (!this.generatedPages || this.generatedPages.length === 0) {
+  if (!this.generatedPages || !Array.isArray(this.generatedPages) || this.generatedPages.length === 0) {
     console.error('❌ No generatedPages available.');
     return;
   }
 
   const currentPage = this.generatedPages[this.currentPage];
-  const currentPageContent = typeof currentPage === 'object' && currentPage.content
-    ? currentPage.content
-    : currentPage;
+  const currentPageContent =
+    typeof currentPage === 'object' && currentPage?.content
+      ? currentPage.content
+      : (typeof currentPage === 'string' ? currentPage : '');
 
   const scrollY = window.scrollY;
 
@@ -24,13 +25,14 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   this.previewFrame.innerHTML = '';
 
-  // ✅ Log and test if content is suspiciously short or empty
+  // ✅ Warn on suspiciously short/invalid content
   if (!currentPageContent || currentPageContent.length < 50) {
     console.warn('⚠️ currentPageContent is very short or empty:', currentPageContent);
   }
 
-  // ✅ Detect fallback error page
-  const isFallbackError = typeof currentPageContent === 'string' &&
+  // ✅ Detect if fallback error message is showing
+  const isFallbackError =
+    typeof currentPageContent === 'string' &&
     currentPageContent.includes('failed to generate') &&
     currentPageContent.toLowerCase().includes('try simplifying');
 
@@ -59,27 +61,39 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
-    console.log('📄 Injecting into iframe:', { currentPageContent });
 
-    if (typeof currentPageContent === 'string' && currentPageContent.includes('<html')) {
+    console.log('📄 Injecting page into iframe:', {
+      currentPage: this.currentPage,
+      contentLength: currentPageContent.length
+    });
+
+    // ✅ Validate structure before writing
+    const isHtmlValid =
+      typeof currentPageContent === 'string' &&
+      currentPageContent.trim().startsWith('<html') &&
+      currentPageContent.trim().endsWith('</html>') &&
+      currentPageContent.includes('<body');
+
+    if (isHtmlValid) {
       doc.open();
       doc.write(currentPageContent);
       doc.close();
     } else {
-      console.warn('⚠️ Invalid or empty page content:', currentPageContent);
+      console.warn('⚠️ Invalid or incomplete HTML detected. Injecting fallback page.');
       doc.open();
       doc.write(`
         <html>
+          <head><title>Error</title></head>
           <body style="background: #111; color: red; font-family: sans-serif; padding: 2rem;">
-            <h1>⚠️ Failed to load generated page preview.</h1>
-            <p>The HTML was invalid or missing.</p>
+            <h1>⚠️ Failed to load preview</h1>
+            <p>The generated HTML was invalid or incomplete.</p>
           </body>
         </html>
       `);
       doc.close();
     }
 
-    // ✅ Inject local styles
+    // ✅ Inject extra preview styles
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -108,17 +122,17 @@ WebsiteGenerator.prototype.updatePreview = function () {
     `;
     doc.head.appendChild(style);
 
-    // ✅ Hide customization panel
+    // ✅ Hide customization panel after preview
     const panel = document.getElementById('customizationPanel');
     if (panel) panel.style.display = 'none';
 
-    // ✅ Init customization logic
+    // ✅ Init customization tools
     if (typeof this.initializeCustomizationPanel === 'function') {
       this.initializeCustomizationPanel();
     }
   };
 
-  // ✅ Preview container styling and scrolling
+  // ✅ Style preview container
   this.previewFrame.classList.add('fullscreen');
 
   const controls = document.querySelector('.preview-controls');
@@ -138,6 +152,7 @@ WebsiteGenerator.prototype.updatePreview = function () {
     this.updatePageIndicator();
   }
 
+  // ✅ Restore scroll position
   window.scrollTo({ top: scrollY, behavior: 'auto' });
 };
 
@@ -179,6 +194,7 @@ WebsiteGenerator.prototype.updatePageIndicator = function () {
   const current = this.currentPage + 1;
   indicator.textContent = `Page ${current} of ${total}`;
 };
+
 
 
 
