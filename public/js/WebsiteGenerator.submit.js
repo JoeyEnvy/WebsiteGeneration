@@ -1,24 +1,6 @@
-// ✅ Handle dynamic contact email field
-document.addEventListener('DOMContentLoaded', function () {
-  const checkbox = document.getElementById('contactFormCheckbox');
-  const emailInput = document.getElementById('contactEmail');
-  const container = document.getElementById('contactEmailContainer');
+import { normalizePages } from './utils/normalizePages.js';
+import { injectSmartNavigation } from './WebsiteGenerator.navigation.js';
 
-  if (!checkbox || !emailInput || !container) return;
-
-  checkbox.addEventListener('change', function () {
-    if (this.checked) {
-      container.style.display = 'block';
-      emailInput.setAttribute('required', 'required');
-    } else {
-      container.style.display = 'none';
-      emailInput.removeAttribute('required');
-      emailInput.value = '';
-    }
-  });
-});
-
-// ✅ Submit handler
 WebsiteGenerator.prototype.handleSubmit = async function () {
   console.log('🔥 handleSubmit() triggered');
 
@@ -49,8 +31,8 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     const finalPrompt = this.buildFinalPrompt(formData);
     console.log('📋 Raw FormData:', Object.fromEntries(formData.entries()));
     console.log('🚀 FINAL PROMPT:', finalPrompt);
-    console.log('🌐 FINAL FETCH PAYLOAD:', JSON.stringify({ query: finalPrompt, pageCount }));
 
+    // Step 1: Generate
     const generateResponse = await fetch('https://websitegeneration.onrender.com/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,153 +40,72 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     });
 
     const data = await generateResponse.json();
-    console.log('✅ /generate response:', data);
-
     if (!data.success || !Array.isArray(data.pages)) {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    // ✅ Normalize response with semantic filenames and structural enforcement
+    // Step 2: Enhance
+    let enhancedPages = [];
+    try {
+      const enhanceResponse = await fetch('https://websitegeneration.onrender.com/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pages: data.pages })
+      });
+      const enhanceData = await enhanceResponse.json();
+      enhancedPages = (enhanceData.success && Array.isArray(enhanceData.pages)) ? enhanceData.pages : data.pages;
+    } catch (err) {
+      console.warn('⚠️ Enhancement failed:', err);
+      enhancedPages = data.pages;
+    }
+
+    // Step 3: Normalize
     const logicalPageNames = ['home', 'about', 'services', 'contact', 'faq'];
-    this.generatedPages = data.pages.map((rawHtml, i) => {
-      let content = typeof rawHtml === 'string'
-        ? rawHtml
-        : (typeof rawHtml?.content === 'string' ? rawHtml.content : '');
-
-      const filename = `${logicalPageNames[i] || `page${i + 1}`}.html`;
-
-      // Ensure valid structure
-      if (!content.trim().startsWith('<html')) {
-        content = `<html><head><meta charset="UTF-8"><title>${filename}</title></head><body>${content}`;
-      }
-      if (!content.trim().endsWith('</html>')) {
-        content = `${content}</body></html>`;
-      }
-
-      const isGarbage = content.includes('Page') && content.toLowerCase().includes('failed to generate');
-
-      return {
-        filename,
-        content: !content || isGarbage
-          ? `<html><head><meta charset="UTF-8"><title>${filename} (Failed)</title></head><body style="font-family:sans-serif;padding:3rem;">
-               <h1 style="color:red;">❌ ${filename} failed to generate.</h1>
-               <p>Try simplifying your prompt, reducing features, or shortening your description.</p>
-             </body></html>`
-          : content
-      };
-    });
-
+    this.generatedPages = normalizePages(enhancedPages, logicalPageNames);
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
-    // ✅ Store session pages
-    try {
-      const storeRes = await fetch('https://websitegeneration.onrender.com/store-step', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          step: 'pages',
-          content: this.generatedPages
-        })
-      });
+    // Step 4: Store session
+    await fetch('https://websitegeneration.onrender.com/store-step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, step: 'pages', content: this.generatedPages })
+    }).catch(err => console.warn('❌ Failed to store step:', err));
 
-      if (!storeRes.ok) {
-        const err = await storeRes.text();
-        console.warn('❌ Failed to store step data:', err);
-      }
-    } catch (err) {
-      console.error('❌ /store-step fetch failed:', err);
-    }
-
-    // ✅ Inject contact form if needed
+    // Step 5: Inject contact form if needed
     if (wantsContactForm && contactEmail) {
       try {
-        const scriptRes = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
+        const res = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: contactEmail })
         });
-
-        const { scriptUrl } = await scriptRes.json();
-
+        const { scriptUrl } = await res.json();
         if (scriptUrl) {
-          const injectContactForm = (html, url) =>
+          const inject = html =>
             html.replace(/<form[\s\S]*?<\/form>/i, `
-              <form action="${url}" method="POST">
+              <form action="${scriptUrl}" method="POST">
                 <input name="name" required placeholder="Your name">
                 <input name="email" type="email" required placeholder="Your email">
                 <textarea name="message" required placeholder="Message"></textarea>
                 <button type="submit">Send</button>
               </form>`);
-
-          this.generatedPages = this.generatedPages.map(page => {
-            if (page?.filename === 'contact.html' && typeof page.content === 'string') {
-              page.content = injectContactForm(page.content, scriptUrl);
-            }
-            return page;
+          this.generatedPages = this.generatedPages.map(p => {
+            if (p.filename === 'contact.html') p.content = inject(p.content);
+            return p;
           });
-
           localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
         }
       } catch (err) {
-        console.error('❌ Failed to inject contact form:', err);
+        console.error('❌ Contact form injection failed:', err);
       }
     }
 
-    // ✅ Inject smart navigation
+    // Step 6: Inject smart navigation
     const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
-    const isSinglePage = this.generatedPages.length === 1;
+    this.generatedPages = injectSmartNavigation(this.generatedPages, knownSections);
 
-    this.generatedPages = this.generatedPages.map(page => {
-      if (!page || typeof page.content !== 'string') return page;
-
-      const availableAnchors = knownSections.filter(id =>
-        page.content.includes(`id="${id}"`) || page.content.includes(`id='${id}'`)
-      );
-
-      const navHTML = () => {
-        let nav = `<nav style="position: sticky; top: 0; background: #111; z-index: 999; padding: 10px 20px;">
-          <ul style="display: flex; gap: 20px; list-style: none; justify-content: center;">`;
-        for (const id of availableAnchors) {
-          nav += `<li><a href="#${id}" style="color: #fff; text-decoration: none;">${id.charAt(0).toUpperCase() + id.slice(1)}</a></li>`;
-        }
-        nav += `</ul></nav>`;
-        return nav;
-      };
-
-      if (isSinglePage || availableAnchors.length > 3) {
-        page.content = page.content.replace(/<nav[\s\S]*?<\/nav>/i, navHTML());
-        page.content = page.content.replace('</body>', `
-          <style>
-            html { scroll-behavior: smooth; }
-            nav a.active {
-              color: #ff8800 !important;
-              border-bottom: 2px solid #ff8800;
-            }
-          </style>
-          <script>
-            document.addEventListener('DOMContentLoaded', () => {
-              const links = document.querySelectorAll('nav a');
-              const sections = Array.from(links).map(link => document.querySelector(link.getAttribute('href')));
-              function activateLink() {
-                let index = sections.findIndex(section => section && section.getBoundingClientRect().top >= 0);
-                links.forEach(link => link.classList.remove('active'));
-                if (index !== -1 && links[index]) {
-                  links[index].classList.add('active');
-                }
-              }
-              window.addEventListener('scroll', activateLink);
-              activateLink();
-            });
-          </script>
-        </body>`);
-      }
-
-      return page;
-    });
-
-    // ✅ Final check before preview
+    // Step 7: Preview
     const previewCandidate = this.generatedPages[this.currentPage];
     const pageHtml = previewCandidate?.content?.trim() || '';
 
@@ -221,7 +122,6 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     this.updatePreview();
     this.showSuccess('Website generated successfully!');
-
   } catch (error) {
     console.error('❌ Website generation failed:', error);
     this.showError('Failed to generate website: ' + error.message);
@@ -229,81 +129,3 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     this.hideLoading();
   }
 };
-
-// ✅ Final prompt builder
-WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
-  const websiteType = formData.get('websiteType') || '';
-  const pageCount = formData.get('pageCount') || '1';
-  const pages = Array.from(formData.getAll('pages')).join(', ') || '';
-  const businessName = formData.get('businessName') || '';
-  const businessType = formData.get('businessType') || '';
-  const businessDescription = formData.get('businessDescription') || '';
-  const features = Array.from(formData.getAll('features')).join(', ') || '';
-  const colorScheme = formData.get('colorScheme') || '';
-  const fontStyle = formData.get('fontStyle') || '';
-  const layoutPreference = formData.get('layoutPreference') || '';
-  const enhancements = Array.from(formData.getAll('enhancements')).join(', ') || '';
-
-  return `
-You are a professional website developer.
-
-Generate exactly ${pageCount} fully standalone HTML pages named: ${pages}.
-Each page must:
-- Be a complete HTML5 document, starting with <html> and ending with </html>
-- Contain <head> and <body> sections
-- Embed all <style> and <script> inline — no external files
-- Include a <title> matching the page's name
-- Be fully viewable when opened directly in a browser
-- Never include Markdown, explanations, or raw text — ONLY HTML
-
-✅ Core Design Guidelines:
-- Use semantic HTML5 with <header>, <nav>, <main>, <section>, <footer>.
-- Fully responsive using CSS grid/flexbox with breakpoints for 1024px, 768px, 480px, 360px.
-- Style using clean, modern design principles and accessible color contrast.
-
-📦 Project Details:
-- Website Type: ${websiteType}
-- Business: "${businessName}" (${businessType})
-- Pages: ${pages}
-- Features: ${features}
-- Visuals: ${colorScheme} color scheme, ${fontStyle} fonts, ${layoutPreference} layout
-
-📣 Expand on Description:
-"${businessDescription}" — Expand this into a 2–3 paragraph About section (300–500 words), realistic tone, followed by a grid of 4–6 bullet point highlights.
-
-🎯 Required Features:
-- Newsletter signup form on homepage
-- Testimonial slider (JS)
-- Image gallery (lightbox optional)
-- FAQ accordion with smooth toggle
-- Pricing table
-- Floating call-to-action button
-- Modal popup (triggered on click)
-- Contact form if requested
-
-🎨 Visual Variation:
-- Must not reuse images between pages
-- 3+ public domain images per page
-- Use FontAwesome icons, unique styling (shadows, border-radius, overlays)
-
-🧠 Smart Variation:
-- Vary font pairings using Google Fonts
-- Vary navbar types: top, side, floating, pill tabs, full-width
-- Use animations (fade-in, scroll-reveal, zoom-in)
-- Apply random visual themes per site: glassmorphism, brutalist, minimal, vaporwave, etc.
-- At least one section must use SVG separators or CSS clip-paths
-
-🧱 Required Sections (per page):
-- Hero Banner
-- About or Business Overview
-- Services / Features Grid
-- Pricing or Plans Table
-- Image Showcase or Gallery
-- Testimonials or Quotes
-- Newsletter Signup or Contact Form
-- Footer with location, socials, copyright
-
-Make the website feel premium, original, and fully functional. Avoid repetition. No lorem ipsum.
-`.trim();
-};
-

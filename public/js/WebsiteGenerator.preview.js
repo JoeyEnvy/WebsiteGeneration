@@ -13,6 +13,12 @@ WebsiteGenerator.prototype.updatePreview = function () {
     return;
   }
 
+  // 🔍 Debug logs
+  console.log('🧪 this.currentPage:', this.currentPage);
+  console.log('🧪 this.generatedPages:', this.generatedPages);
+  console.log('🧪 typeof this.generatedPages[this.currentPage]:', typeof this.generatedPages[this.currentPage]);
+  console.log('🧪 previewFrame element:', document.getElementById('previewFrame'));
+
   const currentPage = this.generatedPages[this.currentPage];
   const currentPageContent =
     typeof currentPage === 'object' && currentPage?.content
@@ -30,7 +36,6 @@ WebsiteGenerator.prototype.updatePreview = function () {
       return;
     }
   }
-
   this.previewFrame.innerHTML = '';
 
   const isFallbackError =
@@ -92,6 +97,7 @@ WebsiteGenerator.prototype.updatePreview = function () {
       doc.close();
     }
 
+    // Extra styling and elements inside the iframe
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -120,9 +126,11 @@ WebsiteGenerator.prototype.updatePreview = function () {
     `;
     doc.head.appendChild(style);
 
+    // Hide customization panel while previewing
     const panel = document.getElementById('customizationPanel');
     if (panel) panel.style.display = 'none';
 
+    // Init customization panel (if implemented)
     if (typeof this.initializeCustomizationPanel === 'function') {
       this.initializeCustomizationPanel();
     }

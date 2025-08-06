@@ -107,6 +107,49 @@ Output Rules:
 });
 
 // ========================================================================
+// ✅ POST /enhance — Optional AI Page Enhancer (Optional Styling, Tags)
+// ========================================================================
+router.post('/enhance', async (req, res) => {
+  try {
+    const { pages } = req.body;
+    if (!Array.isArray(pages)) {
+      return res.status(400).json({ success: false, error: 'Pages must be an array.' });
+    }
+
+    const enhancedPages = pages.map(raw => {
+      let content = typeof raw === 'string' ? raw : raw?.content || '';
+
+      if (!content.includes('viewport')) {
+        content = content.replace(
+          /<head>/i,
+          `<head><meta name="viewport" content="width=device-width, initial-scale=1.0">`
+        );
+      }
+
+      if (!content.includes('fade-in')) {
+        content = content.replace(
+          /<body>/i,
+          `<body style="animation: fade-in 0.8s ease-in;">`
+        );
+        content = content.replace(
+          /<\/style>/i,
+          `  body { opacity: 0; animation-fill-mode: forwards; }
+             @keyframes fade-in { to { opacity: 1; } }
+          </style>`
+        );
+      }
+
+      return typeof raw === 'string' ? content : { ...raw, content };
+    });
+
+    return res.json({ success: true, pages: enhancedPages });
+  } catch (err) {
+    console.error('❌ Enhancement error:', err.stack || err);
+    res.status(500).json({ success: false, error: 'Enhancement failed.' });
+  }
+});
+
+// ========================================================================
 // ✅ POST /email-zip — Send ZIP via SendGrid
 // ========================================================================
 router.post('/email-zip', async (req, res) => {

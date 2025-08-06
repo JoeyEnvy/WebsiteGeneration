@@ -1,0 +1,28 @@
+back end file list for AI 
+
+
+
+backend\
+index.cjs
+package.json 
+
+             utils\createGoogleScript.js
+                   createNetlifySite.js
+                   dnsUtils.js
+                   domainPricing.js
+                   githubUtils.js
+                   netlifyDeploy.js 
+                   tempSessionStore.cjs
+
+            
+
+             routes\deployRoutes.cjs
+                    domainRoutes.cjs
+                    generateRoutes.cjs
+                    sessionRoutes.cjs
+                    deployRoutes.cjs
+                    stripeRoutes.cjs
+                    utilityRoutes.cjs
+
+      
+
