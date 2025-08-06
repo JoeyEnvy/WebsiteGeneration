@@ -517,48 +517,53 @@
 
 
 <!-- ========== FULLSCREEN PREVIEW SECTION ========== -->
-<section id="previewFullScreen">
+<!-- ====== FULLSCREEN PREVIEW SECTION ====== -->
+<section id="previewFullScreen" aria-labelledby="livePreviewHeading">
   <div class="preview-inner-container">
 
+    <div class="preview-container" id="previewContainer">
+      <h2 id="livePreviewHeading">Live Preview</h2>
 
+      <!-- 🔍 Preview Iframe -->
+      <div id="previewFrameWrapper">
+        <iframe
+          id="previewFrame"
+          title="Website Preview"
+          class="preview-frame"
+          frameborder="0"
+          sandbox="allow-scripts allow-same-origin"
+        ></iframe>
 
-<div class="preview-container" id="previewContainer">
-  <h2>Live Preview</h2>
+        <div class="preview-placeholder" id="previewPlaceholder">
+          Your website preview will appear here
+        </div>
+      </div>
 
-  <!-- 🔍 Preview Frame or Placeholder -->
-  <div id="previewFrame">
-    <div class="preview-placeholder">
-      Your website preview will appear here
+      <!-- ====== DEVICE VIEW CONTROLS ====== -->
+      <div class="preview-controls">
+        <button class="preview-btn" id="mobilePreview" aria-label="Mobile View">
+          <i class="fas fa-mobile-alt"></i>
+          <span>Mobile</span>
+        </button>
+        <button class="preview-btn" id="tabletPreview" aria-label="Tablet View">
+          <i class="fas fa-tablet-alt"></i>
+          <span>Tablet</span>
+        </button>
+        <button class="preview-btn active" id="desktopPreview" aria-label="Desktop View">
+          <i class="fas fa-desktop"></i>
+          <span>Desktop</span>
+        </button>
+
+        <div class="page-navigation">
+          <button id="prevPage" aria-label="Previous Page">Previous Page</button>
+          <span id="pageIndicator">Page 1 of 1</span>
+          <button id="nextPage" aria-label="Next Page">Next Page</button>
+        </div>
+      </div>
     </div>
+
   </div>
-
-  <!-- ====== DEVICE VIEW CONTROLS ====== -->
-  <div class="preview-controls">
-    <button class="preview-btn" id="mobilePreview">
-      <i class="fas fa-mobile-alt"></i>
-      <span>Mobile</span>
-    </button>
-    <button class="preview-btn" id="tabletPreview">
-      <i class="fas fa-tablet-alt"></i>
-      <span>Tablet</span>
-    </button>
-    <button class="preview-btn active" id="desktopPreview">
-      <i class="fas fa-desktop"></i>
-      <span>Desktop</span>
-    </button>
-
-    <div class="page-navigation">
-      <button id="prevPage">Previous Page</button>
-      <span id="pageIndicator">Page 1 of 1</span>
-      <button id="nextPage">Next Page</button>
-    </div>
-  </div>
-
-
-
-</div>
 </section>
-
 
 
 

@@ -1,9 +1,15 @@
-// =======================
-// ✅ updatePreview (iframe injection + fallback + logging)
-// =======================
 WebsiteGenerator.prototype.updatePreview = function () {
-  if (!this.generatedPages || !Array.isArray(this.generatedPages) || this.generatedPages.length === 0) {
+  if (!Array.isArray(this.generatedPages) || this.generatedPages.length === 0) {
     console.error('❌ No generatedPages available.');
+    return;
+  }
+
+  if (
+    typeof this.currentPage !== 'number' ||
+    this.currentPage < 0 ||
+    this.currentPage >= this.generatedPages.length
+  ) {
+    console.error('❌ currentPage index is out of bounds:', this.currentPage);
     return;
   }
 
@@ -13,24 +19,20 @@ WebsiteGenerator.prototype.updatePreview = function () {
       ? currentPage.content
       : (typeof currentPage === 'string' ? currentPage : '');
 
-  const scrollY = window.scrollY;
+  if (!currentPageContent || currentPageContent.length < 30) {
+    console.warn('⚠️ Empty or invalid page content at index', this.currentPage, currentPageContent);
+  }
 
   if (!this.previewFrame) {
     this.previewFrame = document.getElementById('previewFrame');
     if (!this.previewFrame) {
-      console.error('❌ previewFrame not found.');
+      console.error('❌ previewFrame element not found in DOM.');
       return;
     }
   }
 
   this.previewFrame.innerHTML = '';
 
-  // ✅ Warn on suspiciously short/invalid content
-  if (!currentPageContent || currentPageContent.length < 50) {
-    console.warn('⚠️ currentPageContent is very short or empty:', currentPageContent);
-  }
-
-  // ✅ Detect if fallback error message is showing
   const isFallbackError =
     typeof currentPageContent === 'string' &&
     currentPageContent.includes('failed to generate') &&
@@ -51,7 +53,6 @@ WebsiteGenerator.prototype.updatePreview = function () {
     return;
   }
 
-  // ✅ Create and inject iframe
   const iframe = document.createElement('iframe');
   iframe.style.width = '100%';
   iframe.style.minHeight = '600px';
@@ -60,14 +61,12 @@ WebsiteGenerator.prototype.updatePreview = function () {
   this.previewFrame.appendChild(iframe);
 
   iframe.onload = () => {
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      console.error('❌ Failed to access iframe document.');
+      return;
+    }
 
-    console.log('📄 Injecting page into iframe:', {
-      currentPage: this.currentPage,
-      contentLength: currentPageContent.length
-    });
-
-    // ✅ Validate structure before writing
     const isHtmlValid =
       typeof currentPageContent === 'string' &&
       currentPageContent.trim().startsWith('<html') &&
@@ -79,11 +78,11 @@ WebsiteGenerator.prototype.updatePreview = function () {
       doc.write(currentPageContent);
       doc.close();
     } else {
-      console.warn('⚠️ Invalid or incomplete HTML detected. Injecting fallback page.');
+      console.warn('⚠️ Invalid or incomplete HTML detected. Injecting fallback preview page.');
       doc.open();
       doc.write(`
         <html>
-          <head><title>Error</title></head>
+          <head><title>Preview Error</title></head>
           <body style="background: #111; color: red; font-family: sans-serif; padding: 2rem;">
             <h1>⚠️ Failed to load preview</h1>
             <p>The generated HTML was invalid or incomplete.</p>
@@ -93,7 +92,6 @@ WebsiteGenerator.prototype.updatePreview = function () {
       doc.close();
     }
 
-    // ✅ Inject extra preview styles
     const style = doc.createElement('style');
     style.innerHTML = `
       .single-column {
@@ -122,17 +120,14 @@ WebsiteGenerator.prototype.updatePreview = function () {
     `;
     doc.head.appendChild(style);
 
-    // ✅ Hide customization panel after preview
     const panel = document.getElementById('customizationPanel');
     if (panel) panel.style.display = 'none';
 
-    // ✅ Init customization tools
     if (typeof this.initializeCustomizationPanel === 'function') {
       this.initializeCustomizationPanel();
     }
   };
 
-  // ✅ Style preview container
   this.previewFrame.classList.add('fullscreen');
 
   const controls = document.querySelector('.preview-controls');
@@ -140,61 +135,7 @@ WebsiteGenerator.prototype.updatePreview = function () {
 
   this.previewFrame.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  if (typeof this.updatePageNavigation === 'function') {
-    this.updatePageNavigation();
-  }
-
-  if (typeof this.showPostGenerationOptions === 'function') {
-    this.showPostGenerationOptions();
-  }
-
-  if (typeof this.updatePageIndicator === 'function') {
-    this.updatePageIndicator();
-  }
-
-  // ✅ Restore scroll position
-  window.scrollTo({ top: scrollY, behavior: 'auto' });
+  if (typeof this.updatePageNavigation === 'function') this.updatePageNavigation();
+  if (typeof this.showPostGenerationOptions === 'function') this.showPostGenerationOptions();
+  if (typeof this.updatePageIndicator === 'function') this.updatePageIndicator();
 };
-
-// =======================
-// ✅ updatePageNavigation
-// =======================
-WebsiteGenerator.prototype.updatePageNavigation = function () {
-  const prevBtn = document.getElementById('prevPage');
-  const nextBtn = document.getElementById('nextPage');
-
-  if (!prevBtn || !nextBtn || !Array.isArray(this.generatedPages)) return;
-
-  prevBtn.disabled = this.currentPage === 0;
-  nextBtn.disabled = this.currentPage >= this.generatedPages.length - 1;
-
-  prevBtn.onclick = () => {
-    if (this.currentPage > 0) {
-      this.currentPage--;
-      this.updatePreview();
-    }
-  };
-
-  nextBtn.onclick = () => {
-    if (this.currentPage < this.generatedPages.length - 1) {
-      this.currentPage++;
-      this.updatePreview();
-    }
-  };
-};
-
-// =======================
-// ✅ updatePageIndicator
-// =======================
-WebsiteGenerator.prototype.updatePageIndicator = function () {
-  const indicator = document.getElementById('pageIndicator');
-  if (!indicator || !Array.isArray(this.generatedPages)) return;
-
-  const total = this.generatedPages.length;
-  const current = this.currentPage + 1;
-  indicator.textContent = `Page ${current} of ${total}`;
-};
-
-
-
-
