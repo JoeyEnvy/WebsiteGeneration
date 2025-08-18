@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDomainChecker();
   }
 
-  // ✅ Initialize WebsiteGenerator with correct form ID
+  // ✅ Initialize WebsiteGenerator
   const form = document.getElementById('websiteGeneratorForm');
   if (form) {
     window.generator = new WebsiteGenerator(form);
@@ -23,20 +23,5 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('❌ websiteGeneratorForm not found in DOM');
   }
 
-  // ✅ Hook up "Generate" button
-  const generateButton = document.getElementById('nextStep4');
-  if (generateButton) {
-    generateButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (window.generator && typeof window.generator.handleSubmit === 'function') {
-        console.log('📨 Triggering handleSubmit()');
-        window.generator.handleSubmit();
-      } else {
-        console.error('❌ handleSubmit not available');
-      }
-    });
-  } else {
-    console.error('❌ nextStep4 button not found');
-  }
+  // ✅ DO NOT manually add a click listener to nextStep4 here.
 });
-
