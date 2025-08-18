@@ -1,5 +1,5 @@
 // =======================
-// ✅ initializeEventListeners
+// ✅ initializeEventListeners (Fixed)
 // =======================
 WebsiteGenerator.prototype.initializeEventListeners = function () {
   // ===== Step Button Logic with Full Logging =====
@@ -18,11 +18,14 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
     if (btn) {
       btn.addEventListener('click', () => {
         console.log(`🟦 Clicked: ${id} → Requested goToStep(${goTo})`);
-        if (!step || this.validateStep(step)) {
-          console.log(`✅ Validation passed for ${step} → Navigating to step ${goTo}`);
+
+        const isValid = step ? this.validateStep(step) : true;
+
+        if (isValid) {
+          console.log(`✅ Validation passed for ${step || 'N/A'} → Navigating to step ${goTo}`);
           this.goToStep(goTo);
 
-          // ✅ Trigger generation after step 4
+          // ✅ Trigger generation after step 4 ONLY if validation passed
           if (id === 'nextStep4' && typeof this.handleSubmit === 'function') {
             console.log('🚀 Triggering handleSubmit() after Step 4...');
             this.handleSubmit();
