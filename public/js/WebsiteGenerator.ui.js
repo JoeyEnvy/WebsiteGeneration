@@ -22,14 +22,13 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
         const isValid = step ? this.validateStep(step) : true;
 
         if (isValid) {
-          console.log(`✅ Validation passed for ${step || 'N/A'} → Navigating to step ${goTo}`);
-          this.goToStep(goTo);
-
-          // ✅ Trigger generation after step 4 ONLY if validation passed
           if (id === 'nextStep4' && typeof this.handleSubmit === 'function') {
             console.log('🚀 Triggering handleSubmit() after Step 4...');
-            this.handleSubmit();
+            this.handleSubmit(); // 🔥 Generate site FIRST
           }
+
+          this.goToStep(goTo); // 👈 THEN move to Step 5
+          console.log(`✅ Validation passed for ${step || 'N/A'} → Navigating to step ${goTo}`);
         } else {
           console.warn(`❌ Validation failed for ${step}. Staying on current step.`);
         }
@@ -38,6 +37,8 @@ WebsiteGenerator.prototype.initializeEventListeners = function () {
       console.warn(`⚠️ Button with id "${id}" not found in DOM.`);
     }
   });
+};
+
 
   // ===== Preview Device Buttons =====
   const previewButtons = document.querySelectorAll('.preview-controls button');
