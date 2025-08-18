@@ -19,6 +19,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     let contactEmail = null;
     const wantsContactForm = selectedFeatures.some(f => f?.toLowerCase().includes('contact form'));
+
     if (wantsContactForm) {
       contactEmail = formData.get('contactEmail')?.trim();
       if (contactEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
@@ -32,7 +33,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     console.log('📋 Raw FormData:', Object.fromEntries(formData.entries()));
     console.log('🚀 FINAL PROMPT:', finalPrompt);
 
-    // Step 1: Generate
+    // 🔁 Step 1: Generate HTML
     const generateResponse = await fetch('https://websitegeneration.onrender.com/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -44,7 +45,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    // Step 2: Enhance
+    // ✨ Step 2: Enhance content
     let enhancedPages = [];
     try {
       const enhanceResponse = await fetch('https://websitegeneration.onrender.com/enhance', {
@@ -59,20 +60,20 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       enhancedPages = data.pages;
     }
 
-    // Step 3: Normalize
+    // 📄 Step 3: Normalize filenames
     const logicalPageNames = ['home', 'about', 'services', 'contact', 'faq'];
     this.generatedPages = normalizePages(enhancedPages, logicalPageNames);
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
-    // Step 4: Store session
+    // 💾 Step 4: Store session data
     await fetch('https://websitegeneration.onrender.com/store-step', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId, step: 'pages', content: this.generatedPages })
     }).catch(err => console.warn('❌ Failed to store step:', err));
 
-    // Step 5: Inject contact form if needed
+    // 📨 Step 5: Inject contact form (if applicable)
     if (wantsContactForm && contactEmail) {
       try {
         const res = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
@@ -101,11 +102,11 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       }
     }
 
-    // Step 6: Inject smart navigation
+    // 🧠 Step 6: Smart navigation
     const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
     this.generatedPages = injectSmartNavigation(this.generatedPages, knownSections);
 
-    // Step 7: Preview
+    // 👁️ Step 7: Render preview
     const previewCandidate = this.generatedPages[this.currentPage];
     const pageHtml = previewCandidate?.content?.trim() || '';
 

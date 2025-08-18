@@ -230,34 +230,3 @@ WebsiteGenerator.prototype.clearCheckboxError = function (field) {
   if (errorDiv) errorDiv.remove();
 };
 
-// =======================
-// ✅ handleSubmit (skeleton)
-// =======================
-WebsiteGenerator.prototype.handleSubmit = async function () {
-  this.goToStep?.(5);
-  this.showLoading?.();
-
-  try {
-    if (!this.form) return;
-
-    const formData = new FormData(this.form);
-    const selectedFeatures = formData.getAll('features');
-    let contactEmail = null;
-
-    if (selectedFeatures.includes('contact form')) {
-      contactEmail = formData.get('contactEmail')?.trim();
-      if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-        this.showFieldError(document.getElementById('contactEmail'), 'Enter a valid email address');
-        return;
-      }
-    }
-
-    // 🔧 This is a placeholder skeleton — logic continues in WebsiteGenerator.submit.js
-
-  } catch (err) {
-    console.error('❌ Submission failed:', err);
-    alert('An error occurred while generating your website.');
-  } finally {
-    this.hideLoading?.();
-  }
-};
