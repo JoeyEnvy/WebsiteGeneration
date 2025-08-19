@@ -254,3 +254,31 @@
   };
 })();
 
+
+
+// Force-bind UI once DOM + class are ready
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const form = document.getElementById('websiteGeneratorForm');
+    if (!form) {
+      console.error('❌ Form not found, cannot init UI.');
+      return;
+    }
+    if (!window.generator) {
+      // instantiate if not already
+      window.generator = new WebsiteGenerator(form);
+    }
+    if (typeof window.generator.initializeEventListeners === 'function') {
+      window.generator.initializeEventListeners();
+      console.log('✅ Step navigation listeners bound');
+    }
+    // ensure Step 1 visible
+    if (typeof window.generator.goToStep === 'function') {
+      window.generator.goToStep(1);
+    }
+  } catch (err) {
+    console.error('❌ Failed to init WebsiteGenerator UI:', err);
+  }
+});
+
+
