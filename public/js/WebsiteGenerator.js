@@ -139,41 +139,92 @@ class WebsiteGenerator {
     });
   }
 
+   // =======================
+  // ✅ Download Generated Site
+  // =======================
   downloadGeneratedSite() {
     if (!this.userHasPaid) {
-      alert('Please purchase access to download your website.');
+      alert('⚠️ Please purchase access to download your website.');
       return;
     }
 
-    if (!this.generatedPages.length) {
-      alert('No website generated yet.');
+    if (!this.generatedPages || !this.generatedPages.length) {
+      alert('⚠️ No website generated yet.');
       return;
     }
 
     const zip = new JSZip();
     this.generatedPages.forEach((page, i) => {
-      const html = typeof page === 'object' && page.content ? page.content : page;
-      zip.file(page?.filename || `page${i + 1}.html`, html);
+      // Each page may be { filename, content } or raw HTML
+      const html = typeof page === 'object' && page.content ? page.content : String(page || '');
+      const filename = (typeof page === 'object' && page.filename) 
+        ? page.filename 
+        : `page${i + 1}.html`;
+      zip.file(filename, html);
     });
 
     zip.generateAsync({ type: 'blob' }).then(blob => {
-      saveAs(blob, "my-website.zip");
+      saveAs(blob, 'my-website.zip');
+    }).catch(err => {
+      console.error('❌ Failed to generate ZIP:', err);
+      alert('❌ Failed to prepare website download.');
     });
+  }
+
+  // =======================
+  // ✅ goToStep with Debug Tracing
+  // =======================
+  goToStep(stepNumber) {
+    const form = this.form || document.getElementById('websiteGeneratorForm');
+    if (!form) {
+      console.error('❌ goToStep: #websiteGeneratorForm not found');
+      return;
+    }
+
+    console.log(`➡️ goToStep(${stepNumber})`);
+
+    // Show/hide steps
+    const allSteps = form.querySelectorAll(':scope > .form-step');
+    allSteps.forEach((step, index) => {
+      const show = index + 1 === stepNumber;
+      step.style.display = show ? 'block' : 'none';
+      console.log(`   Step ${index + 1} (${step.id}): ${show ? 'SHOW' : 'HIDE'}`);
+    });
+
+    // Update step indicators
+    for (let i = 1; i <= allSteps.length; i++) {
+      const dot = document.getElementById(`indicator-step${i}`);
+      if (dot) {
+        dot.classList.toggle('active', i === stepNumber);
+        dot.classList.toggle('done', i < stepNumber);
+      }
+    }
+
+    this.currentStep = stepNumber;
+
+    const visible = Array.from(form.querySelectorAll('.form-step'))
+      .filter(el => window.getComputedStyle(el).display !== 'none')
+      .map(el => el.id);
+    console.log('👀 Currently visible step(s):', visible);
   }
 }
 
+// Expose globally
 window.WebsiteGenerator = WebsiteGenerator;
 
-// =======================
-// ✅ Validation Methods
-// =======================
+/* =========================================================
+   Validation & Error Display Helpers
+   ========================================================= */
+
 WebsiteGenerator.prototype.validateStep = function (stepId) {
   const step = document.getElementById(stepId);
   if (!step) return false;
 
   let isValid = true;
 
-  const requiredFields = Array.from(step.querySelectorAll('[required]')).filter(field => field.offsetParent !== null);
+  // Check required visible fields
+  const requiredFields = Array.from(step.querySelectorAll('[required]'))
+    .filter(field => field.offsetParent !== null);
   requiredFields.forEach(field => {
     if (!field.value.trim()) {
       this.showFieldError(field, 'This field is required');
@@ -183,6 +234,7 @@ WebsiteGenerator.prototype.validateStep = function (stepId) {
     }
   });
 
+  // Check checkbox groups
   const checkboxGroups = step.querySelectorAll('.checkbox-group');
   checkboxGroups.forEach(group => {
     const checkboxes = group.querySelectorAll('input[type="checkbox"]');
@@ -229,4 +281,5 @@ WebsiteGenerator.prototype.clearCheckboxError = function (field) {
   const errorDiv = group?.querySelector('.field-error');
   if (errorDiv) errorDiv.remove();
 };
+
 

@@ -1,3 +1,7 @@
+// =======================
+// ✅ WebsiteGenerator.submit.js
+// =======================
+
 import { normalizePages } from './utils/normalizePages.js';
 import { injectSmartNavigation } from './WebsiteGenerator.navigation.js';
 
@@ -8,6 +12,9 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
   this.showLoading();
 
   try {
+    // ================================
+    // 1. Collect Form Data
+    // ================================
     const formData = new FormData(this.form);
     const selectedFeatures = formData.getAll('features') || [];
     const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
@@ -17,6 +24,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     localStorage.setItem('sessionId', sessionId);
     localStorage.setItem('businessName', businessName);
 
+    // Contact form detection
     let contactEmail = null;
     const wantsContactForm = selectedFeatures.some(f => f?.toLowerCase().includes('contact form'));
 
@@ -33,7 +41,9 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     console.log('📋 Raw FormData:', Object.fromEntries(formData.entries()));
     console.log('🚀 FINAL PROMPT:', finalPrompt);
 
-    // 🔁 Step 1: Generate HTML
+    // ================================
+    // 2. Generate HTML via backend
+    // ================================
     const generateResponse = await fetch('https://websitegeneration.onrender.com/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,7 +55,9 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       throw new Error(data.error || 'Server did not return valid pages.');
     }
 
-    // ✨ Step 2: Enhance content
+    // ================================
+    // 3. Enhance content (optional)
+    // ================================
     let enhancedPages = [];
     try {
       const enhanceResponse = await fetch('https://websitegeneration.onrender.com/enhance', {
@@ -56,24 +68,30 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       const enhanceData = await enhanceResponse.json();
       enhancedPages = (enhanceData.success && Array.isArray(enhanceData.pages)) ? enhanceData.pages : data.pages;
     } catch (err) {
-      console.warn('⚠️ Enhancement failed:', err);
+      console.warn('⚠️ Enhancement failed, falling back to raw pages:', err);
       enhancedPages = data.pages;
     }
 
-    // 📄 Step 3: Normalize filenames
+    // ================================
+    // 4. Normalize Filenames
+    // ================================
     const logicalPageNames = ['home', 'about', 'services', 'contact', 'faq'];
     this.generatedPages = normalizePages(enhancedPages, logicalPageNames);
     this.currentPage = 0;
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
-    // 💾 Step 4: Store session data
-    await fetch('https://websitegeneration.onrender.com/store-step', {
+    // ================================
+    // 5. Store session data
+    // ================================
+    fetch('https://websitegeneration.onrender.com/store-step', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId, step: 'pages', content: this.generatedPages })
     }).catch(err => console.warn('❌ Failed to store step:', err));
 
-    // 📨 Step 5: Inject contact form (if applicable)
+    // ================================
+    // 6. Inject contact form (if required)
+    // ================================
     if (wantsContactForm && contactEmail) {
       try {
         const res = await fetch('https://websitegeneration.onrender.com/create-contact-script', {
@@ -102,11 +120,15 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       }
     }
 
-    // 🧠 Step 6: Smart navigation
+    // ================================
+    // 7. Smart navigation injection
+    // ================================
     const knownSections = ['home', 'about', 'services', 'contact', 'faq', 'features', 'gallery', 'testimonials'];
     this.generatedPages = injectSmartNavigation(this.generatedPages, knownSections);
 
-    // 👁️ Step 7: Render preview
+    // ================================
+    // 8. Render preview
+    // ================================
     const previewCandidate = this.generatedPages[this.currentPage];
     const pageHtml = previewCandidate?.content?.trim() || '';
 
@@ -116,13 +138,13 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       !pageHtml.endsWith('</html>') ||
       !pageHtml.includes('<body')
     ) {
-      console.error('❌ Page HTML is malformed or missing.');
+      console.error('❌ Page HTML is malformed or missing.', previewCandidate);
       this.showError('Preview failed: Invalid HTML content.');
       return;
     }
 
     this.updatePreview();
-    this.showSuccess('Website generated successfully!');
+    this.showSuccess('✅ Website generated successfully!');
   } catch (error) {
     console.error('❌ Website generation failed:', error);
     this.showError('Failed to generate website: ' + error.message);
@@ -130,3 +152,4 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     this.hideLoading();
   }
 };
+

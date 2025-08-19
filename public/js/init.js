@@ -1,7 +1,13 @@
+// =======================
+// ✅ App Bootstrap (init.js)
+// =======================
+import { normalizePages } from './normalizePages.js';
+import { injectSmartNavigation } from './navigation.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOM ready');
 
-  // ✅ Hide customization panel on load
+  // ✅ Hide customization panel initially
   const customizationPanel = document.getElementById('customizationPanel');
   if (customizationPanel) {
     customizationPanel.style.display = 'none';
@@ -9,19 +15,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tools) tools.style.display = 'none';
   }
 
-  // ✅ Setup domain checker
-  if (typeof setupDomainChecker === 'function') {
-    setupDomainChecker();
+  // ✅ Setup domain checker (safe guard)
+  try {
+    if (typeof setupDomainChecker === 'function') {
+      setupDomainChecker();
+      console.log('🌍 Domain checker initialized');
+    } else {
+      console.warn('⚠️ setupDomainChecker not available');
+    }
+  } catch (err) {
+    console.error('❌ Error initializing domain checker:', err);
   }
 
   // ✅ Initialize WebsiteGenerator
   const form = document.getElementById('websiteGeneratorForm');
   if (form) {
     window.generator = new WebsiteGenerator(form);
-    console.log('🧠 WebsiteGenerator instance created');
+
+    // Attach normalization + navigation helpers
+    window.generator.normalizePages = normalizePages;
+    window.generator.injectSmartNavigation = injectSmartNavigation;
+
+    console.log('🧠 WebsiteGenerator instance created and helpers attached');
   } else {
     console.error('❌ websiteGeneratorForm not found in DOM');
   }
 
-  // ✅ DO NOT manually add a click listener to nextStep4 here.
+  // ⚠️ Do not attach navigation button handlers here
+  //    (they’re already set up in WebsiteGenerator.ui.js)
 });
