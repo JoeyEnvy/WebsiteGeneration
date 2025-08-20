@@ -133,84 +133,129 @@
     </div>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('sessionId');
-      const domain = localStorage.getItem('customDomain') || params.get('domain');
-      const duration = localStorage.getItem('domainDuration') || '1';
-      const businessName = localStorage.getItem('businessName');
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
 
-      const loadingBox = document.getElementById('loadingBox');
-      const termDisplay = document.getElementById('termDisplay');
-      const hostedLink = document.getElementById('hostedLink');
-      const hostedPreview = document.getElementById('hostedLinkPreview');
-      const repoLink = document.getElementById('repoLink');
-      const repoSection = document.getElementById('repoSection');
-      const hostingDetails = document.getElementById('hostingDetails');
+    // ── Inputs / state ──────────────────────────────────────────────────────────
+    const sessionId    = params.get('sessionId');
+    const durationRaw  = params.get('duration') || localStorage.getItem('domainDuration') || '1';
+    const businessName = (localStorage.getItem('businessName') || '').trim();
 
-      if (duration === '3' && termDisplay) {
+    // Prefer explicit URL param first, then (carefully) fall back to localStorage.
+    // This avoids stale values but still works if you navigated here without ?domain=
+    const paramDomain  = (params.get('domain') || '').trim().toLowerCase();
+    const storedDomain = (localStorage.getItem('customDomain') || '').trim().toLowerCase();
+    const domain       = paramDomain || storedDomain;
+
+    const durationYears = Number.isFinite(Number(durationRaw)) ? Number(durationRaw) : 1;
+
+    // ── Elements ────────────────────────────────────────────────────────────────
+    const loadingBox     = document.getElementById('loadingBox');
+    const termDisplay    = document.getElementById('termDisplay');
+    const hostedLink     = document.getElementById('hostedLink');
+    const hostedPreview  = document.getElementById('hostedLinkPreview');
+    const repoLink       = document.getElementById('repoLink');
+    const repoSection    = document.getElementById('repoSection');
+    const hostingDetails = document.getElementById('hostingDetails');
+    const pagesLink      = document.getElementById('pagesLink');
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const BACKEND_BASE = 'https://websitegeneration.onrender.com';
+    const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d); // simple sanity check
+
+    // Term text
+    if (termDisplay) {
+      if (durationYears === 3) {
         termDisplay.innerHTML = '📅 Domain registered for <strong>3 years</strong>. Renewal support available.';
+      } else {
+        termDisplay.innerHTML = '📅 Domain registered for <strong>1 year</strong>. Renewal support available.';
+      }
+    }
+
+    // ── Guards ─────────────────────────────────────────────────────────────────
+    if (!sessionId) {
+      loadingBox.innerText = '⚠️ Missing session. Please go back and try again.';
+      return;
+    }
+    if (!businessName) {
+      loadingBox.innerText = '⚠️ Missing business name. Please go back and try again.';
+      return;
+    }
+    if (!domain || !isValidDomain(domain)) {
+      loadingBox.innerText = '⚠️ No valid domain found. Please go back and select a domain (e.g., example.com).';
+      return;
+    }
+
+    // Persist the exact domain we’re deploying (prevents stale future runs)
+    localStorage.setItem('customDomain', domain);
+
+    // ── Optional pre-check to avoid 422 on purchase ────────────────────────────
+    try {
+      const pre = await fetch(`${BACKEND_BASE}/check-domain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+      const preRes = await pre.json();
+      if (!pre.ok || !preRes?.available) {
+        throw new Error(preRes?.error || `Domain not available: ${domain}`);
+      }
+    } catch (e) {
+      console.error('❌ Domain availability check failed:', e);
+      loadingBox.innerText = `❌ Domain not available: ${domain}. Please choose another.`;
+      return;
+    }
+
+    // ── Deploy full hosting ────────────────────────────────────────────────────
+    try {
+      const res = await fetch(`${BACKEND_BASE}/deploy-full-hosting`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Send durationYears explicitly (many backends expect this key)
+        body: JSON.stringify({ sessionId, domain, durationYears, businessName })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error || 'Deployment failed.');
       }
 
-      if (!sessionId || !domain || !businessName) {
-        loadingBox.innerText = '⚠️ Missing session, domain, or business name. Please go back and try again.';
-        return;
-      }
+      const hostedUrl       = `https://${domain}`;
+      const githubPagesUrl  = data.pagesUrl || data.githubPagesUrl || data.fallbackPagesUrl || '';
 
-      try {
-        const res = await fetch('https://websitegeneration.onrender.com/deploy-full-hosting', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, domain, duration, businessName })
-        });
-
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Deployment failed.');
-
-        const hostedUrl = `https://${domain}`;
-        const githubPagesUrl = data.pagesUrl;
-
+      if (hostedLink) {
         hostedLink.href = hostedUrl;
         hostedLink.textContent = hostedUrl;
-        hostedPreview.textContent = domain;
+      }
+      if (hostedPreview) hostedPreview.textContent = domain;
 
-        if (data.repoUrl) {
+      if (pagesLink && githubPagesUrl) {
+        pagesLink.href = githubPagesUrl;
+        pagesLink.textContent = githubPagesUrl;
+      }
+
+      if (data.repoUrl) {
+        if (repoLink) {
           repoLink.href = data.repoUrl;
           repoLink.textContent = data.repoUrl;
-        } else {
-          repoSection.style.display = 'none';
         }
-
-        loadingBox.style.display = 'none';
-        hostingDetails.style.display = 'block';
-
-      } catch (err) {
-        console.error('❌ Full hosting deployment error:', err);
-        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+      } else if (repoSection) {
+        repoSection.style.display = 'none';
       }
-    });
 
+      loadingBox.style.display = 'none';
+      hostingDetails.style.display = 'block';
+    } catch (err) {
+      console.error('❌ Full hosting deployment error:', err);
+      loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+    }
+  });
+</script>
 
+<script src="public/js/core.js"></script>
+<script src="public/js/domainChecker.js"></script>
+<script src="public/js/deployFullHosting.js"></script>
 
-
-const pagesLink = document.getElementById('pagesLink');
-
-hostedLink.href = hostedUrl;
-hostedLink.textContent = hostedUrl;
-hostedPreview.textContent = domain;
-
-if (pagesLink && githubPagesUrl) {
-  pagesLink.href = githubPagesUrl;
-  pagesLink.textContent = githubPagesUrl;
-}
-
-
-
-  </script>
-
-  <script src="public/js/core.js"></script>
-  <script src="public/js/domainChecker.js"></script>
-  <script src="public/js/deployFullHosting.js"></script>
 </body>
 </html>

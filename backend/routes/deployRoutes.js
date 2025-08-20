@@ -249,10 +249,27 @@ router.post('/deploy-github', async (req, res) => {
 // ✅ Full hosting with GitHub Pages and custom domain
 import { setGitHubDNS } from '../utils/dnsUtils.js';
 
+const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d);
+
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
-    const { sessionId = '', domain = '', duration = '1', businessName = '' } = req.body || {};
-    const cleanedDomain = domain.trim().toLowerCase();
+    // Accept durationYears (new) but still allow legacy duration
+    const {
+      sessionId = '',
+      domain = '',
+      durationYears,              // ← preferred key
+      duration = '1',             // ← legacy fallback
+      businessName = ''
+    } = req.body || {};
+
+    const cleanedDomain = (domain || '').trim().toLowerCase();
+    const years = parseInt(durationYears ?? duration, 10) || 1;
+
+    // Basic guards
+    if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
+    if (!cleanedDomain || !isValidDomain(cleanedDomain)) {
+      return res.status(400).json({ error: `Invalid domain: ${cleanedDomain || '(empty)'}` });
+    }
 
     const session = tempSessions[sessionId];
     if (!session?.pages?.length) {
@@ -262,8 +279,35 @@ router.post('/deploy-full-hosting', async (req, res) => {
     // ✅ GoDaddy credentials
     const godaddyKey = process.env.GODADDY_API_KEY;
     const godaddySecret = process.env.GODADDY_API_SECRET;
-    const durationYears = parseInt(duration, 10) || 1;
+    if (!godaddyKey || !godaddySecret) {
+      return res.status(500).json({ error: 'GoDaddy credentials missing.' });
+    }
 
+    // 1) 🔍 Server-side availability pre-check to avoid 422
+    try {
+      const availRes = await fetch(
+        `https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
+            Accept: 'application/json'
+          }
+        }
+      );
+      const avail = await availRes.json();
+      if (!availRes.ok) {
+        return res.status(502).json({ error: 'GoDaddy availability check failed', detail: JSON.stringify(avail) });
+      }
+      if (!avail?.available) {
+        return res.status(409).json({ error: `Domain not available: ${cleanedDomain}`, code: 'UNAVAILABLE_DOMAIN' });
+      }
+    } catch (e) {
+      console.error('Availability check failed:', e);
+      return res.status(502).json({ error: 'Failed to verify domain availability' });
+    }
+
+    // Contact/consent
     const godaddyContact = {
       addressMailing: {
         address1: '123 Example Street',
@@ -282,7 +326,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       phone: '+44.2030000000'
     };
 
-    // ✅ Purchase domain
+    // 2) 🛒 Purchase domain (no fallbacks)
     try {
       const purchasePayload = {
         domain: cleanedDomain,
@@ -295,7 +339,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
         contactBilling: godaddyContact,
         contactRegistrant: godaddyContact,
         contactTech: godaddyContact,
-        period: durationYears,
+        period: years,
         privacy: true
       };
 
@@ -310,8 +354,12 @@ router.post('/deploy-full-hosting', async (req, res) => {
       });
 
       if (!purchaseRes.ok) {
-        const errorText = await purchaseRes.text();
-        throw new Error(`GoDaddy domain purchase failed: ${purchaseRes.status} ${errorText}`);
+        const text = await purchaseRes.text();
+        // Normalize “unavailable” to 409 for cleaner UX
+        if (text.includes('UNAVAILABLE_DOMAIN')) {
+          return res.status(409).json({ error: `Domain not available: ${cleanedDomain}`, code: 'UNAVAILABLE_DOMAIN' });
+        }
+        throw new Error(`GoDaddy domain purchase failed: ${purchaseRes.status} ${text}`);
       }
 
       console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
@@ -320,16 +368,16 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(500).json({ error: 'Domain purchase failed', detail: err.message });
     }
 
-    // ✅ GitHub setup
+    // 3) 🐙 GitHub setup
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing.');
 
-    const repoName = await getUniqueRepoName(sanitizeRepoName(businessName), owner);
+    const repoName = await getUniqueRepoName(sanitizeRepoName(businessName || cleanedDomain), owner);
     const repoUrl = `https://${owner}:${token}@github.com/${owner}/${repoName}.git`;
     const localDir = path.join('/tmp', repoName);
 
-    await fetch('https://api.github.com/user/repos', {
+    await fetch(`https://api.github.com/user/repos`, {
       method: 'POST',
       headers: {
         Authorization: `token ${token}`,
@@ -370,7 +418,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await git.commit('Trigger GitHub Actions workflow');
     await git.push('origin', 'main');
 
-    // ✅ Enable GitHub Pages with custom domain
+    // 4) ⚙️ Enable GitHub Pages + custom domain
     try {
       await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
         method: 'POST',
@@ -378,12 +426,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
           Authorization: `token ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          source: {
-            branch: 'main',
-            path: '/'
-          }
-        })
+        body: JSON.stringify({ source: { branch: 'main', path: '/' } })
       });
 
       await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
@@ -392,9 +435,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
           Authorization: `token ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          cname: cleanedDomain
-        })
+        body: JSON.stringify({ cname: cleanedDomain })
       });
 
       console.log('✅ GitHub Pages enabled with custom domain');
@@ -402,7 +443,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn('⚠️ GitHub Pages setup failed:', err.message);
     }
 
-    // ✅ Set correct DNS records via centralized utility
+    // 5) 🧭 DNS
     try {
       await setGitHubDNS(cleanedDomain);
       console.log(`✅ DNS records for ${cleanedDomain} set to GitHub Pages.`);
@@ -410,8 +451,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn(`⚠️ DNS setup failed for ${cleanedDomain}:`, err.message);
     }
 
-    // ✅ Final push to rebind Pages
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    // Final nudge
+    await new Promise(r => setTimeout(r, 10000));
     await fs.appendFile(path.join(localDir, 'index.html'), '\n<!-- Final DNS rebind -->');
     await git.add('.');
     await git.commit('Final push to ensure CNAME binding');

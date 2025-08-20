@@ -7,8 +7,8 @@ if (deployFullHostingBtn) {
     const priceDisplay = document.getElementById('domainPriceDisplay');
 
     const domain = domainInput?.value?.trim().toLowerCase();
-    const duration = durationSelect?.value || '1';
-    const businessName = localStorage.getItem('businessName');
+    const durationYears = parseInt(durationSelect?.value, 10) || 1;
+    const businessName = (localStorage.getItem('businessName') || '').trim();
     let sessionId = localStorage.getItem('sessionId');
 
     if (!domain || !isValidDomain(domain)) {
@@ -22,18 +22,18 @@ if (deployFullHostingBtn) {
     }
 
     if (!sessionId) {
-      sessionId = crypto.randomUUID();
+      sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
       localStorage.setItem('sessionId', sessionId);
     }
 
+    // Persist exact selections for the success step
     localStorage.setItem('customDomain', domain);
-    localStorage.setItem('domainDuration', duration);
+    localStorage.setItem('domainDuration', String(durationYears));
 
-    if (priceDisplay) {
+    // Optional: persist shown price if present
+    if (priceDisplay?.textContent) {
       const match = priceDisplay.textContent.match(/£(\d+(\.\d+)?)/);
-      if (match) {
-        localStorage.setItem('domainPrice', match[1]);
-      }
+      if (match) localStorage.setItem('domainPrice', match[1]);
     }
 
     try {
@@ -41,16 +41,16 @@ if (deployFullHostingBtn) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'full-hosting', // ✅ still GitHub full-hosting
+          type: 'full-hosting',   // still GitHub full-hosting
           sessionId,
           domain,
-          duration,
+          durationYears,          // ✅ send as durationYears to match success step
           businessName
         })
       });
 
       const data = await res.json();
-      if (data.url) {
+      if (res.ok && data.url) {
         window.location.href = data.url;
       } else {
         alert('⚠️ Failed to create checkout session.');
@@ -62,3 +62,4 @@ if (deployFullHostingBtn) {
     }
   });
 }
+

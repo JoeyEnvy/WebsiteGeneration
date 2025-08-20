@@ -1,11 +1,26 @@
 import fetch from 'node-fetch';
 
 export async function setGitHubDNS(domain) {
+  if (!domain) throw new Error('Domain is required');
+
+  const ghOwner = process.env.GITHUB_USERNAME;
+  if (!ghOwner) throw new Error('GITHUB_USERNAME not set');
+
+  const cnameTarget = `${ghOwner}.github.io`;
+
   const githubIPs = [
     '185.199.108.153',
     '185.199.109.153',
     '185.199.110.153',
     '185.199.111.153'
+  ];
+
+  // Recommended IPv6 records for GitHub Pages
+  const githubIPv6 = [
+    '2606:50c0:8000::153',
+    '2606:50c0:8001::153',
+    '2606:50c0:8002::153',
+    '2606:50c0:8003::153'
   ];
 
   const apiBase = process.env.GODADDY_ENV === 'production'
@@ -18,42 +33,23 @@ export async function setGitHubDNS(domain) {
     Accept: 'application/json'
   };
 
-  // 🧹 Step 1: DELETE existing A records (@)
-  const deleteA = await fetch(`${apiBase}/v1/domains/${domain}/records/A/@`, {
-    method: 'DELETE',
-    headers
-  });
+  // 🧹 Delete existing apex A & AAAA records
+  const delA = await fetch(`${apiBase}/v1/domains/${domain}/records/A/@`, { method: 'DELETE', headers });
+  if (!delA.ok) console.warn(`⚠️ Failed to delete A @: ${await delA.text()}`);
 
-  if (!deleteA.ok) {
-    const errText = await deleteA.text();
-    console.warn(`⚠️ Failed to delete A records: ${errText}`);
-  }
+  const delAAAA = await fetch(`${apiBase}/v1/domains/${domain}/records/AAAA/@`, { method: 'DELETE', headers });
+  if (!delAAAA.ok) console.warn(`⚠️ Failed to delete AAAA @: ${await delAAAA.text()}`);
 
-  // 🧹 Step 2: DELETE existing CNAME record for www
-  const deleteCNAME = await fetch(`${apiBase}/v1/domains/${domain}/records/CNAME/www`, {
-    method: 'DELETE',
-    headers
-  });
+  // 🧹 Delete existing CNAME for www
+  const delCNAME = await fetch(`${apiBase}/v1/domains/${domain}/records/CNAME/www`, { method: 'DELETE', headers });
+  if (!delCNAME.ok) console.warn(`⚠️ Failed to delete CNAME www: ${await delCNAME.text()}`);
 
-  if (!deleteCNAME.ok) {
-    const errText = await deleteCNAME.text();
-    console.warn(`⚠️ Failed to delete www CNAME: ${errText}`);
-  }
-
-  // ✅ Step 3: Add GitHub IPs + correct CNAME
-  const records = githubIPs.map(ip => ({
-    type: 'A',
-    name: '@',
-    data: ip,
-    ttl: 600
-  }));
-
-  records.push({
-    type: 'CNAME',
-    name: 'www',
-    data: 'joeyenvy.github.io',
-    ttl: 3600
-  });
+  // ✅ Add GitHub A/AAAA on apex and CNAME on www → <owner>.github.io
+  const records = [
+    ...githubIPs.map(ip => ({ type: 'A', name: '@', data: ip, ttl: 600 })),
+    ...githubIPv6.map(ip6 => ({ type: 'AAAA', name: '@', data: ip6, ttl: 600 })),
+    { type: 'CNAME', name: 'www', data: cnameTarget, ttl: 600 }
+  ];
 
   const addRes = await fetch(`${apiBase}/v1/domains/${domain}/records`, {
     method: 'PATCH',
@@ -66,6 +62,7 @@ export async function setGitHubDNS(domain) {
     throw new Error(`❌ Failed to add GitHub DNS records: ${errText}`);
   }
 
-  console.log(`✅ DNS A + CNAME records set for ${domain}`);
+  console.log(`✅ DNS A/AAAA (apex) + CNAME (www → ${cnameTarget}) set for ${domain}`);
 }
+
 
