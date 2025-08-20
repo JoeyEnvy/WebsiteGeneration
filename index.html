@@ -35,8 +35,7 @@
 
   <!-- 🖋 Font + Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-papipZpN1EyazHIDrYF8P4f1YoU+Z9hZoZaXbcuClgOmZqH1UzfW2RjBQcm63gR9tLSyluH15A7Zf2zWMB69Hg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- 💅 Main Styles -->
   <link rel="stylesheet" href="public/css/styles.css" />
@@ -124,276 +123,296 @@
 <div class="section-divider"></div>
 
 
-  <!-- ========== GENERATOR SECTION ========== -->
-<section class="generator-section" id="generator">
-  <div class="container">
-    <div class="generator-grid">
+    <!-- ========== GENERATOR SECTION ========== -->
+    <section class="generator-section" id="generator">
+      <div class="container">
+        <div class="generator-grid">
 
-      <!-- ====== FORM CONTAINER ====== -->
-      <div class="form-container">
-        <h2>Create Your Website</h2>
+          <!-- ====== FORM CONTAINER ====== -->
+          <div class="form-container">
+            <h2>Create Your Website</h2>
 
-        <!-- 🔔 Friendly Guidance Box -->
-        <div class="form-hint" style="margin-bottom: 20px; background: #fffbea; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #333;">
-          While it may be tempting to select every option, the best websites often come from focusing on only the features that matter most to you.
-        </div>
-
-        <!-- 🔢 Step Progress Bar -->
-        <div class="step-progress-bar">
-          <div class="step" id="indicator-step1">1</div>
-          <div class="step" id="indicator-step2">2</div>
-          <div class="step" id="indicator-step3">3</div>
-          <div class="step" id="indicator-step4">4</div>
-          <div class="step" id="indicator-step5">5</div>
-        </div>
-
-        <!-- ✅ FORM START -->
-        <form id="websiteGeneratorForm">
-
-          <!-- ========== STEP 1 ========== -->
-          <div class="form-step" id="step1">
-            <h3>Step 1: Website Type & Structure</h3>
-
-            <div class="form-group">
-              <label for="websiteType">Type of Website</label>
-              <select id="websiteType" name="websiteType" required>
-                <option value="">Select website type</option>
-                <option value="business">Business Website</option>
-                <option value="portfolio">Portfolio</option>
-                <option value="blog">Blog</option>
-                <option value="landing">Landing Page</option>
-              </select>
+            <!-- Friendly guidance box -->
+            <div class="form-hint" style="margin-bottom: 20px; background: #fffbea; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #333;">
+              While it may be tempting to select every option, the best websites often come from focusing on only the features that matter most to you.
             </div>
 
-            <div class="form-group">
-              <label for="businessName">Business Name</label>
-              <input type="text" id="businessName" name="businessName" required>
+            <!-- Step Progress Bar -->
+            <div class="step-progress-bar">
+              <div class="step" id="indicator-step1">1</div>
+              <div class="step" id="indicator-step2">2</div>
+              <div class="step" id="indicator-step3">3</div>
+              <div class="step" id="indicator-step4">4</div>
+              <div class="step" id="indicator-step5">5</div>
             </div>
 
-            <div class="form-group">
-              <label for="businessType">Business Type</label>
-              <select id="businessType" name="businessType" required>
-                <option value="">Select business type</option>
-                <option value="retail">Retail Store</option>
-                <option value="restaurant">Restaurant/Café</option>
-                <option value="professional">Professional Services</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="technology">Technology</option>
-              </select>
-            </div>
+            <!-- FORM BEGIN -->
+            <form id="websiteGeneratorForm">
 
-            <div class="form-group">
-              <label for="pageCount">How many pages?</label>
-              <select id="pageCount" name="pageCount" required>
-                <option value="1">Single Page</option>
-                <option value="3">Basic (3 pages)</option>
-                <option value="5">Standard (5 pages)</option>
-              </select>
-            </div>
+              <!-- ========== STEP 1: Website Structure ========== -->
+              <div class="form-step" id="step1">
+                <h3>Step 1: Website Type & Structure</h3>
 
-            <div class="form-group">
-              <label>Which pages do you need?</label>
-              <div class="checkbox-group">
-                <label><input type="checkbox" name="pages" value="Home"> Home</label>
-                <label><input type="checkbox" name="pages" value="About"> About</label>
-                <label><input type="checkbox" name="pages" value="Services"> Services</label>
-                <label><input type="checkbox" name="pages" value="Contact"> Contact</label>
-                <label><input type="checkbox" name="pages" value="FAQ"> FAQ</label>
+                <div class="form-group">
+                  <label for="websiteType">Type of Website</label>
+                  <select id="websiteType" name="websiteType" required>
+                    <option value="">Select website type</option>
+                    <option value="business">Business Website</option>
+                    <option value="portfolio">Portfolio</option>
+                    <option value="blog">Blog</option>
+                    <option value="landing">Landing Page</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="businessName">Business Name</label>
+                  <input type="text" id="businessName" name="businessName" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="businessType">Business Type</label>
+                  <select id="businessType" name="businessType" required>
+                    <option value="">Select business type</option>
+                    <option value="retail">Retail Store</option>
+                    <option value="restaurant">Restaurant/Café</option>
+                    <option value="professional">Professional Services</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="technology">Technology</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="pageCount">How many pages?</label>
+                  <select id="pageCount" name="pageCount" required>
+                    <option value="1">Single Page</option>
+                    <option value="3">Basic (3 pages)</option>
+                    <option value="5">Standard (5 pages)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Which pages do you need?</label>
+                  <div class="checkbox-group">
+                    <label><input type="checkbox" name="pages" value="Home"> Home</label>
+                    <label><input type="checkbox" name="pages" value="About"> About</label>
+                    <label><input type="checkbox" name="pages" value="Services"> Services</label>
+                    <label><input type="checkbox" name="pages" value="Contact"> Contact</label>
+                    <label><input type="checkbox" name="pages" value="FAQ"> FAQ</label>
+                  </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="nextStep1">Next</button>
+              </div>
+              <!-- ========== STEP 2: Design Preferences ========== -->
+              <div class="form-step" id="step2" style="display:none;">
+                <h3>Step 2: Design Preferences</h3>
+
+                <div class="form-group">
+                  <label for="colorScheme">Color Scheme</label>
+                  <select id="colorScheme" name="colorScheme" required>
+                    <option value="">Select color scheme</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="colorful">Colorful</option>
+                    <option value="monochrome">Monochrome</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="fontStyle">Font Style</label>
+                  <select id="fontStyle" name="fontStyle" required>
+                    <option value="">Select font style</option>
+                    <option value="modern">Modern</option>
+                    <option value="classic">Classic</option>
+                    <option value="playful">Playful</option>
+                    <option value="minimalist">Minimalist</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="layoutPreference">Layout Preference</label>
+                  <select id="layoutPreference" name="layoutPreference" required>
+                    <option value="">Select layout preference</option>
+                    <option value="grid">Grid</option>
+                    <option value="singleColumn">Single Column</option>
+                    <option value="asymmetric">Asymmetric</option>
+                    <option value="magazine">Magazine Style</option>
+                  </select>
+                </div>
+
+                <button type="button" class="btn" id="prevStep2">Back</button>
+                <button type="button" class="btn btn-primary" id="nextStep2">Next</button>
+              </div>
+
+              <!-- ========== STEP 3: Description & Features ========== -->
+              <div class="form-step" id="step3" style="display:none;">
+                <h3>Step 3: Business Description & Features</h3>
+
+                <div class="form-group">
+                  <label for="businessDescription">Brief Description</label>
+                  <textarea id="businessDescription" name="businessDescription" rows="4" required></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label>Extra Features</label>
+                  <div class="checkbox-group">
+                    <label><input type="checkbox" name="features" value="booking"> Online Booking</label>
+                    <label><input type="checkbox" name="features" value="newsletter"> Newsletter</label>
+                    <label><input type="checkbox" name="features" value="social"> Social Media</label>
+                    <label><input type="checkbox" name="features" value="contact form"> Contact Form</label>
+                  </div>
+                </div>
+
+                <button type="button" class="btn" id="prevStep3">Back</button>
+                <button type="button" class="btn btn-primary" id="nextStep3">Next</button>
+              </div>
+
+              <!-- ========== STEP 4: Enhancements ========== -->
+              <div class="form-step" id="step4" style="display:none;">
+                <h3>Step 4: Optional Enhancements</h3>
+                <p>Select any enhancements you'd like to include in your site:</p>
+
+                <div class="form-group checkbox-group">
+                  <label><input type="checkbox" name="enhancements" value="light animation"> Light Animation</label>
+                  <label><input type="checkbox" name="enhancements" value="enhanced styling"> Enhanced Styling</label>
+                  <label><input type="checkbox" name="enhancements" value="icons"> Icons</label>
+                  <label><input type="checkbox" name="enhancements" value="hover effects"> Hover Effects</label>
+                  <label><input type="checkbox" name="enhancements" value="enhanced details"> Enhanced Details (more detailed content)</label>
+                </div>
+
+                <button type="button" class="btn" id="prevStep4">Back</button>
+                <button type="submit" class="btn btn-primary">Generate Website</button>
+              </div>
+
+              <!-- ========== STEP 5: Loading ========= -->
+              <div class="form-step" id="step5" style="display:none;">
+                <h3>Generating Your Website...</h3>
+                <p>Please wait while your website is being generated. This may take a moment.</p>
+                <div class="loading-bar"></div>
+              </div>
+
+            </form> <!-- End Form -->
+          </div> <!-- End Form Container -->
+          <!-- ====== PREVIEW AREA ====== -->
+          <div class="preview-container">
+            <h2>Live Preview</h2>
+
+            <div id="previewFrame">
+              <div class="preview-placeholder">
+                Your website preview will appear here
               </div>
             </div>
 
-            <button type="button" class="btn btn-primary" id="nextStep1">Next</button>
-          </div>
+<!-- ====== PREVIEW AREA ====== -->
+<div class="preview-container" id="previewContainer">
+  <h2>Live Preview</h2>
 
-          <!-- ========== STEP 2 ========== -->
-          <div class="form-step" id="step2" style="display:none;">
-            <h3>Step 2: Design Preferences</h3>
+  <!-- 🔍 Preview Frame or Placeholder -->
+  <div id="previewFrame">
+    <div class="preview-placeholder">
+      Your website preview will appear here
+    </div>
+  </div>
 
-            <div class="form-group">
-              <label for="colorScheme">Color Scheme</label>
-              <select id="colorScheme" name="colorScheme" required>
-                <option value="">Select color scheme</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="colorful">Colorful</option>
-                <option value="monochrome">Monochrome</option>
-              </select>
+  <!-- ====== DEVICE VIEW CONTROLS ====== -->
+  <div class="preview-controls">
+    <button class="preview-btn" id="mobilePreview">
+      <i class="fas fa-mobile-alt"></i>
+      <span>Mobile</span>
+    </button>
+    <button class="preview-btn" id="tabletPreview">
+      <i class="fas fa-tablet-alt"></i>
+      <span>Tablet</span>
+    </button>
+    <button class="preview-btn active" id="desktopPreview">
+      <i class="fas fa-desktop"></i>
+      <span>Desktop</span>
+    </button>
+
+    <div class="page-navigation">
+      <button id="prevPage">Previous Page</button>
+      <span id="pageIndicator">Page 1 of 1</span>
+      <button id="nextPage">Next Page</button>
+    </div>
+  </div>
+</div>
+
+
+
+            <!-- ====== CLICK-TO-EDIT HINT ====== -->
+            <div id="editNotice" style="display: none; background: #e3fcef; padding: 10px; margin-top: 10px; font-size: 0.9rem;">
+              📝 Click any text in the preview to edit it. Click outside to save.
             </div>
 
-            <div class="form-group">
-              <label for="fontStyle">Font Style</label>
-              <select id="fontStyle" name="fontStyle" required>
-                <option value="">Select font style</option>
-                <option value="modern">Modern</option>
-                <option value="classic">Classic</option>
-                <option value="playful">Playful</option>
-                <option value="minimalist">Minimalist</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="layoutPreference">Layout Preference</label>
-              <select id="layoutPreference" name="layoutPreference" required>
-                <option value="">Select layout preference</option>
-                <option value="grid">Grid</option>
-                <option value="singleColumn">Single Column</option>
-                <option value="asymmetric">Asymmetric</option>
-                <option value="magazine">Magazine Style</option>
-              </select>
-            </div>
-
-            <button type="button" class="btn" id="prevStep2">Back</button>
-            <button type="button" class="btn btn-primary" id="nextStep2">Next</button>
-          </div>
-
-          <!-- ========== STEP 3 ========== -->
-          <div class="form-step" id="step3" style="display:none;">
-            <h3>Step 3: Business Description & Features</h3>
-
-            <div class="form-group">
-              <label for="businessDescription">Brief Description</label>
-              <textarea id="businessDescription" name="businessDescription" rows="4" required></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Extra Features</label>
-              <div class="checkbox-group">
-                <label><input type="checkbox" name="features" value="booking"> Online Booking</label>
-                <label><input type="checkbox" name="features" value="newsletter"> Newsletter</label>
-                <label><input type="checkbox" name="features" value="social"> Social Media</label>
-                <label><input type="checkbox" name="features" value="contact form" id="contactFormCheckbox"> Contact Form</label>
+            <!-- ====== CUSTOMIZATION PANEL ====== -->
+            <div class="customization-panel" id="customizationPanel" style="margin-top: 30px; display: none;">
+              <h3>🎨 Customize This Page</h3>
+              <div class="custom-tools" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+                <button class="btn btn-outline" id="randomFontBtn">🆕 Randomize Fonts</button>
+                <button class="btn btn-outline" id="randomNavBtn">🎨 Randomize Navbar Style</button>
+                <button class="btn btn-outline" id="randomColorsBtn">🌈 Randomize Section Colors</button>
+                <button class="btn btn-outline" id="toggleLayoutBtn">🪄 Toggle Layout Style</button>
+                <button class="btn btn-outline" id="editTextBtn">✍️ Edit Text Blocks</button>
+                <button class="btn btn-outline" id="swapHeroImageBtn">🖼️ Swap Hero Image</button>
+                <button class="btn btn-outline" id="reorderSectionsBtn">🔢 Reorder Sections</button>
+                <button class="btn btn-outline" id="addBackToTopBtn">⬆️ Add Back to Top Button</button>
+                <button class="btn btn-outline" id="insertLinksBtn">🔗 Insert Custom Links</button>
               </div>
+              <p style="font-size: 0.9rem; color: #555;">These changes affect the current page only. Use the navigation to switch between pages.</p>
             </div>
 
-            <div class="form-group" id="contactEmailContainer" style="display: none; margin-top: 1rem;">
-              <label for="contactEmail">Enter your email to receive contact form messages:</label>
-              <input type="email" id="contactEmail" name="contactEmail" placeholder="you@example.com" />
+            <!-- ====== BRANDING PANEL ====== -->
+            <div id="brandingPanel" style="display:none; margin-top: 30px;">
+              <h3>✏️ Add Branding</h3>
+
+              <div class="form-group">
+                <label for="logoUrl">Logo Image URL</label>
+                <input type="text" id="logoUrl" placeholder="https://example.com/logo.png" class="form-control" />
+                <button class="btn btn-outline" id="applyLogoBtn" style="margin-top: 8px;">Apply Logo</button>
+              </div>
+
+              <div class="form-group" style="margin-top: 20px;">
+                <label for="faviconUrl">Favicon URL</label>
+                <input type="text" id="faviconUrl" placeholder="https://example.com/favicon.ico" class="form-control" />
+                <button class="btn btn-outline" id="applyFaviconBtn" style="margin-top: 8px;">Apply Favicon</button>
+              </div>
+
+              <hr style="margin: 30px 0;" />
+
+              <h4>📇 Contact & Business Details</h4>
+              <div class="form-group">
+                <label for="businessNameInput">Business Name</label>
+                <input type="text" id="businessNameInput" name="businessName" placeholder="e.g. Apollo Heat Source" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="contactEmail">Email</label>
+                <input type="email" id="contactEmail" placeholder="e.g. hello@business.com" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="contactPhone">Phone</label>
+                <input type="text" id="contactPhone" placeholder="e.g. 07941 338 659" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="contactAddress">Address</label>
+                <input type="text" id="contactAddress" placeholder="e.g. Doncaster, South Yorkshire" class="form-control" />
+              </div>
+
+              <button class="btn btn-primary" id="applyContactDetailsBtn" style="margin-top: 12px;">📩 Apply Contact Info</button>
+              <button id="saveBrandingBtn" class="btn btn-success" style="margin-top: 16px;">✅ Save Branding</button>
             </div>
 
-            <button type="button" class="btn" id="prevStep3">Back</button>
-            <button type="button" class="btn btn-primary" id="nextStep3">Next</button>
-          </div>
-
-          <!-- ========== STEP 4 ========== -->
-          <div class="form-step" id="step4" style="display:none;">
-            <h3>Step 4: Optional Enhancements</h3>
-            <p>Select any enhancements you'd like to include in your site:</p>
-
-            <div class="form-group checkbox-group">
-              <label><input type="checkbox" name="enhancements" value="light animation"> Light Animation</label>
-              <label><input type="checkbox" name="enhancements" value="enhanced styling"> Enhanced Styling</label>
-              <label><input type="checkbox" name="enhancements" value="icons"> Icons</label>
-              <label><input type="checkbox" name="enhancements" value="hover effects"> Hover Effects</label>
-              <label><input type="checkbox" name="enhancements" value="enhanced details"> Enhanced Details (more detailed content)</label>
+            <!-- ====== IFRAME USAGE HINTS ====== -->
+            <div id="iframeHintMessage" style="display:none; margin-top: 12px; background: #fff3cd; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #856404;">
+              Links inside the preview won't work until your site is downloaded or purchased. Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.
             </div>
 
-            <button type="button" class="btn" id="prevStep4">Back</button>
-            <button type="button" class="btn btn-primary" id="nextStep4">Generate Website</button>
-          </div>
-
-          <!-- ========== STEP 5 ========== -->
-          <div class="form-step" id="step5" style="display:none;">
-            <h3>Generating Your Website...</h3>
-            <p>Please wait while your website is being generated. This may take a moment.</p>
-            <div class="loading-bar"></div>
-          </div>
-
-        </form>
-        <!-- ✅ FORM END -->
-      </div>
-      <!-- END FORM CONTAINER -->
-
-    </div>
-  </div>       
-
-<!-- ====== CUSTOMIZATION MODAL ====== -->
-<div id="customizationModal" class="modal" style="display: none;">
-  <div class="modal-content">
-    <span class="close" onclick="document.getElementById('customizationModal').style.display='none'">&times;</span>
-    <h3>🎨 Customize This Page</h3>
-    <div class="custom-tools" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
-      <button class="btn btn-outline" id="randomFontBtn">🆕 Randomize Fonts</button>
-      <button class="btn btn-outline" id="randomNavBtn">🎨 Randomize Navbar Style</button>
-      <button class="btn btn-outline" id="randomColorsBtn">🌈 Randomize Section Colors</button>
-      <button class="btn btn-outline" id="toggleLayoutBtn">🪄 Toggle Layout Style</button>
-      <button class="btn btn-outline" id="editTextBtn">✍️ Edit Text Blocks</button>
-      <button class="btn btn-outline" id="swapHeroImageBtn">🖼️ Swap Hero Image</button>
-      <button class="btn btn-outline" id="reorderSectionsBtn">🔢 Reorder Sections</button>
-      <button class="btn btn-outline" id="addBackToTopBtn">⬆️ Add Back to Top Button</button>
-      <button class="btn btn-outline" id="insertLinksBtn">🔗 Insert Custom Links</button>
-    </div>
-    <p style="font-size: 0.9rem; color: #bbb;">These changes affect the current page only. Use the navigation to switch between pages.</p>
-  </div>
-</div>
-<!-- ====== BRANDING MODAL ====== -->
-<div id="brandingModal" class="modal" style="display: none;">
-  <div class="modal-content">
-    <span class="close" onclick="document.getElementById('brandingModal').style.display='none'">&times;</span>
-    <h3>✏️ Add Branding</h3>
-
-    <div class="form-group">
-      <label for="logoUrl">Logo Image URL</label>
-      <input type="text" id="logoUrl" placeholder="https://example.com/logo.png" class="form-control" />
-      <button class="btn btn-outline" id="applyLogoBtn" style="margin-top: 8px;">Apply Logo</button>
-    </div>
-
-    <div class="form-group" style="margin-top: 20px;">
-      <label for="faviconUrl">Favicon URL</label>
-      <input type="text" id="faviconUrl" placeholder="https://example.com/favicon.ico" class="form-control" />
-      <button class="btn btn-outline" id="applyFaviconBtn" style="margin-top: 8px;">Apply Favicon</button>
-    </div>
-
-    <hr style="margin: 30px 0;" />
-
-    <h4>📇 Contact & Business Details</h4>
-    <div class="form-group">
-      <label for="businessNameInput">Business Name</label>
-      <input type="text" id="businessNameInput" placeholder="e.g. Apollo Heat Source" class="form-control" />
-    </div>
-    <div class="form-group">
-      <label for="contactEmail">Email</label>
-      <input type="email" id="contactEmail" placeholder="e.g. hello@business.com" class="form-control" />
-    </div>
-    <div class="form-group">
-      <label for="contactPhone">Phone</label>
-      <input type="text" id="contactPhone" placeholder="e.g. 07941 338 659" class="form-control" />
-    </div>
-    <div class="form-group">
-      <label for="contactAddress">Address</label>
-      <input type="text" id="contactAddress" placeholder="e.g. Doncaster, South Yorkshire" class="form-control" />
-    </div>
-
-    <button class="btn btn-primary" id="applyContactDetailsBtn" style="margin-top: 12px;">📩 Apply Contact Info</button>
-    <button id="saveBrandingBtn" class="btn btn-success" style="margin-top: 16px;">✅ Save Branding</button>
-  </div>
-</div>
-<!-- ====== POST-GENERATION MODAL ====== -->
-<div id="postGenerationModal" class="modal" style="display: none;">
-  <div class="modal-content">
-    <span class="close" onclick="document.getElementById('postGenerationModal').style.display='none'">&times;</span>
-    <h2>🎉 Your Website is Ready!</h2>
-    <p>Choose what you'd like to do next:</p>
-    <div class="post-gen-buttons" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px;">
-      <button class="btn btn-primary" onclick="document.getElementById('customizationModal').style.display='flex'">🎨 Customize</button>
-      <button class="btn btn-primary" onclick="document.getElementById('brandingModal').style.display='flex'">✏️ Add Branding</button>
-      <button class="btn btn-primary" onclick="document.getElementById('deploymentModal').style.display='flex'">🌍 Deploy</button>
-    </div>
-  </div>
-</div>
-<!-- ====== IFRAME USAGE HINT ====== -->
-<div id="iframeHintMessage" style="display:none; margin-top: 12px; background: #fff3cd; padding: 12px 16px; border-left: 4px solid #ffc107; font-size: 0.95rem; color: #856404;">
-  Links inside the preview won't work until your site is downloaded or purchased. Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.
-</div>
-
-<!-- ====== FORM HINT ====== -->
-<div class="form-hint" style="margin-bottom: 20px; background: #f0f8ff; padding: 12px 16px; border-left: 4px solid #007bff; font-size: 0.95rem; color: #333;">
-  This page is interactive and scrollable. Use the <strong>Next</strong> and <strong>Previous</strong> buttons to navigate. Website links in preview are disabled.
-</div>
-
-<!-- ====== CLICK-TO-EDIT HINT ====== -->
-<div id="editNotice" style="display: none; background: #e3fcef; padding: 10px; margin-top: 10px; font-size: 0.9rem;">
-  📝 Click any text in the preview to edit it. Click outside to save.
-</div>
+            <div class="form-hint" style="margin-bottom: 20px; background: #f0f8ff; padding: 12px 16px; border-left: 4px solid #007bff; font-size: 0.95rem; color: #333;">
+              This page is interactive and scrollable. Use the <strong>Next</strong> and <strong>Previous</strong> buttons to navigate. Website links in preview are disabled.
+            </div>
+          </div> <!-- End Preview Container -->
+        </div> <!-- End Generator Grid -->
+      </div> <!-- End Container -->
+    </section> <!-- End Generator Section -->
 <!-- ====== DEPLOYMENT MODAL ====== -->
 <div id="deploymentModal" class="modal" style="display: none;">
   <div class="modal-content">
@@ -439,17 +458,10 @@
           <a href="mailto:support@websitegenerator.co.uk">support</a>.
         </p>
 
-    <!-- ✅ Confirm + Buy -->
-<button id="confirmDomainBtn" class="btn btn-outline" disabled>✅ Confirm This Domain</button>
-<button id="deployFullHosting" class="btn btn-primary" style="margin-top: 10px;" disabled>Buy Full Hosting + URL</button>
-
-<!-- ✅ Live Status Loader Output -->
-<div id="statusContainer"
-     style="display: none; background: #111; color: #fff; padding: 16px; margin-top: 16px;
-            font-family: monospace; font-size: 0.9rem; border-radius: 8px;
-            max-height: 200px; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.4);">
-</div>
-
+        <!-- ✅ Confirm + Buy -->
+        <button id="confirmDomainBtn" class="btn btn-outline" disabled>✅ Confirm This Domain</button>
+        <button id="deployFullHosting" class="btn btn-primary" style="margin-top: 10px;" disabled>Buy Full Hosting + URL</button>
+      </div>
 
       <!-- ⚡ Option: Netlify Hosting -->
       <div class="deploy-option-card">
@@ -491,101 +503,6 @@
     </div>
   </div>
 </div>
-
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   <!-- ====== PREVIEW AREA ====== -->
-
-
-
-
-<!-- ========== FULLSCREEN PREVIEW SECTION ========== -->
-<!-- ====== FULLSCREEN PREVIEW SECTION ====== -->
-<section id="previewFullScreen" aria-labelledby="livePreviewHeading">
-  <div class="preview-inner-container">
-
-    <div class="preview-container" id="previewContainer">
-      <h2 id="livePreviewHeading">Live Preview</h2>
-
-      <!-- 🔍 Preview Iframe -->
-      <div id="previewFrameWrapper">
-        <iframe
-          id="previewFrame"
-          title="Website Preview"
-          class="preview-frame"
-          frameborder="0"
-          sandbox="allow-scripts allow-same-origin"
-        ></iframe>
-
-        <div class="preview-placeholder" id="previewPlaceholder">
-          Your website preview will appear here
-        </div>
-      </div>
-
-      <!-- ====== DEVICE VIEW CONTROLS ====== -->
-      <div class="preview-controls">
-        <button class="preview-btn" id="mobilePreview" aria-label="Mobile View">
-          <i class="fas fa-mobile-alt"></i>
-          <span>Mobile</span>
-        </button>
-        <button class="preview-btn" id="tabletPreview" aria-label="Tablet View">
-          <i class="fas fa-tablet-alt"></i>
-          <span>Tablet</span>
-        </button>
-        <button class="preview-btn active" id="desktopPreview" aria-label="Desktop View">
-          <i class="fas fa-desktop"></i>
-          <span>Desktop</span>
-        </button>
-
-        <div class="page-navigation">
-          <button id="prevPage" aria-label="Previous Page">Previous Page</button>
-          <span id="pageIndicator">Page 1 of 1</span>
-          <button id="nextPage" aria-label="Next Page">Next Page</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     <!-- ========== SERVICE OVERVIEW ========== -->
@@ -755,33 +672,101 @@
 
 
 <!-- ====== SCRIPTS ====== -->
-<script type="module" src="public/js/core.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.validation.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.preview.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.submit.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.prompt.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.navigation.js"></script>
-<script type="module" src="public/js/utils/normalizePages.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.ui.js"></script>
-<script type="module" src="public/js/WebsiteGenerator.helpers.js"></script>
-<script type="module" src="public/js/domainChecker.js"></script>
-<script type="module" src="public/js/deployFullHosting.js"></script>
-<script type="module" src="public/js/init.js"></script>
-
+<script src="public/js/core.js"></script>
+<script src="public/js/WebsiteGenerator.js"></script>
+<script src="public/js/WebsiteGenerator.validation.js"></script>
+<script src="public/js/WebsiteGenerator.preview.js"></script>
+<script src="public/js/WebsiteGenerator.submit.js"></script>
+<script src="public/js/WebsiteGenerator.ui.js"></script>
+<script src="public/js/WebsiteGenerator.helpers.js"></script>
+<script src="public/js/domainChecker.js"></script>
+<script src="public/js/deployFullHosting.js"></script>
+<script src="public/js/init.js"></script>
 
 <!-- Optional Inline Script -->
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ===== 💬 Click Preview Hint Logic =====
+  const previewFrame = document.getElementById('previewFrame');
+  const hintMessage = document.getElementById('iframeHintMessage');
 
+  if (previewFrame && hintMessage) {
+    previewFrame.addEventListener('click', () => {
+      hintMessage.style.display = 'block';
+      clearTimeout(hintMessage._timeout);
+      hintMessage._timeout = setTimeout(() => {
+        hintMessage.style.display = 'none';
+      }, 5000);
+    });
+  }
 
+  // ===== 📈 Scroll Progress Bar =====
+  const scrollProgress = document.getElementById('scrollProgressBar');
+  window.addEventListener('scroll', () => {
+    if (!scrollProgress) return;
+    const scrollTop = window.scrollY;
+    const docHeight = document.body.scrollHeight - window.innerHeight;
+    const scrollPercent = (scrollTop / docHeight) * 100;
+    scrollProgress.style.width = scrollPercent + "%";
+  });
 
+  // ===== 🧭 Navbar Styling on Scroll =====
+  const navbar = document.querySelector('.navbar');
+  window.addEventListener('scroll', () => {
+    if (!navbar) return;
+    if (window.scrollY > 60) {
+      navbar.style.background = "rgba(0, 0, 0, 0.85)";
+      navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+    } else {
+      navbar.style.background = "rgba(0, 0, 0, 0.6)";
+      navbar.style.boxShadow = "var(--shadow)";
+    }
+  });
 
+  // ===== 🚀 Post-Generation UI Enhancements =====
+  const previewContainer = document.getElementById('previewContainer');
+  const brandingPanel = document.getElementById('brandingPanel');
+  const controls = document.querySelector('.preview-controls');
+  const finalStep = document.getElementById('step5');
 
+  function showPreviewEnhancements() {
+    if (previewContainer) previewContainer.classList.add('fullscreen');
+    if (controls) controls.classList.add('post-gen-ui');
+    if (brandingPanel) brandingPanel.style.display = 'block';
 
+    setTimeout(() => {
+      previewContainer?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  }
 
+  if (finalStep) {
+    const observer = new MutationObserver((mutationsList) => {
+      for (const mutation of mutationsList) {
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'style' &&
+          mutation.target.style.display !== 'none'
+        ) {
+          showPreviewEnhancements();
+          observer.disconnect();
+          break;
+        }
+      }
+    });
+    observer.observe(finalStep, { attributes: true, attributeFilter: ['style'] });
+  }
 
+  // ===== 📱 Mobile Hamburger Nav Toggle =====
+  const hamburger = document.getElementById('hamburger');
+  const navLinks = document.querySelector('.nav-links');
+  if (hamburger && navLinks) {
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.toggle('show');
+      hamburger.classList.toggle('active');
+    });
+  }
+});
 </script>
-
 
 
 

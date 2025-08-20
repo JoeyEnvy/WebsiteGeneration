@@ -1,9 +1,10 @@
 {
   "name": "websitegenerator-backend",
   "version": "1.0.0",
-  "main": "index.cjs",
+  "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.cjs"
+    "start": "node index.js"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
@@ -14,10 +15,8 @@
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
     "fs-extra": "^11.3.0",
-    "googleapis": "^153.0.0",
     "jszip": "^3.10.1",
     "node-fetch": "^3.3.2",
-    "openai": "^5.11.0",
     "simple-git": "^3.27.0",
     "slugify": "^1.6.6",
     "stripe": "^12.0.0",
