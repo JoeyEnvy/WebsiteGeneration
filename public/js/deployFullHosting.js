@@ -1,5 +1,8 @@
 const deployFullHostingBtn = document.getElementById('deployFullHosting');
 
+// Simple domain validator
+const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(String(d || ''));
+
 if (deployFullHostingBtn) {
   deployFullHostingBtn.addEventListener('click', async () => {
     const domainInput = document.getElementById('customDomain');
@@ -22,7 +25,9 @@ if (deployFullHostingBtn) {
     }
 
     if (!sessionId) {
-      sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+      sessionId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : String(Date.now());
       localStorage.setItem('sessionId', sessionId);
     }
 
@@ -37,14 +42,14 @@ if (deployFullHostingBtn) {
     }
 
     try {
-      const res = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+      const res = await fetch('/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'full-hosting',   // still GitHub full-hosting
+          type: 'full-hosting',   // GitHub full-hosting
           sessionId,
           domain,
-          durationYears,          // ✅ send as durationYears to match success step
+          durationYears,          // ✅ matches backend
           businessName
         })
       });

@@ -1,111 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🌍 Full Hosting Activated - Website Generator</title>
-  <link rel="stylesheet" href="./public/css/styles.css">
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 0;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: 40px auto;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-      padding: 32px;
-      animation: fadeIn 0.6s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    h1 {
-      font-size: 2rem;
-      color: #222;
-      margin-bottom: 12px;
-    }
-
-    .status-box {
-      background: #e6f7ff;
-      border-left: 5px solid #1890ff;
-      padding: 18px;
-      border-radius: 10px;
-      font-size: 1rem;
-      margin-bottom: 24px;
-    }
-
-    .info-line {
-      margin: 14px 0;
-      font-size: 1.05rem;
-      line-height: 1.5;
-    }
-
-    #hostingDetails a {
-      color: #0066cc;
-      font-weight: bold;
-      word-break: break-word;
-      text-decoration: none;
-<!DOCTYPE html>
-<html lang="en">
-<head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Full Hosting – Deployment Status</title>
+  <title>🌍 Full Hosting – Deployment Status</title>
   <style>
     :root {
       --bg: #0f172a;
       --card: #111827;
-      --text: #e5e7eb;
+      --text: #f1f5f9;
       --muted: #9ca3af;
       --accent: #22c55e;
-      --warning: #ffc107;
+      --warning: #facc15;
       --border: #1f2937;
+      --link: #60a5fa;
     }
-
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       background: radial-gradient(1200px 600px at 10% -10%, #1e293b 0%, #0b1220 40%, #070b14 100%), var(--bg);
       color: var(--text);
+      line-height: 1.5;
+      padding: 20px;
     }
 
     .container {
       max-width: 880px;
       margin: 40px auto;
-      padding: 28px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding: 32px;
+      background: rgba(255, 255, 255, 0.02);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     h1 {
-      margin: 0 0 8px;
       font-size: 2rem;
-      line-height: 1.1;
+      margin-bottom: 8px;
+      font-weight: 700;
       letter-spacing: -0.01em;
     }
 
-    p { color: var(--muted); margin-top: 0; }
+    p { color: var(--muted); margin-bottom: 16px; }
 
     .status-box {
-      margin-top: 18px;
-      padding: 16px;
-      background: rgba(34,197,94,0.08);
-      border: 1px solid rgba(34,197,94,0.35);
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.4);
       border-radius: 12px;
+      padding: 16px;
       font-weight: 600;
+      margin-bottom: 24px;
     }
 
     .info-line {
@@ -117,29 +68,26 @@
     }
 
     #hostingDetails a {
-      color: #60a5fa;
-      text-decoration: none;
+      color: var(--link);
+      font-weight: 600;
       word-break: break-all;
+      text-decoration: none;
     }
-
-    #hostingDetails a:hover {
-      text-decoration: underline;
-    }
+    #hostingDetails a:hover { text-decoration: underline; }
 
     .notice {
       background: #fff3cd;
-      border-left: 4px solid #ffc107;
+      border-left: 4px solid var(--warning);
       padding: 16px;
-      border-radius: 10px;
+      border-radius: 12px;
       margin-top: 28px;
-      font-size: 1rem;
-      line-height: 1.4;
-      color: #312e2a;
+      font-size: 0.95rem;
+      color: #1f2937;
     }
 
     .small-text {
-      font-size: 0.9rem;
-      color: #9ca3af;
+      font-size: 0.85rem;
+      color: var(--muted);
       margin-top: 40px;
       text-align: center;
     }
@@ -147,14 +95,12 @@
     #loadingBox {
       font-size: 1rem;
       margin-top: 24px;
-      color: #e5e7eb;
+      color: var(--text);
+      opacity: 0.9;
     }
 
     @media (max-width: 600px) {
-      .container {
-        padding: 20px;
-        margin: 20px;
-      }
+      .container { padding: 20px; margin: 20px; }
       h1 { font-size: 1.5rem; }
     }
   </style>
@@ -162,37 +108,37 @@
 <body>
   <div class="container">
     <h1>✅ Full Hosting Activated!</h1>
-    <p>Thanks for choosing full hosting with a custom domain. We're deploying everything automatically for you.</p>
+    <p>Your payment is confirmed. We’re registering your domain, setting up DNS, and deploying your site.</p>
 
     <div class="status-box">
-      ✅ Payment confirmed. Your domain is being registered, DNS is being configured, and your website is being deployed.
+      ⏳ Please wait while everything is automatically configured.
     </div>
 
     <div id="hostingDetails" style="display: none;">
       <div class="info-line">
-        🌐 <strong>Custom Domain:</strong> <a id="hostedLink" href="#" target="_blank">Loading...</a>
+        🌐 <strong>Custom Domain:</strong> <a id="hostedLink" href="#" target="_blank">Loading…</a>
       </div>
       <div class="info-line">
-        ⚡ <strong>Instant Preview (.github.io):</strong> <a id="pagesLink" href="#" target="_blank">Loading...</a>
+        ⚡ <strong>Instant Preview (.github.io):</strong> <a id="pagesLink" href="#" target="_blank">Loading…</a>
       </div>
       <div class="info-line" id="repoSection">
-        💻 <strong>GitHub Repository:</strong> <a id="repoLink" href="#" target="_blank">Loading...</a>
+        💻 <strong>GitHub Repository:</strong> <a id="repoLink" href="#" target="_blank">Loading…</a>
       </div>
       <div class="info-line" id="termDisplay">
         📅 Domain registered for <strong>1 year</strong>. Renewal support available.
       </div>
 
       <div class="notice">
-        ⚠️ Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully resolve.<br />
-        In the meantime, use the GitHub Pages preview link below. <br />
-        If your domain isn't live after 24h, email <strong>support@websitegenerator.co.uk</strong>.
+        ⚠️ Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully resolve.<br/>
+        In the meantime, use the GitHub Pages preview link above. <br/>
+        If issues persist, email <strong>support@websitegenerator.co.uk</strong>.
       </div>
     </div>
 
-    <div id="loadingBox">⏳ Creating your site and configuring DNS. Please wait...</div>
+    <div id="loadingBox">⏳ Creating your site and configuring DNS. Please wait…</div>
 
     <div class="small-text">
-      Need help? Contact us at <strong>support@websitegenerator.co.uk</strong>
+      Need help? Contact us: <strong>support@websitegenerator.co.uk</strong>
     </div>
   </div>
 
@@ -200,16 +146,16 @@
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
 
-      // ── Inputs / state ──────────────────────────────────────────────────────────
+      // Inputs / state
       const sessionId     = params.get('sessionId');
-      const domainParam   = (params.get('domain') || '').trim().toLowerCase();  // ✅ only from URL
+      const domainParam   = (params.get('domain') || '').trim().toLowerCase();
       const durationRaw   = params.get('duration') || localStorage.getItem('domainDuration') || '1';
       const businessName  = (localStorage.getItem('businessName') || '').trim();
 
       const durationYears = Number.isFinite(Number(durationRaw)) ? Number(durationRaw) : 1;
       const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d);
 
-      // ── Elements ────────────────────────────────────────────────────────────────
+      // Elements
       const loadingBox     = document.getElementById('loadingBox');
       const termDisplay    = document.getElementById('termDisplay');
       const hostedLink     = document.getElementById('hostedLink');
@@ -219,34 +165,26 @@
       const hostingDetails = document.getElementById('hostingDetails');
       const pagesLink      = document.getElementById('pagesLink');
 
-      // ── Config ─────────────────────────────────────────────────────────────────
       const BACKEND_BASE = 'https://websitegeneration.onrender.com';
 
-      // ── Term text ─────────────────────────────────────────────────────────────
+      // Term text
       if (termDisplay) {
         termDisplay.innerHTML = durationYears === 3
           ? '📅 Domain registered for <strong>3 years</strong>. Renewal support available.'
           : '📅 Domain registered for <strong>1 year</strong>. Renewal support available.';
       }
 
-      // ── Guards ─────────────────────────────────────────────────────────────────
-      if (!sessionId) {
-        loadingBox.innerText = '⚠️ Missing session. Please go back and try again.';
-        return;
-      }
-      if (!businessName) {
-        loadingBox.innerText = '⚠️ Missing business name. Please go back and try again.';
-        return;
-      }
+      // Guards
+      if (!sessionId) { loadingBox.innerText = '⚠️ Missing session. Please go back and try again.'; return; }
+      if (!businessName) { loadingBox.innerText = '⚠️ Missing business name. Please go back and try again.'; return; }
       if (!domainParam || !isValidDomain(domainParam)) {
-        loadingBox.innerText = '⚠️ No valid domain found in the URL. Please go back and re-start the purchase.';
+        loadingBox.innerText = '⚠️ Invalid domain in URL. Please restart your purchase.';
         return;
       }
 
-      // Persist the exact domain we’re deploying (for any later steps)
       localStorage.setItem('customDomain', domainParam);
 
-      // ── Optional pre-check to avoid 422 on purchase ────────────────────────────
+      // Optional pre-check
       try {
         const pre = await fetch(`${BACKEND_BASE}/check-domain`, {
           method: 'POST',
@@ -254,53 +192,39 @@
           body: JSON.stringify({ domain: domainParam })
         });
         const preRes = await pre.json();
-        if (!pre.ok || !preRes?.available) {
-          throw new Error(preRes?.error || `Domain not available: ${domainParam}`);
-        }
+        if (!pre.ok || !preRes?.available) throw new Error(preRes?.error || 'Domain not available');
       } catch (e) {
         console.error('❌ Domain availability check failed:', e);
-        loadingBox.innerText = `❌ Domain not available: ${domainParam}. Please choose another.`;
+        loadingBox.innerText = `❌ Domain not available: ${domainParam}`;
         return;
       }
 
-      // ── Deploy full hosting ────────────────────────────────────────────────────
+      // Deploy
       try {
         const res = await fetch(`${BACKEND_BASE}/deploy-full-hosting`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId,
-            domain: domainParam,
-            durationYears,
-            businessName
-          })
+          body: JSON.stringify({ sessionId, domain: domainParam, durationYears, businessName })
         });
 
         const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data?.error || 'Deployment failed.');
-        }
+        if (!res.ok || !data.success) throw new Error(data?.error || 'Deployment failed.');
 
-        const hostedUrl      = `https://${domainParam}`;
+        const hostedUrl = `https://${domainParam}`;
         const githubPagesUrl = data.pagesUrl || data.githubPagesUrl || data.fallbackPagesUrl || '';
 
-        if (hostedLink) {
-          hostedLink.href = hostedUrl;
-          hostedLink.textContent = hostedUrl;
-        }
-        if (hostedPreview) hostedPreview.textContent = domainParam;
+        hostedLink.href = hostedUrl;
+        hostedLink.textContent = hostedUrl;
+        hostedPreview.textContent = domainParam;
 
         if (pagesLink && githubPagesUrl) {
           pagesLink.href = githubPagesUrl;
           pagesLink.textContent = githubPagesUrl;
         }
-
         if (data.repoUrl) {
-          if (repoLink) {
-            repoLink.href = data.repoUrl;
-            repoLink.textContent = data.repoUrl;
-          }
-        } else if (repoSection) {
+          repoLink.href = data.repoUrl;
+          repoLink.textContent = data.repoUrl;
+        } else {
           repoSection.style.display = 'none';
         }
 
@@ -318,4 +242,5 @@
   <script src="public/js/deployFullHosting.js"></script>
 </body>
 </html>
+
 
