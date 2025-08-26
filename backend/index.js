@@ -27,11 +27,11 @@ import domainRoutes from './routes/domainRoutes.js';
 import stripeRoutes from './routes/stripeRoutes.js';
 import utilityRoutes from './routes/utilityRoutes.js';
 
-// ✅ Split deploy routes
+// ✅ Split deploy routes (make sure filenames match exactly)
 import deployLiveRoutes from './routes/deployLiveRoutes.js';
-import deployGitHubRoutes from './routes/deployGitHubRoutes.js';
+import deployGithubRoutes from './routes/deployGithubRoutes.js';   // 👈 lowercase "h"
 import fullHostingDomainRoutes from './routes/fullHostingDomainRoutes.js';
-import fullHostingGitHubRoutes from './routes/fullHostingGitHubRoutes.js';
+import fullHostingGithubRoutes from './routes/fullHostingGithubRoutes.js'; // 👈 lowercase "h"
 
 // ========================================================================
 // App setup
@@ -70,9 +70,9 @@ app.use('/', stripeRoutes);
 app.use('/', utilityRoutes);
 
 app.use('/', deployLiveRoutes);
-app.use('/', deployGitHubRoutes);
+app.use('/', deployGithubRoutes);
 app.use('/', fullHostingDomainRoutes);
-app.use('/', fullHostingGitHubRoutes);
+app.use('/', fullHostingGithubRoutes);
 
 // ✅ Serve static files (so fullhosting.html works in production too)
 app.use(express.static(path.join(__dirname, 'public')));
