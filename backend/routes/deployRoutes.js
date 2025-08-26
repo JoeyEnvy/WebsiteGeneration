@@ -249,23 +249,21 @@ router.post('/deploy-github', async (req, res) => {
 // ✅ Full hosting with GitHub Pages and custom domain
 import { setGitHubDNS } from '../utils/dnsUtils.js';
 
-const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d);
+const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(String(d || ''));
 
 router.post('/deploy-full-hosting', async (req, res) => {
   try {
-    // Accept durationYears (new) but still allow legacy duration
     const {
       sessionId = '',
       domain = '',
-      durationYears,              // ← preferred key
-      duration = '1',             // ← legacy fallback
+      durationYears,          // preferred
+      duration = '1',         // legacy fallback
       businessName = ''
     } = req.body || {};
 
     const cleanedDomain = (domain || '').trim().toLowerCase();
     const years = parseInt(durationYears ?? duration, 10) || 1;
 
-    // Basic guards
     if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
     if (!cleanedDomain || !isValidDomain(cleanedDomain)) {
       return res.status(400).json({ error: `Invalid domain: ${cleanedDomain || '(empty)'}` });
@@ -276,17 +274,29 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(404).json({ error: 'Session not found or empty.' });
     }
 
-    // ✅ GoDaddy credentials
+    // 🔒 Enforce the domain locked at checkout (if present)
+    if (session.lockedDomain && session.lockedDomain !== cleanedDomain) {
+      return res.status(409).json({
+        error: `Domain mismatch. Locked: ${session.lockedDomain}, Got: ${cleanedDomain}`,
+        code: 'DOMAIN_MISMATCH'
+      });
+    }
+
+    // GoDaddy API base (prod vs OTE sandbox)
+    const apiBase = process.env.GODADDY_ENV === 'production'
+      ? 'https://api.godaddy.com'
+      : 'https://api.ote-godaddy.com';
+
     const godaddyKey = process.env.GODADDY_API_KEY;
     const godaddySecret = process.env.GODADDY_API_SECRET;
     if (!godaddyKey || !godaddySecret) {
       return res.status(500).json({ error: 'GoDaddy credentials missing.' });
     }
 
-    // 1) 🔍 Server-side availability pre-check to avoid 422
+    // 1) Availability pre-check
     try {
       const availRes = await fetch(
-        `https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}`,
+        `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}`,
         {
           method: 'GET',
           headers: {
@@ -307,7 +317,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(502).json({ error: 'Failed to verify domain availability' });
     }
 
-    // Contact/consent
+    // 2) Purchase domain
     const godaddyContact = {
       addressMailing: {
         address1: '123 Example Street',
@@ -326,7 +336,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
       phone: '+44.2030000000'
     };
 
-    // 2) 🛒 Purchase domain (no fallbacks)
     try {
       const purchasePayload = {
         domain: cleanedDomain,
@@ -343,7 +352,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
         privacy: true
       };
 
-      const purchaseRes = await fetch('https://api.godaddy.com/v1/domains/purchase', {
+      const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
         method: 'POST',
         headers: {
           Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
@@ -355,7 +364,6 @@ router.post('/deploy-full-hosting', async (req, res) => {
 
       if (!purchaseRes.ok) {
         const text = await purchaseRes.text();
-        // Normalize “unavailable” to 409 for cleaner UX
         if (text.includes('UNAVAILABLE_DOMAIN')) {
           return res.status(409).json({ error: `Domain not available: ${cleanedDomain}`, code: 'UNAVAILABLE_DOMAIN' });
         }
@@ -368,7 +376,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       return res.status(500).json({ error: 'Domain purchase failed', detail: err.message });
     }
 
-    // 3) 🐙 GitHub setup
+    // 3) GitHub setup
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing.');
@@ -382,7 +390,8 @@ router.post('/deploy-full-hosting', async (req, res) => {
       headers: {
         Authorization: `token ${token}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'website-generator'
+        'User-Agent': 'website-generator',
+        Accept: 'application/vnd.github+json'
       },
       body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
@@ -418,13 +427,15 @@ router.post('/deploy-full-hosting', async (req, res) => {
     await git.commit('Trigger GitHub Actions workflow');
     await git.push('origin', 'main');
 
-    // 4) ⚙️ Enable GitHub Pages + custom domain
+    // 4) Enable GitHub Pages + custom domain
     try {
       await fetch(`https://api.github.com/repos/${owner}/${repoName}/pages`, {
         method: 'POST',
         headers: {
           Authorization: `token ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'website-generator',
+          Accept: 'application/vnd.github+json'
         },
         body: JSON.stringify({ source: { branch: 'main', path: '/' } })
       });
@@ -433,7 +444,9 @@ router.post('/deploy-full-hosting', async (req, res) => {
         method: 'PUT',
         headers: {
           Authorization: `token ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'website-generator',
+          Accept: 'application/vnd.github+json'
         },
         body: JSON.stringify({ cname: cleanedDomain })
       });
@@ -443,7 +456,7 @@ router.post('/deploy-full-hosting', async (req, res) => {
       console.warn('⚠️ GitHub Pages setup failed:', err.message);
     }
 
-    // 5) 🧭 DNS
+    // 5) DNS
     try {
       await setGitHubDNS(cleanedDomain);
       console.log(`✅ DNS records for ${cleanedDomain} set to GitHub Pages.`);

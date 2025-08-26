@@ -33,6 +33,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ✅ trust proxy so req.ip is the real client IP (needed for GoDaddy consent)
+app.set('trust proxy', 1);
+
 // ========================================================================
 // Third-party API Clients
 // ========================================================================
@@ -60,10 +63,8 @@ app.use('/', stripeRoutes);
 app.use('/', deployRoutes);
 app.use('/', utilityRoutes);
 
-// ✅ Optional: Static serving (useful for local testing or fallback)
-if (process.env.NODE_ENV !== 'production') {
-  app.use(express.static(path.join(__dirname, 'public')));
-}
+// ✅ Serve static files (always, so fullhosting.html works in production too)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ✅ Global error fallback
 app.use((err, req, res, next) => {
@@ -76,7 +77,7 @@ app.use((err, req, res, next) => {
 // ========================================================================
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });
 
 
