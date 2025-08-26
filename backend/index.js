@@ -19,12 +19,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Import routes
+// ========================================================================
+// Import Routes
+// ========================================================================
 import sessionRoutes from './routes/sessionRoutes.js';
 import domainRoutes from './routes/domainRoutes.js';
 import stripeRoutes from './routes/stripeRoutes.js';
-import deployRoutes from './routes/deployRoutes.js';
 import utilityRoutes from './routes/utilityRoutes.js';
+
+// ✅ Split deploy routes
+import deployLiveRoutes from './routes/deployLiveRoutes.js';
+import deployGitHubRoutes from './routes/deployGitHubRoutes.js';
+import fullHostingDomainRoutes from './routes/fullHostingDomainRoutes.js';
+import fullHostingGitHubRoutes from './routes/fullHostingGitHubRoutes.js';
 
 // ========================================================================
 // App setup
@@ -60,10 +67,14 @@ export const thirdParty = {
 app.use('/', sessionRoutes);
 app.use('/', domainRoutes);
 app.use('/', stripeRoutes);
-app.use('/', deployRoutes);
 app.use('/', utilityRoutes);
 
-// ✅ Serve static files (always, so fullhosting.html works in production too)
+app.use('/', deployLiveRoutes);
+app.use('/', deployGitHubRoutes);
+app.use('/', fullHostingDomainRoutes);
+app.use('/', fullHostingGitHubRoutes);
+
+// ✅ Serve static files (so fullhosting.html works in production too)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ✅ Global error fallback
@@ -79,5 +90,4 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
 });
-
 
