@@ -1,0 +1,107 @@
+/* =====================
+   🚀 Navbar Styling
+   ===================== */
+.navbar {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+  animation: navbarFadeIn 0.6s ease-out forwards;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo img {
+  height: 100px;
+  width: auto;
+}
+.logo span {
+  font-family: 'Orbitron', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.8px;
+  color: white;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+.nav-links a {
+  color: var(--text-muted);
+  margin-left: 24px;
+  font-weight: 500;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: var(--transition);
+}
+.nav-links a:hover {
+  color: var(--primary-color);
+}
+
+/* =====================
+   📈 Scroll Progress Bar
+   ===================== */
+.scroll-progress {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  height: 6px;
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  width: 0%;
+  z-index: 999;
+  transition: width 0.2s ease-out;
+  border-radius: 0 4px 4px 0;
+}
+
+/* =====================
+   🎞 Navbar Animation
+   ===================== */
+@keyframes navbarFadeIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ======================
+   🍔 Hamburger + Responsive Nav
+   ====================== */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 6px;
+  z-index: 1001;
+}
+.hamburger span {
+  width: 28px;
+  height: 3px;
+  background: var(--text-light);
+  border-radius: 4px;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(6px, 6px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}

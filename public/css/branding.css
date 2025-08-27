@@ -1,0 +1,47 @@
+/* =======================
+   🖌 Branding Panel
+   ======================= */
+#brandingPanel {
+  margin-top: 40px;
+  padding: 30px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  animation: fadeInModal 0.4s ease;
+}
+
+#brandingPanel h3,
+#brandingPanel h4 {
+  margin-bottom: 16px;
+  color: var(--accent-purple);
+}
+
+#brandingPanel .form-group {
+  margin-bottom: 20px;
+}
+
+#brandingPanel input {
+  background: #1d1d1d;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: var(--border-radius);
+}
+
+#brandingPanel button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  font-size: 1rem;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease;
+}
+#brandingPanel button:hover {
+  transform: scale(1.03);
+}

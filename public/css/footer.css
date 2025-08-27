@@ -1,0 +1,53 @@
+/* =======================
+   🔻 Footer
+   ======================= */
+footer {
+  background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
+  color: #eee;
+  padding: 60px 0 30px;
+  font-size: 0.95rem;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-section h3 {
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+  color: var(--accent-purple);
+}
+
+.footer-section ul { list-style: none; padding: 0; }
+.footer-section ul li { margin-bottom: 10px; }
+
+.footer-section a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: var(--transition);
+}
+.footer-section a:hover { color: var(--primary-color); }
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 20px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Socials Icons */
+.social-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+.social-links a {
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  transition: var(--transition);
+}
+.social-links a:hover { color: var(--secondary-color); }

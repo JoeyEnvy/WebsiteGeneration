@@ -142,100 +142,136 @@
     </div>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const params = new URLSearchParams(window.location.search);
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
 
-      // Inputs / state
-      const sessionId     = params.get('sessionId');
-      const domainParam   = (params.get('domain') || '').trim().toLowerCase();
-      const durationRaw   = params.get('duration') || localStorage.getItem('domainDuration') || '1';
-      const businessName  = (localStorage.getItem('businessName') || '').trim();
+    // Inputs / state
+    const sessionId    = params.get('sessionId');
+    const domainParam  = (params.get('domain') || '').trim().toLowerCase();
+    const durationRaw  = params.get('duration') || localStorage.getItem('domainDuration') || '1';
+    const businessName = (localStorage.getItem('businessName') || '').trim();
 
-      const durationYears = Number.isFinite(Number(durationRaw)) ? Number(durationRaw) : 1;
-      const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d);
+    const durationYears = Number.isFinite(Number(durationRaw)) ? Number(durationRaw) : 1;
 
-      // Elements
-      const loadingBox     = document.getElementById('loadingBox');
-      const termDisplay    = document.getElementById('termDisplay');
-      const hostedLink     = document.getElementById('hostedLink');
-      const hostedPreview  = document.getElementById('hostedLinkPreview');
-      const repoLink       = document.getElementById('repoLink');
-      const repoSection    = document.getElementById('repoSection');
-      const hostingDetails = document.getElementById('hostingDetails');
-      const pagesLink      = document.getElementById('pagesLink');
+    // Guarded once-only helper to prevent "already declared"
+    window.isValidDomain = window.isValidDomain || function (d) {
+      return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(d || ''));
+    };
 
-      const BACKEND_BASE = 'https://websitegeneration.onrender.com';
+    // Elements
+    const loadingBox     = document.getElementById('loadingBox');
+    const termDisplay    = document.getElementById('termDisplay');
+    const hostedLink     = document.getElementById('hostedLink');
+    const hostedPreview  = document.getElementById('hostedLinkPreview');
+    const repoLink       = document.getElementById('repoLink');
+    const repoSection    = document.getElementById('repoSection');
+    const hostingDetails = document.getElementById('hostingDetails');
+    const pagesLink      = document.getElementById('pagesLink');
 
-      // Term text
-      if (termDisplay) {
-        termDisplay.innerHTML = durationYears === 3
-          ? '📅 Domain registered for <strong>3 years</strong>. Renewal support available.'
-          : '📅 Domain registered for <strong>1 year</strong>. Renewal support available.';
+    const BACKEND_BASE = 'https://websitegeneration.onrender.com';
+
+    // Term text
+    if (termDisplay) {
+      termDisplay.innerHTML = durationYears === 3
+        ? '📅 Domain registered for <strong>3 years</strong>. Renewal support available.'
+        : '📅 Domain registered for <strong>1 year</strong>. Renewal support available.';
+    }
+
+    // Guards
+    if (!sessionId) { loadingBox.innerText = '⚠️ Missing session. Please go back and try again.'; return; }
+    if (!businessName) { loadingBox.innerText = '⚠️ Missing business name. Please go back and try again.'; return; }
+    if (!domainParam || !window.isValidDomain(domainParam)) {
+      loadingBox.innerText = '⚠️ Invalid domain in URL. Please restart your purchase.';
+      return;
+    }
+
+    // Persist exact domain we’re deploying
+    localStorage.setItem('customDomain', domainParam);
+
+    // Optional pre-check (availability)
+    try {
+      const pre = await fetch(`${BACKEND_BASE}/check-domain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: domainParam })
+      });
+      let preRes;
+      try { preRes = await pre.json(); } catch { preRes = {}; }
+      if (!pre.ok || preRes?.available === false) {
+        throw new Error(preRes?.error || `Domain not available: ${domainParam}`);
+      }
+    } catch (e) {
+      console.error('❌ Domain availability check failed:', e);
+      loadingBox.innerText = `❌ Domain not available: ${domainParam}`;
+      return;
+    }
+
+    // ── Deploy (two-step: domain → github) ─────────────────────────────────────
+    try {
+      // Step 1: purchase/confirm domain (idempotent if already owned)
+      const domRes = await fetch(`${BACKEND_BASE}/deploy-full-hosting/domain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          domain: domainParam,
+          durationYears
+        })
+      });
+      let domData;
+      try { domData = await domRes.json(); } catch { domData = {}; }
+      if (!domRes.ok || domData.error) {
+        throw new Error(domData.error || 'Domain step failed');
       }
 
-      // Guards
-      if (!sessionId) { loadingBox.innerText = '⚠️ Missing session. Please go back and try again.'; return; }
-      if (!businessName) { loadingBox.innerText = '⚠️ Missing business name. Please go back and try again.'; return; }
-      if (!domainParam || !isValidDomain(domainParam)) {
-        loadingBox.innerText = '⚠️ Invalid domain in URL. Please restart your purchase.';
-        return;
+      // Step 2: create repo, push files, enable Pages, patch DNS
+      const ghRes = await fetch(`${BACKEND_BASE}/deploy-full-hosting/github`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          businessName: businessName || domainParam
+        })
+      });
+      let ghData;
+      try { ghData = await ghRes.json(); } catch { ghData = {}; }
+      if (!ghRes.ok || ghData.error || !ghData.success) {
+        throw new Error(ghData.error || 'GitHub/DNS step failed');
       }
 
-      localStorage.setItem('customDomain', domainParam);
+      // Update UI
+      const hostedUrl      = `https://${domainParam}`;
+      const githubPagesUrl = ghData.pagesUrl || ghData.githubPagesUrl || ghData.fallbackPagesUrl || '';
 
-      // Optional pre-check
-      try {
-        const pre = await fetch(`${BACKEND_BASE}/check-domain`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ domain: domainParam })
-        });
-        const preRes = await pre.json();
-        if (!pre.ok || !preRes?.available) throw new Error(preRes?.error || 'Domain not available');
-      } catch (e) {
-        console.error('❌ Domain availability check failed:', e);
-        loadingBox.innerText = `❌ Domain not available: ${domainParam}`;
-        return;
-      }
-
-      // Deploy
-      try {
-        const res = await fetch(`${BACKEND_BASE}/deploy-full-hosting`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, domain: domainParam, durationYears, businessName })
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data?.error || 'Deployment failed.');
-
-        const hostedUrl = `https://${domainParam}`;
-        const githubPagesUrl = data.pagesUrl || data.githubPagesUrl || data.fallbackPagesUrl || '';
-
+      if (hostedLink) {
         hostedLink.href = hostedUrl;
         hostedLink.textContent = hostedUrl;
-        hostedPreview.textContent = domainParam;
-
-        if (pagesLink && githubPagesUrl) {
-          pagesLink.href = githubPagesUrl;
-          pagesLink.textContent = githubPagesUrl;
-        }
-        if (data.repoUrl) {
-          repoLink.href = data.repoUrl;
-          repoLink.textContent = data.repoUrl;
-        } else {
-          repoSection.style.display = 'none';
-        }
-
-        loadingBox.style.display = 'none';
-        hostingDetails.style.display = 'block';
-      } catch (err) {
-        console.error('❌ Full hosting deployment error:', err);
-        loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
       }
-    });
-  </script>
+      if (hostedPreview) hostedPreview.textContent = domainParam;
+
+      if (pagesLink && githubPagesUrl) {
+        pagesLink.href = githubPagesUrl;
+        pagesLink.textContent = githubPagesUrl;
+      }
+
+      if (ghData.repoUrl) {
+        if (repoLink) {
+          repoLink.href = ghData.repoUrl;
+          repoLink.textContent = ghData.repoUrl;
+        }
+      } else if (repoSection) {
+        repoSection.style.display = 'none';
+      }
+
+      loadingBox.style.display = 'none';
+      hostingDetails.style.display = 'block';
+    } catch (err) {
+      console.error('❌ Full hosting deployment error:', err);
+      loadingBox.innerText = '❌ Deployment failed: ' + (err.message || 'Unknown error');
+    }
+  });
+</script>
 
   <script src="public/js/core.js"></script>
   <script src="public/js/domainChecker.js"></script>

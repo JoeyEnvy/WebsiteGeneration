@@ -1,0 +1,162 @@
+/* =====================
+   📱 Preview Section (Dark Mode + Enhanced)
+   ===================== */
+.preview-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 80px auto;
+  padding: 40px;
+  background: var(--glass-bg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  transition: all 0.4s ease;
+  overflow: hidden;
+  animation: fadeInModal 0.6s ease-in-out;
+}
+
+.preview-container.fullscreen {
+  max-width: 100%;
+  width: 100%;
+  margin: 40px auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#previewFrame {
+  border-radius: 0;
+  min-height: 90vh;
+}
+
+@keyframes expandPreview {
+  from {
+    transform: scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ✨ Preview Placeholder */
+.preview-placeholder {
+  padding: 100px 30px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  font-style: italic;
+  border-radius: var(--border-radius);
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 10px,
+    rgba(255, 255, 255, 0.02) 10px,
+    rgba(255, 255, 255, 0.02) 20px
+  );
+  animation: pulsePlaceholder 3s infinite ease-in-out;
+}
+
+@keyframes pulsePlaceholder {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* =====================
+   🎛 Preview Controls
+   ===================== */
+.preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(20, 20, 20, 0.4);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 📱 View Buttons */
+.preview-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-light);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.preview-btn i {
+  font-size: 1.2rem;
+}
+.preview-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: scale(1.05);
+}
+.preview-btn.active {
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+  color: white;
+  box-shadow: 0 0 20px rgba(166, 108, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* 🔄 Page Navigation */
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 30px;
+  flex-wrap: wrap;
+}
+.page-navigation button {
+  padding: 10px 16px;
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+.page-navigation button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.03);
+}
+
+
+/* Post-generation boosted buttons */
+.preview-controls.post-gen-ui .preview-btn,
+.preview-controls.post-gen-ui .btn,
+.preview-controls.post-gen-ui .page-navigation button {
+  font-size: 1.1rem;
+  padding: 16px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.preview-controls.post-gen-ui .preview-btn:hover,
+.preview-controls.post-gen-ui .btn:hover,
+.preview-controls.post-gen-ui .page-navigation button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+

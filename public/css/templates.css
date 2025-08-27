@@ -1,0 +1,78 @@
+/* =====================
+   🧊 Template Showcase Section
+   ===================== */
+.template-showcase-section {
+  padding: 100px 0;
+  background: transparent;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.template-showcase-section .section-title {
+  font-size: 2.75rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.template-showcase-section .section-subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 3rem;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  padding: 0 20px;
+}
+
+.template-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.template-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.template-card::before {
+  content: '\2728';
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 1.2rem;
+  color: var(--accent-yellow);
+}
+
+.template-card img {
+  width: 100%;
+  border-radius: var(--border-radius);
+  margin-bottom: 16px;
+  object-fit: cover;
+  aspect-ratio: 16 / 9;
+}
+
+.template-card h3 {
+  margin: 10px 0 8px;
+  font-size: 1.2rem;
+  color: var(--accent-purple);
+}
+
+.template-card p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.template-card .btn {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+}

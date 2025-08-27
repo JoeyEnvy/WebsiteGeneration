@@ -1,0 +1,55 @@
+/* =======================
+   🧩 Features Section
+   ======================= */
+.features-heavy {
+  background: linear-gradient(to bottom right, #0f0f0f, #1a1a1a, #222, #2e2e2e);
+  color: #fff;
+  padding: 100px 20px;
+}
+
+.features-heavy .section-title {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 60px;
+  background: linear-gradient(90deg, orange, deepskyblue);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.features-grid-heavy {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+}
+
+.feature-card-heavy {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 30px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card-heavy:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 0 30px rgba(0, 123, 255, 0.3);
+}
+
+.feature-card-heavy i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: orange;
+}
+
+.feature-card-heavy h3 {
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+}
+
+.feature-card-heavy p {
+  font-size: 0.95rem;
+  color: #ccc;
+}

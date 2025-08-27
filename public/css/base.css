@@ -1,0 +1,46 @@
+/* =======================
+   🎨 Base Styles & Variables
+   ======================= */
+:root {
+  --primary-color: #ff6b57;
+  --secondary-color: #3e7bfa;
+  --accent-yellow: #ffc107;
+  --accent-green: #28a745;
+  --accent-purple: #a66cff;
+  --background-dark: #0e0e0e;
+  --text-light: #ffffff;
+  --text-muted: #bbbbbb;
+  --card-bg: #1a1a1a;
+  --border-radius: 12px;
+  --transition: all 0.3s ease;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --font-main: 'Inter', sans-serif;
+}
+
+/* =======================
+   🌐 Global Reset
+   ======================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-main);
+  line-height: 1.6;
+  background: radial-gradient(circle at bottom, var(--primary-color), var(--secondary-color), var(--background-dark));
+  background-attachment: fixed;
+  color: var(--text-light);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}

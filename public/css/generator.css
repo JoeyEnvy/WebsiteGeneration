@@ -1,0 +1,124 @@
+/* =======================
+   🧠 Generator Form Section
+   ======================= */
+.generator-section {
+  background: none;
+  padding: 80px 0;
+}
+
+.generator-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.form-section {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 30px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.form-section h3 {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  color: var(--accent-purple);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-section h3::before {
+  content: '🛠️';
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  background: #1c1c1c;
+  border: 1px solid #444;
+  color: var(--text-light);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(62, 123, 250, 0.4);
+}
+
+/* 🎨 Color + File Upload */
+.form-group input[type='color'] {
+  width: 60px;
+  height: 40px;
+  padding: 4px;
+  border: none;
+  cursor: pointer;
+}
+.form-group input[type='file'] {
+  background: #2a2a2a;
+  border: 2px dashed #666;
+  cursor: pointer;
+}
+
+/* ☑️ Checkbox Grid */
+.checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.checkbox-label {
+  background: #222;
+  padding: 10px;
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-light);
+  border: 1px solid #333;
+  transition: background 0.3s;
+}
+.checkbox-label:hover {
+  background: #2e2e2e;
+}
+
+/* Submit Button (block) */
+.btn-block {
+  width: 100%;
+  margin-top: 30px;
+  padding: 16px;
+  font-size: 1.1rem;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+.btn-block:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}

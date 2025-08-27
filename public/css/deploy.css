@@ -1,0 +1,183 @@
+/* =======================
+   🚀 Sticky Deploy Bar
+   ======================= */
+.deploy-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
+  max-width: 1000px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  border-radius: var(--border-radius);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 999;
+  animation: fadeSlideUp 0.6s ease forwards;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.deploy-bar .status-text {
+  color: var(--text-muted);
+  font-size: 1rem;
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.deploy-bar .deploy-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.deploy-bar button {
+  padding: 12px 22px;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  transition: var(--transition);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.deploy-bar button:hover {
+  transform: scale(1.05);
+}
+
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translate(-50%, 60px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ========== 🌍 Deployment Modal Improvements ========== */
+#deploymentModal .modal-content {
+  background: rgba(15, 15, 15, 0.95);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeInModal 0.5s ease;
+}
+
+/* 🧾 Deploy Options Grid */
+.deploy-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
+  margin-top: 30px;
+}
+
+/* 📦 Base Deploy Card */
+.deploy-option-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: cardFadeIn 0.4s ease forwards;
+}
+.deploy-option-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* ✨ Premium Option Highlights */
+.deploy-option-card:nth-child(1),
+.deploy-option-card:nth-child(2) {
+  border: 2px solid var(--primary-color);
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.05));
+  box-shadow: 0 0 40px rgba(255, 107, 87, 0.25);
+  transform: scale(1.02);
+}
+.deploy-option-card:nth-child(1):hover,
+.deploy-option-card:nth-child(2):hover {
+  box-shadow: 0 0 60px rgba(255, 107, 87, 0.45);
+}
+
+/* 🌐 Domain Checker Field Styling */
+#customDomain {
+  width: 100%;
+  padding: 12px 16px;
+  margin: 10px 0;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  border: 1px solid #444;
+  background: #1e1e1e;
+  color: #fff;
+  box-shadow: inset 0 0 4px rgba(255,255,255,0.05);
+  transition: border-color 0.3s ease;
+}
+#customDomain:focus {
+  border-color: var(--accent-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(62,123,250,0.3);
+}
+
+/* 🔍 Domain Buttons */
+#checkDomainBtn,
+#confirmDomainBtn,
+#deployFullHosting {
+  margin-top: 10px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  width: 100%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+#confirmDomainBtn:hover,
+#deployFullHosting:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(255, 107, 87, 0.3);
+}
+
+/* 💬 Domain Info */
+.domain-term-info {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-top: 12px;
+  line-height: 1.4;
+}
+
+#deploymentModal h2 {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Extra premium highlighting for specific cards */
+.deploy-option-card:nth-child(4),
+.deploy-option-card:nth-child(5) {
+  background: linear-gradient(145deg, #1f1f1f, #2a2a2a);
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 20px rgba(255, 107, 87, 0.3);
+  transform: scale(1.02);
+}
+.deploy-option-card:nth-child(4):hover,
+.deploy-option-card:nth-child(5):hover {
+  box-shadow: 0 0 30px rgba(255, 107, 87, 0.5);
+  transform: scale(1.03);
+}
+
+

@@ -1,0 +1,177 @@
+/* ===============================
+   📱 Responsive Styles (1024px)
+   =============================== */
+@media (max-width: 1024px) {
+  /* Hero */
+  .hero h1 { font-size: 2.75rem; }
+  .hero p { font-size: 1.1rem; }
+
+  /* Template Showcase */
+  .template-showcase-section .section-title { font-size: 2.25rem; }
+  .template-showcase-section .section-subtitle { font-size: 1rem; }
+
+  /* Preview */
+  .preview-container { padding: 30px; margin: 60px auto; }
+  #previewFrame { min-height: 500px; }
+
+  .preview-controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  /* Generator grid */
+  .generator-grid { grid-template-columns: 1fr; gap: 30px; }
+  .form-section { padding: 24px; }
+}
+
+/* ===============================
+   📱 Responsive Styles (768px)
+   =============================== */
+@media (max-width: 768px) {
+  /* Navbar collapse */
+  .hamburger { display: flex; }
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba(0,0,0,0.85);
+    flex-direction: column;
+    align-items: flex-end;
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+    padding: 0 24px;
+  }
+  .nav-links.show { max-height: 500px; padding: 12px 24px 20px; }
+  .nav-links a { margin: 12px 0; font-size: 1.1rem; color: var(--text-light); }
+
+  /* Hero */
+  .hero { padding: 120px 16px 60px; }
+  .hero h1 { font-size: 2.25rem; }
+  .hero p { font-size: 1rem; }
+  .hero-buttons { flex-direction: column; gap: 16px; }
+  .btn { width: 100%; }
+
+  /* Features section */
+  .features-heavy { padding: 60px 16px; }
+  .features-heavy .section-title { font-size: 2rem; }
+  .feature-card-heavy { padding: 20px; }
+  .feature-card-heavy i { font-size: 1.6rem; }
+  .feature-card-heavy h3 { font-size: 1.1rem; }
+  .feature-card-heavy p { font-size: 0.9rem; }
+
+  /* Template cards */
+  .template-showcase-section { padding: 60px 0; }
+  .template-card { padding: 20px; }
+  .template-card h3 { font-size: 1.05rem; }
+  .template-card p { font-size: 0.9rem; }
+  .template-card .btn { font-size: 0.9rem; padding: 10px 16px; }
+
+  /* Preview */
+  .preview-container { padding: 20px; margin: 40px auto; }
+  #previewFrame { min-height: 400px; }
+  .preview-placeholder { font-size: 1.1rem; padding: 50px 16px; }
+  .preview-controls { flex-direction: column; gap: 12px; align-items: stretch; }
+  .preview-btn, .page-navigation button { width: 100%; justify-content: center; }
+  .page-navigation { flex-direction: column; gap: 8px; margin-left: 0; margin-top: 12px; }
+
+  /* Generator form */
+  .form-section h3 { font-size: 1.15rem; }
+  .form-group label { font-size: 0.95rem; }
+  .form-group input, .form-group select, .form-group textarea { font-size: 0.95rem; padding: 10px; }
+  .checkbox-label { padding: 8px; font-size: 0.9rem; }
+  .btn-block { font-size: 1rem; padding: 14px; }
+
+  /* Branding panel */
+  #brandingPanel { padding: 20px; margin-top: 30px; }
+  #brandingPanel h3, #brandingPanel h4 { font-size: 1.1rem; }
+  #brandingPanel input { font-size: 0.95rem; padding: 10px; }
+  #brandingPanel button { font-size: 1rem; padding: 12px; }
+
+  /* Deploy bar */
+  .deploy-bar { flex-direction: column; align-items: flex-start; padding: 16px; gap: 16px; }
+  .deploy-bar .status-text { font-size: 0.95rem; }
+  .deploy-bar .deploy-actions { flex-direction: column; gap: 12px; width: 100%; }
+  .deploy-bar button { width: 100%; padding: 14px; font-size: 1rem; }
+
+  /* Modal */
+  .modal { padding: 24px; max-width: 90%; width: 95%; font-size: 0.95rem; }
+  .modal .close { font-size: 1.3rem; top: 10px; right: 12px; }
+
+  /* Buttons (general) */
+  .btn,
+  .btn-primary,
+  .btn-outline,
+  .btn-block,
+  .preview-btn,
+  .page-navigation button { padding: 12px 18px; font-size: 0.95rem; }
+
+  /* Footer */
+  .footer-grid { grid-template-columns: 1fr; gap: 20px; text-align: center; }
+  .footer-section h3 { font-size: 1.1rem; }
+  .footer-section ul li { margin-bottom: 8px; }
+  .footer-bottom { font-size: 0.85rem; }
+  .social-links { justify-content: center; }
+}
+
+/* ===============================
+   📱 Responsive Styles (540px)
+   =============================== */
+@media (max-width: 540px) {
+  .deploy-bar { flex-direction: column; align-items: flex-start; padding: 16px 20px; }
+  .deploy-bar .status-text { font-size: 0.95rem; margin-bottom: 12px; }
+  .deploy-bar .deploy-actions { justify-content: flex-start; width: 100%; }
+
+  .modal { padding: 24px; max-height: 85vh; }
+  .modal .close { top: 10px; right: 14px; }
+
+  .loader { width: 80%; max-width: 320px; padding: 24px; }
+
+  .logo span { display: none; }       /* Hide Orbitron title */
+  .logo img { height: 160px; width: auto; }
+}
+
+/* ===============================
+   📱 Responsive Styles (480px)
+   =============================== */
+@media (max-width: 480px) {
+  .hero h1 { font-size: 1.8rem; }
+  .hero p { font-size: 0.95rem; }
+  .split-hero-container { padding: 0 12px; }
+
+  .template-card::before { top: 8px; right: 12px; font-size: 1rem; }
+
+  .preview-container { padding: 16px; }
+  .preview-placeholder { font-size: 1rem; padding: 40px 12px; }
+  .preview-btn { font-size: 0.9rem; padding: 10px 14px; }
+
+  #brandingPanel { padding: 16px; }
+  #brandingPanel button { padding: 10px; font-size: 0.95rem; }
+
+  .deploy-bar { padding: 12px; gap: 12px; }
+  .deploy-bar button { font-size: 0.95rem; padding: 12px; }
+
+  .modal { padding: 20px; font-size: 0.9rem; }
+  .modal .close { font-size: 1.2rem; }
+
+  .btn,
+  .btn-primary,
+  .btn-outline,
+  .btn-block,
+  .preview-btn,
+  .page-navigation button { padding: 10px 14px; font-size: 0.9rem; }
+
+  .btn-block { font-size: 0.95rem; }
+}
+
+/* ===============================
+   📱 Extra: 1024/768/480 mirrors
+   (for any late overrides you had duplicated)
+   =============================== */
+@media (max-width: 1024px) { .template-showcase-section .section-title { font-size: 2.25rem; } }
+@media (max-width: 768px)  { .hero h1 { font-size: 2.25rem; } }
+@media (max-width: 480px)  { .split-hero-container { padding: 0 12px; } }
