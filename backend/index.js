@@ -27,59 +27,70 @@ import domainRoutes from './routes/domainRoutes.js';
 import stripeRoutes from './routes/stripeRoutes.js';
 import utilityRoutes from './routes/utilityRoutes.js';
 
-// ✅ Split deploy routes (make sure filenames match exactly)
 import deployLiveRoutes from './routes/deployLiveRoutes.js';
-import deployGithubRoutes from './routes/deployGithubRoutes.js';   // 👈 lowercase "h"
-import fullHostingDomainRoutes from './routes/fullHostingDomainRoutes.js';
-import fullHostingGithubRoutes from './routes/fullHostingGithubRoutes.js'; // 👈 lowercase "h"
+import deployGithubRoutes from './routes/deployGithubRoutes.js';
+
+// ✅ Use the single combined Full Hosting route
+import deployFullHostingRoutes from './routes/deployFullHostingRoutes.js';
 
 // ========================================================================
 // App setup
 // ========================================================================
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// ✅ trust proxy so req.ip is the real client IP (needed for GoDaddy consent)
+// Allow JSON body parsing
+app.use(express.json({ limit: '2mb' }));
+
+// Trust proxy (needed for real client IP in GoDaddy consent)
 app.set('trust proxy', 1);
+
+// Basic CORS (allow from anywhere — you can restrict later with env var)
+app.use(cors());
 
 // ========================================================================
 // Third-party API Clients
 // ========================================================================
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' })
+  : null;
 
 // ✅ In-memory session store
 export const tempSessions = {};
 
-// ✅ Export shared utilities (no Octokit anymore)
-export const thirdParty = {
-  stripe,
-  fetch,
-  sgMail,
-  JSZip,
-  uuidv4
-};
+// ✅ Export shared utilities
+export const thirdParty = { stripe, fetch, sgMail, JSZip, uuidv4 };
+
+// ========================================================================
+// Health check
+// ========================================================================
+app.get('/', (_req, res) => res.send('OK'));
+app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ========================================================================
 // Mount API Routes
 // ========================================================================
+app.use('/stripe', stripeRoutes);           // => /stripe/create-checkout-session
 app.use('/', sessionRoutes);
 app.use('/', domainRoutes);
-app.use('/', stripeRoutes);
 app.use('/', utilityRoutes);
 
 app.use('/', deployLiveRoutes);
 app.use('/', deployGithubRoutes);
-app.use('/', fullHostingDomainRoutes);
-app.use('/', fullHostingGithubRoutes);
+app.use('/', deployFullHostingRoutes);      // => /deploy-full-hosting
 
-// ✅ Serve static files (so fullhosting.html works in production too)
-app.use(express.static(path.join(__dirname, 'public')));
+// ========================================================================
+// Static frontend files
+// ========================================================================
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
-// ✅ Global error fallback
-app.use((err, req, res, next) => {
-  console.error('❌ Uncaught Server Error:', err.stack);
+// ========================================================================
+// Global error fallback
+// ========================================================================
+app.use((err, req, res, _next) => {
+  console.error('❌ Uncaught Server Error:', err?.stack || err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
@@ -89,5 +100,8 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
+  if (process.env.PUBLIC_URL) {
+    console.log(`🌐 PUBLIC_URL: ${process.env.PUBLIC_URL.replace(/\/+$/, '')}`);
+  }
 });
 
