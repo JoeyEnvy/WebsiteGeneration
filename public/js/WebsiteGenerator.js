@@ -1,3 +1,7 @@
+// ===========================
+// WebsiteGenerator.js
+// ===========================
+
 class WebsiteGenerator {
   constructor() {
     this.form = document.getElementById('websiteGeneratorForm');
@@ -7,16 +11,23 @@ class WebsiteGenerator {
     this.currentStep = 1;
     this.userHasPaid = false;
 
+    // Restore saved pages from previous session if available
     const savedPages = localStorage.getItem('generatedPages');
     if (savedPages) {
-      this.generatedPages = JSON.parse(savedPages);
+      try {
+        this.generatedPages = JSON.parse(savedPages);
+      } catch (e) {
+        console.warn('⚠️ Could not parse saved pages from localStorage');
+      }
     }
 
-    this.initializeEventListeners();
+    // Only deployment buttons are bound here
     this.initializeDeploymentButtons();
-    this.highlightStep(this.currentStep);
   }
 
+  // ===========================
+  // Deployment Buttons
+  // ===========================
   initializeDeploymentButtons() {
     document.getElementById('deployGithubSelf')?.addEventListener('click', () => {
       this.startStripeCheckout('github-instructions');
@@ -53,19 +64,19 @@ class WebsiteGenerator {
           businessName
         })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          alert('⚠️ Failed to create Netlify checkout session.');
-          console.error(data);
-        }
-      })
-      .catch(err => {
-        alert('❌ Error creating Netlify Stripe session.');
-        console.error('Netlify Stripe error:', err);
-      });
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            alert('⚠️ Failed to create Netlify checkout session.');
+            console.error(data);
+          }
+        })
+        .catch(err => {
+          alert('❌ Error creating Netlify Stripe session.');
+          console.error('Netlify Stripe error:', err);
+        });
     });
 
     document.getElementById('deployFullHosting')?.addEventListener('click', () => {
@@ -82,10 +93,13 @@ class WebsiteGenerator {
     });
   }
 
+  // ===========================
+  // Preview Navigation
+  // ===========================
   changePage(direction) {
     this.currentPage += direction;
     this.currentPage = Math.max(0, Math.min(this.currentPage, this.generatedPages.length - 1));
-    this.updatePreview();
+    this.updatePreview?.();
   }
 
   changePreviewDevice(device) {
@@ -95,7 +109,7 @@ class WebsiteGenerator {
       desktop: '100%'
     };
 
-    const iframe = this.previewFrame.querySelector('iframe');
+    const iframe = this.previewFrame?.querySelector('iframe');
     if (iframe) {
       iframe.style.width = sizes[device];
     }
@@ -105,6 +119,9 @@ class WebsiteGenerator {
     });
   }
 
+  // ===========================
+  // Download as ZIP
+  // ===========================
   downloadGeneratedSite() {
     if (!this.userHasPaid) {
       alert('Please purchase access to download your website.');
@@ -122,10 +139,10 @@ class WebsiteGenerator {
     });
 
     zip.generateAsync({ type: 'blob' }).then(blob => {
-      saveAs(blob, "my-website.zip");
+      saveAs(blob, 'my-website.zip');
     });
   }
 }
 
+// ✅ Expose globally
 window.WebsiteGenerator = WebsiteGenerator;
-

@@ -1,3 +1,7 @@
+// ===========================
+// init.js
+// ===========================
+
 document.addEventListener('DOMContentLoaded', () => {
   const formEl = document.getElementById('websiteGeneratorForm');
   if (!formEl) {
@@ -10,14 +14,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Create instance
-  const gen = new WebsiteGenerator();       // if your constructor accepts a form, pass formEl
+  // ✅ Create instance
+  const gen = new WebsiteGenerator(formEl);  // pass formEl for clarity
   window.generator = gen;
 
-  // Ensure gen.form exists for helpers that use this.form
+  // Ensure gen.form exists for helpers
   if (!gen.form) gen.form = formEl;
 
-  // Bind UI + go to step 1
-  try { gen.initializeEventListeners?.(); } catch (e) { console.error(e); }
-  gen.goToStep?.(1);
+  // ✅ Bind UI + start wizard at step 1
+  try {
+    gen.initializeEventListeners?.();
+    gen.goToStep?.(1);
+    gen.highlightStep?.(1);
+  } catch (e) {
+    console.error('❌ Init error:', e);
+  }
+
+  console.log('✅ WebsiteGenerator initialized and ready');
 });
