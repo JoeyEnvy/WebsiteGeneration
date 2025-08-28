@@ -15,7 +15,6 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Resolve __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -26,25 +25,19 @@ import sessionRoutes from './routes/sessionRoutes.js';
 import domainRoutes from './routes/domainRoutes.js';
 import stripeRoutes from './routes/stripeRoutes.js';
 import utilityRoutes from './routes/utilityRoutes.js';
-
 import deployLiveRoutes from './routes/deployLiveRoutes.js';
 import deployGithubRoutes from './routes/deployGithubRoutes.js';
 
-// ✅ Use the single combined Full Hosting route
-import deployFullHostingRoutes from './routes/deployFullHostingRoutes.js';
+// ✅ Use the existing split Full Hosting routes you already have
+import fullHostingDomainRoutes from './routes/fullHostingDomainRoutes.js';
+import fullHostingGithubRoutes from './routes/fullHostingGithubRoutes.js';
 
 // ========================================================================
 // App setup
 // ========================================================================
 const app = express();
-
-// Allow JSON body parsing
 app.use(express.json({ limit: '2mb' }));
-
-// Trust proxy (needed for real client IP in GoDaddy consent)
 app.set('trust proxy', 1);
-
-// Basic CORS (allow from anywhere — you can restrict later with env var)
 app.use(cors());
 
 // ========================================================================
@@ -72,17 +65,19 @@ app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 // ========================================================================
 // Mount API Routes
 // ========================================================================
-app.use('/stripe', stripeRoutes);           // => /stripe/create-checkout-session
+app.use('/stripe', stripeRoutes);   // => /stripe/create-checkout-session
 app.use('/', sessionRoutes);
 app.use('/', domainRoutes);
 app.use('/', utilityRoutes);
-
 app.use('/', deployLiveRoutes);
 app.use('/', deployGithubRoutes);
-app.use('/', deployFullHostingRoutes);      // => /deploy-full-hosting
+
+// ✅ Split Full Hosting flow (two endpoints your success page calls)
+app.use('/', fullHostingDomainRoutes);  // => /deploy-full-hosting/domain
+app.use('/', fullHostingGithubRoutes);  // => /deploy-full-hosting/github
 
 // ========================================================================
-// Static frontend files
+// Static frontend files (only if backend/public exists)
 // ========================================================================
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
@@ -104,4 +99,3 @@ app.listen(port, () => {
     console.log(`🌐 PUBLIC_URL: ${process.env.PUBLIC_URL.replace(/\/+$/, '')}`);
   }
 });
-

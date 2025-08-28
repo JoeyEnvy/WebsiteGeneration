@@ -1,0 +1,40 @@
+--------------- Backend Files
+
+
+Backend
+
+index.js
+package.json
+     
+                Utils 
+                         createNetlifySite.js
+                         deployToNetlifyApi.js
+                         dnsUtils.js
+                         domainPricing.js
+                         githubUtils.js
+                         netlifyDeploy.js
+                Routes 
+                         deployGithubRoutes.js
+                         deployLiveRoutes.js
+                         domainRoutes.js
+                         fullHostingDomainRoutes.js
+                         fullHostingGithubRoutes.js
+                         sessionRoutes.js
+                         stripeRoutes.js
+                         utilityRoutes.js
+
+
+--------- Frontend Files 
+
+Public
+
+core.js
+deployFullHosting.js
+domainChecker.js
+init.js
+WebsiteGenerator.helpers.js
+WebsiteGenerator.js
+WebsiteGenerator.preview.js
+WebsiteGenerator.submit.js
+WebsiteGenerator.ui.js
+WebsiteGenerator.validation.js
