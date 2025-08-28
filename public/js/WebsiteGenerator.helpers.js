@@ -1,45 +1,59 @@
+// WebsiteGenerator.helpers.js (or wherever these prototype methods live)
+
 WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
   try {
+    // Ensure a sessionId
     let sessionId = localStorage.getItem('sessionId');
     if (!sessionId) {
-      sessionId = crypto.randomUUID();
+      sessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
       localStorage.setItem('sessionId', sessionId);
     }
 
-    const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
+    // Backend base (trims trailing slash just in case)
+    const BACKEND_URL = (window.BACKEND_URL || 'https://websitegeneration.onrender.com').replace(/\/+$/, '');
 
-    const payload = {
-      type,
-      sessionId,
-      businessName
-    };
+    // Build payload
+    const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
+    const payload = { type, sessionId, businessName };
 
     if (type === 'full-hosting') {
-      payload.domain = localStorage.getItem('customDomain');
-      payload.duration = localStorage.getItem('domainDuration') || '1';
+      const domain = (localStorage.getItem('customDomain') || '').trim().toLowerCase();
+      const durationYears = parseInt(localStorage.getItem('domainDuration') || '1', 10) || 1;
+
+      payload.domain = domain;
+      payload.durationYears = durationYears; // <-- use durationYears (not "duration")
     }
 
-    const response = await fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+    // Call the correct endpoint (mounted at /stripe)
+    const response = await fetch(`${BACKEND_URL}/stripe/create-checkout-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert('Failed to start checkout session.');
+    // Defensive handling to avoid parsing HTML error pages as JSON
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Stripe init failed: ${response.status} ${response.statusText} — ${text.slice(0,200)}`);
     }
+
+    const data = await response.json();
+    if (data && data.url) {
+      window.location.href = data.url;
+      return;
+    }
+
+    throw new Error('Stripe response missing "url".');
   } catch (err) {
     console.error('Stripe Checkout error:', err);
-    alert('Something went wrong with payment.');
+    alert(`Something went wrong with payment.\n${err.message || err}`);
   }
 };
 
 WebsiteGenerator.prototype.goToStep = function(stepNumber) {
   document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
-  document.getElementById(`step${stepNumber}`).style.display = 'block';
+  const el = document.getElementById(`step${stepNumber}`);
+  if (el) el.style.display = 'block';
   this.currentStep = stepNumber;
   this.highlightStep(stepNumber);
 };

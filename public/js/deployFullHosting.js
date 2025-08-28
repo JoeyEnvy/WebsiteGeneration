@@ -1,6 +1,6 @@
-// backend/routes/deployFullHostingRoutes.js
+// backend/routes/deployFullHosting.js
 import express from "express";
-import fetch from "node-fetch";
+import fetch from "node-fetch"; // On Node 18+, you can remove this and use global fetch
 import Stripe from "stripe";
 import { domainToASCII } from "url";
 import { createOrReuseRepo, enablePages, pagesUrlFor } from "../utils/githubUtils.js";
@@ -8,6 +8,7 @@ import { setGitHubDNS } from "../utils/dnsUtils.js";
 
 const router = express.Router();
 
+// ---- Env sanity (logs only) ----
 ["GITHUB_TOKEN","GITHUB_OWNER","GODADDY_API_KEY","GODADDY_API_SECRET","GODADDY_ENV"].forEach(k=>{
   if (!process.env[k]) console.warn(`⚠️  Missing env: ${k}`);
 });
@@ -18,11 +19,14 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 const REQUIRE_STRIPE = String(process.env.REQUIRE_STRIPE || "false").toLowerCase()==="true";
 
+// ---- Helpers ----
 const isValidDomain = d => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(d || ""));
 const clampYears = n => Math.max(1, Math.min(10, parseInt(n, 10) || 1));
-const GD_BASE = () => process.env.GODADDY_ENV === "ote-godaddy"
-  ? "https://api.ote-godaddy.com"
-  : "https://api.godaddy.com";
+
+const GD_BASE = () =>
+  process.env.GODADDY_ENV === "ote-godaddy"
+    ? "https://api.ote-godaddy.com"
+    : "https://api.godaddy.com";
 
 const gdHeaders = () => ({
   "Content-Type": "application/json",
@@ -32,10 +36,11 @@ const gdHeaders = () => ({
 
 async function safeJson(res) {
   const text = await res.text();
-  try { return text ? JSON.parse(text) : {}; } catch { return { raw: text }; }
+  try { return text ? JSON.parse(text) : {}; }
+  catch { return { raw: text }; }
 }
 
-async function fetchWithTimeout(url, opts = {}, ms = 12000) {
+async function fetchWithTimeout(url, opts = {}, ms = 15000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
@@ -45,11 +50,13 @@ async function fetchWithTimeout(url, opts = {}, ms = 12000) {
 async function withRetry(fn, times = 2, delayMs = 800) {
   let lastErr;
   for (let i=0;i<times;i++){
-    try { return await fn(); } catch (e) { lastErr = e; await new Promise(r=>setTimeout(r, delayMs)); }
+    try { return await fn(); }
+    catch (e) { lastErr = e; await new Promise(r=>setTimeout(r, delayMs)); }
   }
   throw lastErr;
 }
 
+// ---- GoDaddy helpers ----
 async function gdCheckAvailable(domain) {
   return withRetry(async () => {
     const url = `${GD_BASE()}/v1/domains/available?domain=${encodeURIComponent(domain)}&checkType=FAST`;
@@ -90,14 +97,20 @@ async function gdPurchaseDomain({ domain, years, ip }) {
   };
   return withRetry(async () => {
     const url = `${GD_BASE()}/v1/domains/purchase?domain=${encodeURIComponent(domain)}`;
-    const res = await fetchWithTimeout(url, { method: "POST", headers: gdHeaders(), body: JSON.stringify(body) });
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: gdHeaders(),
+      body: JSON.stringify(body)
+    });
     const data = await safeJson(res);
     return { ok: res.ok, status: res.status, data };
   });
 }
 
+// Prevent duplicate deployments per session
 const inflight = new Set();
 
+// ---- Main route: single-shot Full Hosting (domain → repo → pages → dns) ----
 router.post("/deploy-full-hosting", async (req, res) => {
   const startedAt = Date.now();
   const {
@@ -108,37 +121,65 @@ router.post("/deploy-full-hosting", async (req, res) => {
     checkoutSessionId
   } = req.body || {};
 
+  // Track a consistent inflight key so we can always clean up in finally
+  const inflightKey = sessionId || `anon-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+
   try {
+    // Basic guards
     if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
     const cleaned = String(domain || "").trim().toLowerCase();
-    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(cleaned)) return res.status(400).json({ error: "Invalid domain" });
+    if (!isValidDomain(cleaned)) return res.status(400).json({ error: "Invalid domain" });
 
     const asciiDomain = domainToASCII(cleaned) || cleaned;
-    const years = Math.max(1, Math.min(10, parseInt(durationYears, 10) || 1));
+    const years = clampYears(durationYears);
 
-    if (String(process.env.REQUIRE_STRIPE || "false").toLowerCase()==="true") {
+    // Stripe (optional)
+    if (REQUIRE_STRIPE) {
       if (!stripe) return res.status(500).json({ error: "Stripe not configured" });
       if (!checkoutSessionId) return res.status(400).json({ error: "Missing checkoutSessionId" });
-      const checkout = await stripe.checkout.sessions.retrieve(checkoutSessionId);
-      if (checkout?.payment_status !== "paid") return res.status(402).json({ error: "Payment not completed" });
+
+      let checkout;
+      try {
+        checkout = await stripe.checkout.sessions.retrieve(checkoutSessionId);
+      } catch (e) {
+        return res.status(502).json({ error: "Stripe retrieve failed", details: String(e?.message || e) });
+      }
+
+      if (checkout?.payment_status !== "paid") {
+        return res.status(402).json({ error: "Payment not completed", payment_status: checkout?.payment_status });
+      }
       if (checkout?.metadata?.sessionId && checkout.metadata.sessionId !== sessionId) {
-        return res.status(400).json({ error: "Session mismatch" });
+        return res.status(400).json({ error: "Session mismatch", expected: checkout.metadata.sessionId, got: sessionId });
       }
     }
 
-    if (inflight.has(sessionId)) return res.status(409).json({ error: "Deployment already in progress" });
-    inflight.add(sessionId);
+    // Inflight guard
+    if (inflight.has(inflightKey)) return res.status(409).json({ error: "Deployment already in progress" });
+    inflight.add(inflightKey);
 
+    // 1) Domain: check & purchase (tolerate already-owned)
     let purchaseNote = "skipped";
-    const avail = await gdCheckAvailable(asciiDomain).catch(() => ({ ok:false, status:0, data:{} }));
+    const avail = await gdCheckAvailable(asciiDomain).catch((e) => ({ ok:false, status:0, data:{ error:String(e?.message||e) } }));
+
     if (!avail.ok) {
       purchaseNote = `availability_check_failed_${avail.status}`;
     } else if (avail?.data?.available === true) {
-      const p = await gdPurchaseDomain({ domain: asciiDomain, years, ip: req.ip || req.headers["x-forwarded-for"] || "0.0.0.0" });
+      const p = await gdPurchaseDomain({
+        domain: asciiDomain,
+        years,
+        ip: req.ip || req.headers["x-forwarded-for"] || "0.0.0.0"
+      });
+
       if (!p.ok) {
-        const msg = JSON.stringify(p.data);
+        const msg = JSON.stringify(p.data || {});
         const probablyOwned = /already.*(registered|owned|purchased)|conflict|duplicate/i.test(msg);
-        if (!probablyOwned) return res.status(502).json({ error: "GoDaddy purchase failed", details: p.data, status: p.status });
+        if (!probablyOwned) {
+          return res.status(502).json({
+            error: "GoDaddy purchase failed",
+            status: p.status,
+            details: p.data
+          });
+        }
         purchaseNote = `purchase_conflict_proceed (${p.status})`;
       } else {
         purchaseNote = `purchased (${p.status})`;
@@ -147,9 +188,11 @@ router.post("/deploy-full-hosting", async (req, res) => {
       purchaseNote = "not_available_proceed";
     }
 
+    // 2) Repo + commit + CNAME
     const safeRepoBase = asciiDomain.replace(/\./g, "-").toLowerCase();
     const repoName = (safeRepoBase.match(/[a-z0-9-]+/g) || ["site"]).join("-").slice(0, 100);
     const siteTitle = businessName || "Your Site";
+
     const files = {
       "index.html": `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${siteTitle}</title><link rel="icon" href="data:,"><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:#0e0e0e;color:#fff;margin:0;display:grid;place-items:center;height:100dvh}.card{max-width:720px;background:#131313;padding:32px 28px;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.45)}h1{margin:0 0 10px;font-size:28px}p{opacity:.85;line-height:1.55}a{color:#66aaff}</style></head><body><div class="card"><h1>${siteTitle}</h1><p>Deployed via <strong>Full Hosting</strong> 🚀</p><p>Custom domain: <strong>${asciiDomain}</strong></p><p>Edit this site by pushing to the repo.</p></div></body></html>`,
       ".nojekyll": ""
@@ -162,18 +205,27 @@ router.post("/deploy-full-hosting", async (req, res) => {
       commitMessage: "Initial commit (Full Hosting)"
     });
 
+    // 3) Enable GitHub Pages
     await enablePages({ owner, repo, buildType: "static" });
     const ghPagesUrl = pagesUrlFor({ owner, repo });
 
+    // 4) DNS to GH Pages (apex + www)
     await setGitHubDNS({ apexDomain: asciiDomain, wwwCnameTarget: `${owner}.github.io` });
 
     const elapsedMs = Date.now() - startedAt;
-    return res.json({ status: "ok", elapsedMs, domain: asciiDomain, purchaseNote, repoUrl, pagesUrl: ghPagesUrl });
+    return res.json({
+      status: "ok",
+      elapsedMs,
+      domain: asciiDomain,
+      purchaseNote,
+      repoUrl,
+      pagesUrl: ghPagesUrl
+    });
   } catch (err) {
     console.error("❌ deploy-full-hosting error:", err);
     return res.status(500).json({ error: String(err?.message || err) });
   } finally {
-    inflight.delete(req?.body?.sessionId);
+    inflight.delete(inflightKey);
   }
 });
 

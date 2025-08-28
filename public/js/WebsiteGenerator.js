@@ -44,7 +44,7 @@ class WebsiteGenerator {
         localStorage.setItem('sessionId', sessionId);
       }
 
-      fetch('https://websitegeneration.onrender.com/create-checkout-session', {
+      fetch('https://websitegeneration.onrender.com/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
