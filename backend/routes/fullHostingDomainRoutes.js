@@ -7,6 +7,48 @@ const router = express.Router();
 export const isValidDomain = d =>
   /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(String(d || ''));
 
+// ✅ Step 0: Check Availability (GET)
+router.get('/domain/check', async (req, res) => {
+  const { domain = '' } = req.query;
+  const cleanedDomain = domain.trim().toLowerCase();
+
+  if (!isValidDomain(cleanedDomain)) {
+    return res.status(400).json({ available: false, error: 'Invalid domain format' });
+  }
+
+  try {
+    const apiBase = process.env.GODADDY_ENV === 'production'
+      ? 'https://api.godaddy.com'
+      : 'https://api.ote-godaddy.com';
+
+    const godaddyKey = process.env.GODADDY_API_KEY;
+    const godaddySecret = process.env.GODADDY_API_SECRET;
+    if (!godaddyKey || !godaddySecret) {
+      return res.status(500).json({ available: false, error: 'GoDaddy credentials missing' });
+    }
+
+    const resp = await fetch(
+      `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}`,
+      {
+        headers: {
+          Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
+          Accept: 'application/json'
+        }
+      }
+    );
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      return res.status(resp.status).json({ available: false, error: data.message || 'Check failed' });
+    }
+
+    return res.json({ available: !!data.available });
+  } catch (err) {
+    console.error('❌ Availability check failed:', err);
+    return res.status(500).json({ available: false, error: 'Availability check failed' });
+  }
+});
+
 // ✅ Step 1: Validate + Purchase Domain
 router.post('/deploy-full-hosting/domain', async (req, res) => {
   try {
