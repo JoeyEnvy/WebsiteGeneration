@@ -46,11 +46,10 @@ function setupDomainChecker() {
     resultDisplay.textContent = 'Checking...';
 
     try {
-      const checkRes = await fetch('https://websitegeneration.onrender.com/check-domain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain })
-      });
+      // ✅ FIXED: use new backend route (GET)
+      const checkRes = await fetch(
+        `https://websitegeneration.onrender.com/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
+      );
 
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
       const { available } = await checkRes.json();
@@ -71,8 +70,8 @@ function setupDomainChecker() {
       const duration = durationSelect?.value || '1';
       localStorage.setItem('domainDuration', duration);
 
-      // 🔁 Fetch backend-calculated domain price
-      const priceRes = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+      // ✅ FIXED: new backend route for price
+      const priceRes = await fetch('https://websitegeneration.onrender.com/full-hosting/domain/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration })
@@ -104,7 +103,7 @@ function setupDomainChecker() {
     if (!resultDisplay.textContent.includes('available')) return;
 
     try {
-      const res = await fetch('https://websitegeneration.onrender.com/get-domain-price', {
+      const res = await fetch('https://websitegeneration.onrender.com/full-hosting/domain/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration: durationSelect.value })
@@ -140,4 +139,3 @@ function setupDomainChecker() {
 
 // ✅ Expose to window
 window.setupDomainChecker = setupDomainChecker;
-
