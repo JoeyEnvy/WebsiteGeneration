@@ -29,7 +29,6 @@ import deployLiveRoutes from "./routes/deployLiveRoutes.js";
 import deployGithubRoutes from "./routes/deployGithubRoutes.js";
 
 // ✅ Full Hosting routes (split across files)
-import deployFullHostingRoutes from "./routes/deployFullHosting.js";       // POST /full-hosting/deploy
 import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js"; // GET /full-hosting/domain/check
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js"; // POST /full-hosting/github
 
@@ -74,7 +73,6 @@ app.use("/deploy", deployLiveRoutes);
 app.use("/deploy", deployGithubRoutes);
 
 // ✅ Full Hosting namespace
-app.use("/full-hosting", deployFullHostingRoutes);   // POST /full-hosting/deploy
 app.use("/full-hosting", fullHostingDomainRoutes);   // GET /full-hosting/domain/check
 app.use("/full-hosting", fullHostingGithubRoutes);   // POST /full-hosting/github
 
