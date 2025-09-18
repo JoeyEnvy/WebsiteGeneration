@@ -1,4 +1,5 @@
 // ====== DOMAIN CHECKER FRONTEND ======
+
 function isValidDomain(domain) {
   const domainRegex = /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/;
   return domainRegex.test(domain.trim().toLowerCase());
@@ -15,12 +16,17 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
+  // Detect backend base URL (Render automatically sets PORT)
+  const backendPort = window.location.port || '3000';
+  const backendHost = `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+
   // Input validation
   domainInput.addEventListener('input', () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!domain) {
       resultDisplay.textContent = '';
       buyButton.disabled = true;
+      confirmBtn.disabled = true;
       return;
     }
 
@@ -32,6 +38,8 @@ function setupDomainChecker() {
     } else {
       resultDisplay.textContent = '✅ Valid format. Click "Check Availability"';
       resultDisplay.style.color = 'blue';
+      buyButton.disabled = true;
+      confirmBtn.disabled = true;
     }
   });
 
@@ -54,9 +62,7 @@ function setupDomainChecker() {
 
     try {
       // ✅ Check availability
-      const checkRes = await fetch(
-        `/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
-      );
+      const checkRes = await fetch(`${backendHost}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`);
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
       const { available } = await checkRes.json();
 
@@ -76,7 +82,7 @@ function setupDomainChecker() {
       const duration = durationSelect?.value || '1';
       localStorage.setItem('domainDuration', duration);
 
-      const priceRes = await fetch('/full-hosting/domain/price', {
+      const priceRes = await fetch(`${backendHost}/full-hosting/domain/price`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration })
@@ -110,7 +116,7 @@ function setupDomainChecker() {
     if (!resultDisplay.textContent.includes('available')) return;
 
     try {
-      const res = await fetch('/full-hosting/domain/price', {
+      const res = await fetch(`${backendHost}/full-hosting/domain/price`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration: durationSelect.value })
