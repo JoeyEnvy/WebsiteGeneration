@@ -1,3 +1,4 @@
+// ====== DOMAIN CHECKER FRONTEND ======
 function isValidDomain(domain) {
   const domainRegex = /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/;
   return domainRegex.test(domain.trim().toLowerCase());
@@ -14,10 +15,12 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
+  // Input validation
   domainInput.addEventListener('input', () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!domain) {
       resultDisplay.textContent = '';
+      buyButton.disabled = true;
       return;
     }
 
@@ -25,16 +28,19 @@ function setupDomainChecker() {
       resultDisplay.textContent = '❌ Invalid domain format';
       resultDisplay.style.color = 'red';
       buyButton.disabled = true;
+      confirmBtn.disabled = true;
     } else {
       resultDisplay.textContent = '✅ Valid format. Click "Check Availability"';
       resultDisplay.style.color = 'blue';
     }
   });
 
+  // Check availability
   checkBtn.addEventListener('click', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     resultDisplay.textContent = '';
     buyButton.disabled = true;
+    confirmBtn.disabled = true;
     if (priceDisplay) priceDisplay.textContent = '';
 
     if (!isValidDomain(domain)) {
@@ -43,14 +49,14 @@ function setupDomainChecker() {
       return;
     }
 
-    resultDisplay.textContent = 'Checking...';
+    resultDisplay.textContent = 'Checking availability...';
+    resultDisplay.style.color = 'black';
 
     try {
-      // ✅ FIXED: use new backend route (GET)
+      // ✅ Check availability
       const checkRes = await fetch(
-        `https://websitegeneration.onrender.com/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
+        `/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
       );
-
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
       const { available } = await checkRes.json();
 
@@ -62,16 +68,15 @@ function setupDomainChecker() {
 
       resultDisplay.textContent = `✅ "${domain}" is available!`;
       resultDisplay.style.color = 'green';
-      if (confirmBtn) confirmBtn.disabled = false;
-      buyButton.disabled = true;
+      confirmBtn.disabled = false;
 
       localStorage.setItem('customDomain', domain);
 
+      // ✅ Get price
       const duration = durationSelect?.value || '1';
       localStorage.setItem('domainDuration', duration);
 
-      // ✅ FIXED: new backend route for price
-      const priceRes = await fetch('https://websitegeneration.onrender.com/full-hosting/domain/price', {
+      const priceRes = await fetch('/full-hosting/domain/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration })
@@ -92,9 +97,11 @@ function setupDomainChecker() {
       resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
       resultDisplay.style.color = 'orange';
       buyButton.disabled = true;
+      confirmBtn.disabled = true;
     }
   });
 
+  // Update price when duration changes
   durationSelect?.addEventListener('change', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!isValidDomain(domain)) return;
@@ -103,12 +110,11 @@ function setupDomainChecker() {
     if (!resultDisplay.textContent.includes('available')) return;
 
     try {
-      const res = await fetch('https://websitegeneration.onrender.com/full-hosting/domain/price', {
+      const res = await fetch('/full-hosting/domain/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration: durationSelect.value })
       });
-
       if (!res.ok) throw new Error('Estimate failed');
       const data = await res.json();
       const base = parseFloat(data.domainPrice || 0);
@@ -128,14 +134,13 @@ function setupDomainChecker() {
     }
   });
 
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => {
-      confirmBtn.textContent = '✅ Domain Confirmed';
-      confirmBtn.disabled = true;
-      buyButton.disabled = false;
-    });
-  }
+  // Confirm domain
+  confirmBtn?.addEventListener('click', () => {
+    confirmBtn.textContent = '✅ Domain Confirmed';
+    confirmBtn.disabled = true;
+    buyButton.disabled = false;
+  });
 }
 
-// ✅ Expose to window
+// ✅ Initialize
 window.setupDomainChecker = setupDomainChecker;

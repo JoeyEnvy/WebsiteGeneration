@@ -1,10 +1,19 @@
+// routes/domainRoutes.js
 import express from 'express';
 import fetch from 'node-fetch';
 import { getDomainPriceInPounds } from '../utils/domainPricing.js';
 
 const router = express.Router();
 
-// ✅ Domain Availability Checker
+/**
+ * Validate domain structure
+ */
+const isValidDomain = (domain) =>
+  /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(domain.trim().toLowerCase());
+
+/**
+ * ✅ Domain Availability Checker
+ */
 router.post('/check-domain', async (req, res) => {
   const { domain, duration } = req.body || {};
   if (!domain || typeof domain !== 'string') {
@@ -14,8 +23,7 @@ router.post('/check-domain', async (req, res) => {
   const cleanedDomain = domain.trim().toLowerCase();
   const period = parseInt(duration, 10) || 1;
 
-  // Validate structure before hitting GoDaddy
-  if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
+  if (!isValidDomain(cleanedDomain)) {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
@@ -36,20 +44,16 @@ router.post('/check-domain', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ GoDaddy API error:', errorText);
-      return res.status(response.status).json({
-        available: false,
-        error: 'GoDaddy domain availability API failed.'
-      });
+      return res.status(response.status).json({ available: false, error: 'GoDaddy API failed.' });
     }
 
     const data = await response.json();
     const domainPrice = getDomainPriceInPounds(cleanedDomain, period);
-    const currency = 'GBP';
 
     res.json({
       available: data.available,
       domainPrice,
-      currency,
+      currency: 'GBP',
       period
     });
   } catch (err) {
@@ -62,20 +66,21 @@ router.post('/check-domain', async (req, res) => {
   }
 });
 
-// ✅ Domain Price Estimator
-router.post('/get-domain-price', async (req, res) => {
+/**
+ * ✅ Domain Price Estimator
+ */
+router.post('/get-domain-price', (req, res) => {
   const { domain, duration } = req.body || {};
   const cleanedDomain = domain?.trim().toLowerCase();
   const period = parseInt(duration, 10) || 1;
 
-  if (!/^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(cleanedDomain)) {
+  if (!isValidDomain(cleanedDomain)) {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
   try {
     const domainPrice = getDomainPriceInPounds(cleanedDomain, period);
-    const currency = 'GBP';
-    res.json({ domainPrice, currency, period });
+    res.json({ domainPrice, currency: 'GBP', period });
   } catch (err) {
     console.error('💥 Price mapping error:', err);
     res.status(500).json({
@@ -86,10 +91,11 @@ router.post('/get-domain-price', async (req, res) => {
   }
 });
 
-// ✅ Health check
+/**
+ * ✅ Health check
+ */
 router.get('/ping-domain-routes', (req, res) => {
   res.json({ ok: true, message: '✅ domainRoutes.js is live' });
 });
 
 export default router;
-
