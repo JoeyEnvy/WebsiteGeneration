@@ -17,16 +17,18 @@ function setupDomainChecker() {
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
   // ✅ Detect backend base URL
-  let backendHost;
-  if (window.location.protocol.startsWith('http')) {
-    // When served via http(s), use current host + port
-    backendHost = `${window.location.protocol}//${window.location.host}`;
-  } else {
-    // When opened from file:// fallback to localhost:3000
-    backendHost = `http://localhost:3000`;
-  }
+  // 1. Use PUBLIC_BACKEND_URL from environment if defined (Render or Netlify)
+  // 2. Else fallback to current origin (for local dev)
+  // 3. Else fallback to localhost:3000 if opened via file://
+  const backendHost =
+    window.PUBLIC_BACKEND_URL ||
+    (window.location.protocol.startsWith('http')
+      ? `${window.location.protocol}//${window.location.host}`
+      : 'http://localhost:3000');
 
+  // ------------------------
   // Input validation
+  // ------------------------
   domainInput.addEventListener('input', () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!domain) {
@@ -49,7 +51,9 @@ function setupDomainChecker() {
     }
   });
 
+  // ------------------------
   // Check availability
+  // ------------------------
   checkBtn.addEventListener('click', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     resultDisplay.textContent = '';
@@ -67,7 +71,6 @@ function setupDomainChecker() {
     resultDisplay.style.color = 'black';
 
     try {
-      // ✅ Check availability
       const checkRes = await fetch(`${backendHost}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`);
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
       const { available } = await checkRes.json();
@@ -113,7 +116,9 @@ function setupDomainChecker() {
     }
   });
 
+  // ------------------------
   // Update price when duration changes
+  // ------------------------
   durationSelect?.addEventListener('change', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!isValidDomain(domain)) return;
@@ -146,7 +151,9 @@ function setupDomainChecker() {
     }
   });
 
+  // ------------------------
   // Confirm domain
+  // ------------------------
   confirmBtn?.addEventListener('click', () => {
     confirmBtn.textContent = '✅ Domain Confirmed';
     confirmBtn.disabled = true;

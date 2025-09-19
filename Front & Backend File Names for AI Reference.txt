@@ -29,7 +29,6 @@ package.json
 Public
 
 core.js
-deployFullHosting.js
 domainChecker.js
 init.js
 WebsiteGenerator.helpers.js
