@@ -16,9 +16,15 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
-  // Detect backend base URL (Render automatically sets PORT)
-  const backendPort = window.location.port || '3000';
-  const backendHost = `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+  // ✅ Detect backend base URL
+  let backendHost;
+  if (window.location.protocol.startsWith('http')) {
+    // When served via http(s), use current host + port
+    backendHost = `${window.location.protocol}//${window.location.host}`;
+  } else {
+    // When opened from file:// fallback to localhost:3000
+    backendHost = `http://localhost:3000`;
+  }
 
   // Input validation
   domainInput.addEventListener('input', () => {
