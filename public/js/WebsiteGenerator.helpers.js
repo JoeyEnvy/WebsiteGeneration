@@ -1,5 +1,3 @@
-// WebsiteGenerator.helpers.js (or wherever these prototype methods live)
-
 WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
   try {
     // Ensure a sessionId
@@ -9,8 +7,12 @@ WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
       localStorage.setItem('sessionId', sessionId);
     }
 
-    // Backend base (trims trailing slash just in case)
-    const BACKEND_URL = (window.BACKEND_URL || 'https://websitegeneration.onrender.com').replace(/\/+$/, '');
+    // ✅ Consistent backend base (same as domainChecker + submit.js)
+    const backendHost =
+      window.PUBLIC_BACKEND_URL ||
+      (window.location.protocol.startsWith('http')
+        ? `${window.location.protocol}//${window.location.host}`
+        : 'http://localhost:3000');
 
     // Build payload
     const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
@@ -25,7 +27,7 @@ WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
     }
 
     // Call the correct endpoint (mounted at /stripe)
-    const response = await fetch(`${BACKEND_URL}/stripe/create-checkout-session`, {
+    const response = await fetch(`${backendHost}/stripe/create-checkout-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

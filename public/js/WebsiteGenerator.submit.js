@@ -13,7 +13,15 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       localStorage.setItem('sessionId', crypto.randomUUID());
     }
 
-    const response = await fetch('https://websitegeneration.onrender.com/generate', {
+    // ✅ Detect backend base URL (same as domainChecker.js)
+    const backendHost =
+      window.PUBLIC_BACKEND_URL ||
+      (window.location.protocol.startsWith('http')
+        ? `${window.location.protocol}//${window.location.host}`
+        : 'http://localhost:3000');
+
+    // ✅ Call /generate on backend
+    const response = await fetch(`${backendHost}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -21,6 +29,11 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
         pageCount: formData.get('pageCount') || '1'
       })
     });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Generate failed: ${response.status} ${response.statusText} — ${text.slice(0,200)}`);
+    }
 
     const data = await response.json();
 
@@ -30,7 +43,9 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       this.currentPage = 0;
 
       const sessionId = localStorage.getItem('sessionId');
-      await fetch('https://websitegeneration.onrender.com/store-step', {
+
+      // ✅ Call /store-step on backend
+      const storeRes = await fetch(`${backendHost}/store-step`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -39,6 +54,11 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
           content: data.pages
         })
       });
+
+      if (!storeRes.ok) {
+        const text = await storeRes.text();
+        console.warn(`⚠️ Store-step failed: ${storeRes.status} ${storeRes.statusText} — ${text.slice(0,200)}`);
+      }
 
       this.updatePreview();
       this.showSuccess('Website generated successfully!');
