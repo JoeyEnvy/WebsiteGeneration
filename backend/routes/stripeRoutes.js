@@ -31,6 +31,14 @@ const priceMap = {
 };
 
 router.post("/create-checkout-session", async (req, res) => {
+  // 🔎 Debug: log what we actually received and what env vars look like
+  console.log("DEBUG: Stripe checkout hit with body:", req.body);
+  console.log("DEBUG: Env check", {
+    PUBLIC_URL: process.env.PUBLIC_URL,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? "[SET]" : "[MISSING]",
+    STRIPE_PRICE_ID: process.env.STRIPE_PRICE_ID || "[not set]",
+  });
+
   try {
     const {
       type,
@@ -68,6 +76,7 @@ router.post("/create-checkout-session", async (req, res) => {
     // Public URL for success/cancel pages (frontend)
     const PUBLIC_URL = (process.env.PUBLIC_URL || "").replace(/\/+$/, "");
     if (!PUBLIC_URL) {
+      console.error("❌ PUBLIC_URL is missing in env vars!");
       return res.status(500).json({ error: "PUBLIC_URL is not set on the server." });
     }
 
@@ -99,9 +108,10 @@ router.post("/create-checkout-session", async (req, res) => {
           quantity: 1,
         }];
 
+    console.log("DEBUG: About to create Stripe session with:", { line_items });
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      // `payment_method_types` is optional; Stripe infers. Only add if you need to restrict.
       customer_email: email || undefined,
       line_items,
       metadata: {
@@ -116,6 +126,8 @@ router.post("/create-checkout-session", async (req, res) => {
       cancel_url: `${PUBLIC_URL}/payment-cancelled.html`,
     });
 
+    console.log("DEBUG: Stripe session created:", session.id);
+
     return res.json({ url: session.url });
   } catch (err) {
     console.error("❌ Stripe session creation failed:", err);
@@ -125,4 +137,3 @@ router.post("/create-checkout-session", async (req, res) => {
 });
 
 export default router;
-
