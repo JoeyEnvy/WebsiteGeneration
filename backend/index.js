@@ -1,5 +1,5 @@
 // ========================================================================
-// Express + Modular API Backend for AI Website Generator
+// Express + Modular API Backend for AI Website Generator (Porkbun Edition)
 // ========================================================================
 
 import dotenv from "dotenv";
@@ -7,6 +7,8 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
 import Stripe from "stripe";
 import fetch from "node-fetch";
 import sgMail from "@sendgrid/mail";
@@ -27,18 +29,18 @@ import stripeRoutes from "./routes/stripeRoutes.js";
 import utilityRoutes from "./routes/utilityRoutes.js";
 import deployLiveRoutes from "./routes/deployLiveRoutes.js";
 import deployGithubRoutes from "./routes/deployGithubRoutes.js";
-
-// ✅ Full Hosting routes (split across files)
-import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js"; // GET /full-hosting/domain/check
-import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js"; // POST /full-hosting/github
+import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
+import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 
 // ========================================================================
 // App setup
 // ========================================================================
 const app = express();
-app.use(express.json({ limit: "2mb" }));
 app.set("trust proxy", 1);
+app.use(express.json({ limit: "2mb" }));
 app.use(cors());
+app.use(helmet());
+app.use(compression());
 
 // ========================================================================
 // Third-party API Clients
@@ -65,21 +67,23 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 // ========================================================================
 // Mount API Routes
 // ========================================================================
-app.use("/stripe", stripeRoutes); // => /stripe/create-checkout-session
+app.use("/stripe", stripeRoutes);
 app.use("/", sessionRoutes);
 app.use("/", domainRoutes);
 app.use("/", utilityRoutes);
 app.use("/deploy", deployLiveRoutes);
 app.use("/deploy", deployGithubRoutes);
-
-// ✅ Full Hosting namespace
-app.use("/full-hosting", fullHostingDomainRoutes);   // GET /full-hosting/domain/check
-app.use("/full-hosting", fullHostingGithubRoutes);   // POST /full-hosting/github
+app.use("/full-hosting", fullHostingDomainRoutes);
+app.use("/full-hosting", fullHostingGithubRoutes);
 
 // ========================================================================
-// Static frontend files (only if backend/public exists)
+// Static frontend files (served from /public)
 // ========================================================================
-app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    extensions: ["html"],
+  })
+);
 
 // ========================================================================
 // Global error fallback
@@ -97,5 +101,19 @@ app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
   if (process.env.PUBLIC_URL) {
     console.log(`🌐 PUBLIC_URL: ${process.env.PUBLIC_URL.replace(/\/+$/, "")}`);
+  }
+
+  // Diagnostic log for key envs (safe subset)
+  const required = [
+    "PORKBUN_API_KEY",
+    "PORKBUN_SECRET_KEY",
+    "STRIPE_SECRET_KEY",
+    "SENDGRID_API_KEY",
+    "GITHUB_USERNAME",
+  ];
+  for (const key of required) {
+    if (!process.env[key]) {
+      console.warn(`⚠️ Missing environment variable: ${key}`);
+    }
   }
 });

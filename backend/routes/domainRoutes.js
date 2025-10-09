@@ -12,7 +12,7 @@ const isValidDomain = (domain) =>
   /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(domain.trim().toLowerCase());
 
 /**
- * ✅ Domain Availability Checker
+ * ✅ Domain Availability Checker (Porkbun API)
  */
 router.post('/check-domain', async (req, res) => {
   const { domain, duration } = req.body || {};
@@ -27,31 +27,33 @@ router.post('/check-domain', async (req, res) => {
     return res.status(400).json({ error: 'Invalid domain structure.' });
   }
 
-  const apiBase = process.env.GODADDY_ENV === 'production'
-    ? 'https://api.godaddy.com'
-    : 'https://api.ote-godaddy.com';
-  const checkUrl = `${apiBase}/v1/domains/available?domain=${encodeURIComponent(cleanedDomain)}&checkType=FAST&forTransfer=false`;
-
   try {
-    const response = await fetch(checkUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `sso-key ${process.env.GODADDY_API_KEY}:${process.env.GODADDY_API_SECRET}`,
-        Accept: 'application/json'
-      }
+    const response = await fetch('https://api.porkbun.com/api/json/v3/domain/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apikey: process.env.PORKBUN_API_KEY,
+        secretapikey: process.env.PORKBUN_SECRET_KEY,
+        domain: cleanedDomain
+      })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ GoDaddy API error:', errorText);
-      return res.status(response.status).json({ available: false, error: 'GoDaddy API failed.' });
+    const data = await response.json();
+
+    if (data.status !== 'SUCCESS') {
+      console.error('❌ Porkbun API error:', data);
+      return res.status(502).json({
+        available: false,
+        error: 'Porkbun API failed',
+        detail: data
+      });
     }
 
-    const data = await response.json();
+    const isAvailable = data.available === 'yes';
     const domainPrice = getDomainPriceInPounds(cleanedDomain, period);
 
     res.json({
-      available: data.available,
+      available: isAvailable,
       domainPrice,
       currency: 'GBP',
       period
@@ -95,7 +97,7 @@ router.post('/get-domain-price', (req, res) => {
  * ✅ Health check
  */
 router.get('/ping-domain-routes', (req, res) => {
-  res.json({ ok: true, message: '✅ domainRoutes.js is live' });
+  res.json({ ok: true, message: '✅ domainRoutes.js (Porkbun) is live' });
 });
 
 export default router;

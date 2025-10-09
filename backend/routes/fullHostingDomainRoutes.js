@@ -4,12 +4,14 @@ import { tempSessions } from "../index.js";
 
 const router = express.Router();
 
-// ✅ Utility: Validate domain format
+/* ============================================================
+   Utility: Validate domain format
+   ============================================================ */
 export const isValidDomain = (d) =>
   /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(String(d || "").trim().toLowerCase());
 
 /* ============================================================
-   GET /domain/check  →  Check availability
+   GET /domain/check  →  Check availability (Porkbun)
    ============================================================ */
 router.get("/domain/check", async (req, res) => {
   const { domain = "" } = req.query;
@@ -22,52 +24,31 @@ router.get("/domain/check", async (req, res) => {
   }
 
   try {
-    const apiBase =
-      process.env.GODADDY_ENV === "production"
-        ? "https://api.godaddy.com"
-        : "https://api.ote-godaddy.com";
-
-    const godaddyKey = process.env.GODADDY_API_KEY;
-    const godaddySecret = process.env.GODADDY_API_SECRET;
-
-    if (!godaddyKey || !godaddySecret) {
-      console.error("❌ GoDaddy credentials missing in environment");
-      return res
-        .status(200)
-        .json({ available: false, error: "GoDaddy credentials missing" });
-    }
-
-    const resp = await fetch(
-      `${apiBase}/v1/domains/available?domain=${encodeURIComponent(
-        cleanedDomain
-      )}`,
+    const response = await fetch(
+      "https://api.porkbun.com/api/json/v3/domain/check",
       {
-        headers: {
-          Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
-          Accept: "application/json",
-        },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apikey: process.env.PORKBUN_API_KEY,
+          secretapikey: process.env.PORKBUN_SECRET_KEY,
+          domain: cleanedDomain,
+        }),
       }
     );
 
-    const data = await resp.json();
-    console.log(
-      "🧩 GoDaddy domain check",
-      cleanedDomain,
-      "→",
-      resp.status,
-      data
-    );
+    const data = await response.json();
+    console.log("🧩 Porkbun domain check", cleanedDomain, "→", data);
 
-    // 🔧 soften GoDaddy failures (no 403 to frontend)
-    if (!resp.ok) {
-      const msg = data.message || data.detail || "Check failed";
-      console.warn("⚠️ GoDaddy returned", resp.status, msg);
-      return res
-        .status(200)
-        .json({ available: false, error: msg, code: resp.status });
+    if (data.status !== "SUCCESS") {
+      return res.status(200).json({
+        available: false,
+        error: data.message || "Check failed",
+        code: data.status,
+      });
     }
 
-    return res.json({ available: !!data.available });
+    return res.json({ available: data.available === "yes" });
   } catch (err) {
     console.error("❌ Availability check failed:", err);
     return res
@@ -89,7 +70,7 @@ router.post("/domain/price", (req, res) => {
     }
 
     const years = parseInt(duration || "1", 10);
-    const basePrice = 15.99; // example base price
+    const basePrice = 15.99; // placeholder
     const domainPrice = basePrice * years;
 
     res.json({ domainPrice });
@@ -100,7 +81,7 @@ router.post("/domain/price", (req, res) => {
 });
 
 /* ============================================================
-   POST /deploy-full-hosting/domain  →  Purchase domain
+   POST /deploy-full-hosting/domain  →  Purchase domain (Porkbun)
    ============================================================ */
 router.post("/deploy-full-hosting/domain", async (req, res) => {
   try {
@@ -129,106 +110,83 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
       });
     }
 
-    const apiBase =
-      process.env.GODADDY_ENV === "production"
-        ? "https://api.godaddy.com"
-        : "https://api.ote-godaddy.com";
-
-    const godaddyKey = process.env.GODADDY_API_KEY;
-    const godaddySecret = process.env.GODADDY_API_SECRET;
-    if (!godaddyKey || !godaddySecret) {
-      console.error("❌ GoDaddy credentials missing.");
-      return res
-        .status(500)
-        .json({ error: "GoDaddy credentials missing.", available: false });
-    }
-
-    // 1️⃣ pre-check availability
-    let available = true;
+    /* ---------- 1️⃣ Pre-check availability ---------- */
+    let available = false;
     try {
-      const availRes = await fetch(
-        `${apiBase}/v1/domains/available?domain=${encodeURIComponent(
-          cleanedDomain
-        )}`,
+      const checkRes = await fetch(
+        "https://api.porkbun.com/api/json/v3/domain/check",
         {
-          headers: {
-            Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
-            Accept: "application/json",
-          },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            apikey: process.env.PORKBUN_API_KEY,
+            secretapikey: process.env.PORKBUN_SECRET_KEY,
+            domain: cleanedDomain,
+          }),
         }
       );
-      const avail = await availRes.json();
-      console.log("🔎 pre-check", availRes.status, avail);
-      if (availRes.ok) available = !!avail?.available;
+      const checkData = await checkRes.json();
+      available = checkData.status === "SUCCESS" && checkData.available === "yes";
+      console.log("🔎 Pre-check", checkData);
     } catch (e) {
       console.warn("⚠️ Availability pre-check failed:", e.message);
     }
 
-    // 2️⃣ purchase (if available)
+    /* ---------- 2️⃣ Purchase if available ---------- */
     if (available) {
       const contact = {
-        addressMailing: {
-          address1: "123 Example Street",
-          city: "London",
-          state: "London",
-          postalCode: "EC1A1AA",
-          country: "GB",
-        },
-        email: "support@websitegenerator.co.uk",
-        jobTitle: "Owner",
         nameFirst: "Website",
         nameLast: "Customer",
-        organization: "WebsiteGenerator",
+        emailAddress: "support@websitegenerator.co.uk",
         phone: "+44.2030000000",
+        address: "123 Example Street",
+        city: "London",
+        state: "London",
+        postalcode: "EC1A1AA",
+        country: "GB",
       };
 
-      const payload = {
+      const purchasePayload = {
+        apikey: process.env.PORKBUN_API_KEY,
+        secretapikey: process.env.PORKBUN_SECRET_KEY,
         domain: cleanedDomain,
-        consent: {
-          agreedAt: new Date().toISOString(),
-          agreedBy: req.ip || "127.0.0.1",
-          agreementKeys: ["DNRA", "DNPA"],
-        },
-        contactAdmin: contact,
-        contactBilling: contact,
-        contactRegistrant: contact,
-        contactTech: contact,
-        period: years,
-        privacy: true,
+        years,
+        contact,
       };
 
       try {
-        const purchaseRes = await fetch(`${apiBase}/v1/domains/purchase`, {
-          method: "POST",
-          headers: {
-            Authorization: `sso-key ${godaddyKey}:${godaddySecret}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!purchaseRes.ok) {
-          const text = await purchaseRes.text();
-          if (!text.includes("UNAVAILABLE_DOMAIN")) {
-            throw new Error(
-              `GoDaddy purchase failed: ${purchaseRes.status} ${text}`
-            );
+        const purchaseRes = await fetch(
+          "https://api.porkbun.com/api/json/v3/domain/create",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(purchasePayload),
           }
-          console.log(`ℹ️ Domain already owned: ${cleanedDomain}`);
-        } else {
-          console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
+        );
+
+        const purchaseData = await purchaseRes.json();
+        console.log("🛒 Purchase response", purchaseData);
+
+        if (purchaseData.status !== "SUCCESS") {
+          throw new Error(
+            purchaseData.message || JSON.stringify(purchaseData)
+          );
         }
+
+        console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
       } catch (err) {
         console.error("❌ Domain purchase failed:", err);
-        return res.status(500).json({
-          error: "Domain purchase failed",
-          detail: err.message,
-        });
+        return res
+          .status(500)
+          .json({ error: "Domain purchase failed", detail: err.message });
       }
+    } else {
+      return res
+        .status(409)
+        .json({ error: "Domain unavailable or already registered" });
     }
 
-    // update session
+    /* ---------- 3️⃣ Update session ---------- */
     tempSessions[sessionId] = {
       ...session,
       domain: cleanedDomain,
