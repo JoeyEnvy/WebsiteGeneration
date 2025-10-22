@@ -1,3 +1,4 @@
+// routes/fullHostingDomainRoutes.js
 import express from "express";
 import fetch from "node-fetch";
 import { tempSessions } from "../index.js";
@@ -8,10 +9,10 @@ const router = express.Router();
    Utility: Validate domain format
    ============================================================ */
 export const isValidDomain = (d) =>
-  /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(String(d || "").trim().toLowerCase());
+  /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(d || "").trim());
 
 /* ============================================================
-   GET /domain/check  →  Check availability (Porkbun)
+   GET /full-hosting/domain/check  →  Check availability (Porkbun)
    ============================================================ */
 router.get("/domain/check", async (req, res) => {
   const { domain = "" } = req.query;
@@ -48,7 +49,13 @@ router.get("/domain/check", async (req, res) => {
       });
     }
 
-    return res.json({ available: data.available === "yes" });
+    // Porkbun returns available = "1" or "yes"
+    const isAvailable =
+      data.available === "yes" ||
+      data.available === "1" ||
+      data.available === true;
+
+    return res.json({ available: isAvailable });
   } catch (err) {
     console.error("❌ Availability check failed:", err);
     return res
@@ -58,7 +65,7 @@ router.get("/domain/check", async (req, res) => {
 });
 
 /* ============================================================
-   POST /domain/price  →  Estimate price
+   POST /full-hosting/domain/price  →  Estimate price
    ============================================================ */
 router.post("/domain/price", (req, res) => {
   try {
@@ -70,10 +77,10 @@ router.post("/domain/price", (req, res) => {
     }
 
     const years = parseInt(duration || "1", 10);
-    const basePrice = 15.99; // placeholder
-    const domainPrice = basePrice * years;
+    const basePrice = 15.99; // placeholder — you can map TLDs later
+    const domainPrice = +(basePrice * years).toFixed(2);
 
-    res.json({ domainPrice });
+    res.json({ domainPrice, currency: "GBP", period: years });
   } catch (err) {
     console.error("❌ Price estimation failed:", err);
     res.status(500).json({ error: "Price estimation failed" });
@@ -126,7 +133,11 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
         }
       );
       const checkData = await checkRes.json();
-      available = checkData.status === "SUCCESS" && checkData.available === "yes";
+      available =
+        checkData.status === "SUCCESS" &&
+        (checkData.available === "yes" ||
+          checkData.available === "1" ||
+          checkData.available === true);
       console.log("🔎 Pre-check", checkData);
     } catch (e) {
       console.warn("⚠️ Availability pre-check failed:", e.message);
@@ -154,32 +165,23 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
         contact,
       };
 
-      try {
-        const purchaseRes = await fetch(
-          "https://api.porkbun.com/api/json/v3/domain/create",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(purchasePayload),
-          }
-        );
-
-        const purchaseData = await purchaseRes.json();
-        console.log("🛒 Purchase response", purchaseData);
-
-        if (purchaseData.status !== "SUCCESS") {
-          throw new Error(
-            purchaseData.message || JSON.stringify(purchaseData)
-          );
+      const purchaseRes = await fetch(
+        "https://api.porkbun.com/api/json/v3/domain/create",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(purchasePayload),
         }
+      );
 
-        console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
-      } catch (err) {
-        console.error("❌ Domain purchase failed:", err);
-        return res
-          .status(500)
-          .json({ error: "Domain purchase failed", detail: err.message });
+      const purchaseData = await purchaseRes.json();
+      console.log("🛒 Purchase response", purchaseData);
+
+      if (purchaseData.status !== "SUCCESS") {
+        throw new Error(purchaseData.message || JSON.stringify(purchaseData));
       }
+
+      console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
     } else {
       return res
         .status(409)
@@ -196,9 +198,10 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
     res.json({ success: true, customDomain: cleanedDomain, years });
   } catch (err) {
     console.error("❌ Domain step failed:", err);
-    res
-      .status(500)
-      .json({ error: "Domain validation/purchase failed", detail: err.message });
+    res.status(500).json({
+      error: "Domain validation/purchase failed",
+      detail: err.message,
+    });
   }
 });
 
