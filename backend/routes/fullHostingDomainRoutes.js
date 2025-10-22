@@ -38,8 +38,21 @@ router.get("/domain/check", async (req, res) => {
       }
     );
 
-    const data = await response.json();
-    console.log("🧩 Porkbun domain check", cleanedDomain, "→", data);
+const text = await response.text();
+console.log("🧩 Raw response from Porkbun:", text);
+
+let data;
+try {
+  data = JSON.parse(text);
+} catch (e) {
+    console.error("⚠️ Non-JSON response:", text.slice(0, 200));
+    return res.status(502).json({
+      available: false,
+      error: "Invalid response from Porkbun (HTML)",
+      raw: text.slice(0, 200)
+    });
+}
+
 
     if (data.status !== "SUCCESS") {
       return res.status(200).json({
