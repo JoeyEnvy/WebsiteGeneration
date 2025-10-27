@@ -26,7 +26,8 @@ router.get("/domain/check", async (req, res) => {
 
   try {
 const response = await fetch(
-  "https://api.porkbun.com/api/json/v3/domain/check",
+  "https://corsproxy.io/?https://api.porkbun.com/api/json/v3/domain/check"
+,
   {
     method: "POST",
     headers: {
@@ -140,7 +141,8 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
     let available = false;
     try {
       const checkRes = await fetch(
-        "https://api.porkbun.com/api/json/v3/domain/check",
+        "https://corsproxy.io/?https://api.porkbun.com/api/json/v3/domain/check"
+,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -185,7 +187,8 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
       };
 
       const purchaseRes = await fetch(
-        "https://api.porkbun.com/api/json/v3/domain/create",
+        "https://corsproxy.io/?https://api.porkbun.com/api/json/v3/domain/create"
+,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
