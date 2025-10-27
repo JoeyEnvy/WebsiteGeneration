@@ -25,18 +25,24 @@ router.get("/domain/check", async (req, res) => {
   }
 
   try {
-    const response = await fetch(
-      "https://api.porkbun.com/api/json/v3/domain/check",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apikey: process.env.PORKBUN_API_KEY,
-          secretapikey: process.env.PORKBUN_SECRET_KEY,
-          domain: cleanedDomain,
-        }),
-      }
-    );
+const response = await fetch(
+  "https://api.porkbun.com/api/json/v3/domain/check",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": "WebsiteGenerator/1.0"
+    },
+    body: JSON.stringify({
+      apikey: process.env.PORKBUN_API_KEY,
+      secretapikey: process.env.PORKBUN_SECRET_KEY,
+      domain: cleanedDomain
+    }),
+    // helps Render avoid hanging / 502 errors
+    timeout: 10000
+  }
+);
+
 
 const text = await response.text();
 console.log("🧩 Raw response from Porkbun:", text);
