@@ -12,80 +12,70 @@ export const isValidDomain = (d) =>
   /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(d || "").trim());
 
 /* ============================================================
-   GET /full-hosting/domain/check  →  Check availability (Porkbun)
+   GET /full-hosting/domain/check → Check availability (Porkbun)
    ============================================================ */
 router.get("/domain/check", async (req, res) => {
   const { domain = "" } = req.query;
   const cleanedDomain = domain.trim().toLowerCase();
 
   if (!isValidDomain(cleanedDomain)) {
-    return res
-      .status(400)
-      .json({ available: false, error: "Invalid domain format" });
+    return res.status(400).json({ available: false, error: "Invalid domain format" });
   }
 
   try {
-const response = await fetch(
-  "https://corsproxy.io/?https://api.porkbun.com/api/json/v3/domain/check"
-,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "User-Agent": "WebsiteGenerator/1.0"
-    },
-    body: JSON.stringify({
-      apikey: process.env.PORKBUN_API_KEY,
-      secretapikey: process.env.PORKBUN_SECRET_KEY,
-      domain: cleanedDomain
-    }),
-    // helps Render avoid hanging / 502 errors
-    timeout: 10000
-  }
-);
+    const response = await fetch(
+      // ✅ Use AllOrigins proxy instead of corsproxy.io
+      `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.porkbun.com/api/json/v3/domain/check")}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "WebsiteGenerator/1.0"
+        },
+        body: JSON.stringify({
+          apikey: process.env.PORKBUN_API_KEY,
+          secretapikey: process.env.PORKBUN_SECRET_KEY,
+          domain: cleanedDomain
+        }),
+        timeout: 10000
+      }
+    );
 
+    const text = await response.text();
+    console.log("🧩 Raw response from Porkbun:", text);
 
-const text = await response.text();
-console.log("🧩 Raw response from Porkbun:", text);
-
-let data;
-try {
-  data = JSON.parse(text);
-} catch (e) {
-    console.error("⚠️ Non-JSON response:", text.slice(0, 200));
-    return res.status(502).json({
-      available: false,
-      error: "Invalid response from Porkbun (HTML)",
-      raw: text.slice(0, 200)
-    });
-}
-
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("⚠️ Non-JSON response:", text.slice(0, 200));
+      return res.status(502).json({
+        available: false,
+        error: "Invalid response from Porkbun (HTML)",
+        raw: text.slice(0, 200)
+      });
+    }
 
     if (data.status !== "SUCCESS") {
       return res.status(200).json({
         available: false,
         error: data.message || "Check failed",
-        code: data.status,
+        code: data.status
       });
     }
 
-    // Porkbun returns available = "1" or "yes"
     const isAvailable =
-      data.available === "yes" ||
-      data.available === "1" ||
-      data.available === true;
+      data.available === "yes" || data.available === "1" || data.available === true;
 
     return res.json({ available: isAvailable });
   } catch (err) {
     console.error("❌ Availability check failed:", err);
-    return res
-      .status(200)
-      .json({ available: false, error: "Availability check failed" });
+    return res.status(200).json({ available: false, error: "Availability check failed" });
   }
 });
 
 /* ============================================================
-   POST /full-hosting/domain/price  →  Estimate price
+   POST /full-hosting/domain/price → Estimate price
    ============================================================ */
 router.post("/domain/price", (req, res) => {
   try {
@@ -97,7 +87,7 @@ router.post("/domain/price", (req, res) => {
     }
 
     const years = parseInt(duration || "1", 10);
-    const basePrice = 15.99; // placeholder — you can map TLDs later
+    const basePrice = 15.99;
     const domainPrice = +(basePrice * years).toFixed(2);
 
     res.json({ domainPrice, currency: "GBP", period: years });
@@ -108,21 +98,17 @@ router.post("/domain/price", (req, res) => {
 });
 
 /* ============================================================
-   POST /deploy-full-hosting/domain  →  Purchase domain (Porkbun)
+   POST /deploy-full-hosting/domain → Purchase domain (Porkbun)
    ============================================================ */
 router.post("/deploy-full-hosting/domain", async (req, res) => {
   try {
-    const { sessionId = "", domain = "", durationYears, duration = "1" } =
-      req.body || {};
+    const { sessionId = "", domain = "", durationYears, duration = "1" } = req.body || {};
     const cleanedDomain = (domain || "").trim().toLowerCase();
     const years = parseInt(durationYears ?? duration, 10) || 1;
 
-    if (!sessionId)
-      return res.status(400).json({ error: "Missing sessionId" });
+    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
     if (!cleanedDomain || !isValidDomain(cleanedDomain)) {
-      return res
-        .status(400)
-        .json({ error: `Invalid domain: ${cleanedDomain || "(empty)"}` });
+      return res.status(400).json({ error: `Invalid domain: ${cleanedDomain || "(empty)"}` });
     }
 
     const session = tempSessions[sessionId];
@@ -133,7 +119,7 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
     if (session.lockedDomain && session.lockedDomain !== cleanedDomain) {
       return res.status(409).json({
         error: `Domain mismatch. Locked: ${session.lockedDomain}, Got: ${cleanedDomain}`,
-        code: "DOMAIN_MISMATCH",
+        code: "DOMAIN_MISMATCH"
       });
     }
 
@@ -141,24 +127,21 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
     let available = false;
     try {
       const checkRes = await fetch(
-        "https://corsproxy.io/?https://api.porkbun.com/api/json/v3/domain/check"
-,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.porkbun.com/api/json/v3/domain/check")}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             apikey: process.env.PORKBUN_API_KEY,
             secretapikey: process.env.PORKBUN_SECRET_KEY,
-            domain: cleanedDomain,
-          }),
+            domain: cleanedDomain
+          })
         }
       );
       const checkData = await checkRes.json();
       available =
         checkData.status === "SUCCESS" &&
-        (checkData.available === "yes" ||
-          checkData.available === "1" ||
-          checkData.available === true);
+        (checkData.available === "yes" || checkData.available === "1" || checkData.available === true);
       console.log("🔎 Pre-check", checkData);
     } catch (e) {
       console.warn("⚠️ Availability pre-check failed:", e.message);
@@ -175,7 +158,7 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
         city: "London",
         state: "London",
         postalcode: "EC1A1AA",
-        country: "GB",
+        country: "GB"
       };
 
       const purchasePayload = {
@@ -183,16 +166,15 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
         secretapikey: process.env.PORKBUN_SECRET_KEY,
         domain: cleanedDomain,
         years,
-        contact,
+        contact
       };
 
       const purchaseRes = await fetch(
-        "https://corsproxy.io/?https://api.porkbun.com/api/json/v3/domain/create"
-,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.porkbun.com/api/json/v3/domain/create")}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(purchasePayload),
+          body: JSON.stringify(purchasePayload)
         }
       );
 
@@ -205,25 +187,15 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
 
       console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
     } else {
-      return res
-        .status(409)
-        .json({ error: "Domain unavailable or already registered" });
+      return res.status(409).json({ error: "Domain unavailable or already registered" });
     }
 
     /* ---------- 3️⃣ Update session ---------- */
-    tempSessions[sessionId] = {
-      ...session,
-      domain: cleanedDomain,
-      domainPurchased: true,
-    };
-
+    tempSessions[sessionId] = { ...session, domain: cleanedDomain, domainPurchased: true };
     res.json({ success: true, customDomain: cleanedDomain, years });
   } catch (err) {
     console.error("❌ Domain step failed:", err);
-    res.status(500).json({
-      error: "Domain validation/purchase failed",
-      detail: err.message,
-    });
+    res.status(500).json({ error: "Domain validation/purchase failed", detail: err.message });
   }
 });
 
