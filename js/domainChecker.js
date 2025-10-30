@@ -18,12 +18,8 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
-  // ✅ Detect backend base URL
-  const backendHost =
-    window.PUBLIC_BACKEND_URL ||
-    (window.location.protocol.startsWith("http")
-      ? `${window.location.protocol}//${window.location.host}`
-      : "http://localhost:3000");
+  // ✅ Use Vercel backend
+  const API_BASE = "https://website-generation.vercel.app/api";
 
   // ------------------------------------------------------------------------
   // Input validation
@@ -71,9 +67,7 @@ function setupDomainChecker() {
 
     try {
       const checkRes = await fetch(
-        `${backendHost}/full-hosting/domain/check?domain=${encodeURIComponent(
-          domain
-        )}`
+        `${API_BASE}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
       );
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
 
@@ -95,7 +89,7 @@ function setupDomainChecker() {
       const duration = durationSelect?.value || "1";
       localStorage.setItem("domainDuration", duration);
 
-      const priceRes = await fetch(`${backendHost}/full-hosting/domain/price`, {
+      const priceRes = await fetch(`${API_BASE}/full-hosting/domain/price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain, duration }),
@@ -104,7 +98,7 @@ function setupDomainChecker() {
       if (!priceRes.ok) throw new Error("Price fetch failed");
       const priceData = await priceRes.json();
       const base = parseFloat(priceData.domainPrice || 0);
-      const final = (base + 150).toFixed(2); // £150 service fee
+      const final = (base + 150).toFixed(2);
       localStorage.setItem("domainPrice", base);
 
       if (priceDisplay) {
@@ -133,7 +127,7 @@ function setupDomainChecker() {
     if (!resultDisplay.textContent.includes("available")) return;
 
     try {
-      const res = await fetch(`${backendHost}/full-hosting/domain/price`, {
+      const res = await fetch(`${API_BASE}/full-hosting/domain/price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain, duration: durationSelect.value }),
@@ -170,5 +164,4 @@ function setupDomainChecker() {
   });
 }
 
-// ✅ Initialize on window
 window.setupDomainChecker = setupDomainChecker;

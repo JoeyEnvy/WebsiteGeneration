@@ -1,46 +1,46 @@
+// ===========================
+// webgen.helpers.js — Prototype helpers and Stripe checkout
+// Depends on: main.js (WebsiteGenerator class) and window.API_BASE
+// ===========================
+
 WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
   try {
-    // Ensure a sessionId
+    // Ensure sessionId
     let sessionId = localStorage.getItem('sessionId');
     if (!sessionId) {
       sessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
       localStorage.setItem('sessionId', sessionId);
     }
 
-    // ✅ Consistent backend base (same as domainChecker + submit.js)
-    const backendHost =
-      window.PUBLIC_BACKEND_URL ||
-      (window.location.protocol.startsWith('http')
-        ? `${window.location.protocol}//${window.location.host}`
-        : 'http://localhost:3000');
-
     // Build payload
-    const businessName = this.form.querySelector('[name="businessName"]')?.value || 'website';
+    const businessName =
+      this.form?.querySelector('[name="businessName"]')?.value ||
+      localStorage.getItem('businessName') ||
+      'website';
+
     const payload = { type, sessionId, businessName };
 
     if (type === 'full-hosting') {
       const domain = (localStorage.getItem('customDomain') || '').trim().toLowerCase();
       const durationYears = parseInt(localStorage.getItem('domainDuration') || '1', 10) || 1;
-
       payload.domain = domain;
-      payload.durationYears = durationYears; // <-- use durationYears (not "duration")
+      payload.durationYears = durationYears; // backend expects durationYears
     }
 
-    // Call the correct endpoint (mounted at /stripe)
-    const response = await fetch(`${backendHost}/stripe/create-checkout-session`, {
+    const response = await fetch(`${window.API_BASE}/stripe/create-checkout-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    // Defensive handling to avoid parsing HTML error pages as JSON
+    // Avoid parsing HTML error pages as JSON blindly
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`Stripe init failed: ${response.status} ${response.statusText} — ${text.slice(0,200)}`);
     }
 
     const data = await response.json();
-    if (data && data.url) {
+    if (data?.url) {
       window.location.href = data.url;
       return;
     }
@@ -52,6 +52,7 @@ WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
   }
 };
 
+// Basic step helpers
 WebsiteGenerator.prototype.goToStep = function(stepNumber) {
   document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
   const el = document.getElementById(`step${stepNumber}`);
@@ -66,6 +67,7 @@ WebsiteGenerator.prototype.highlightStep = function(stepNumber) {
   });
 };
 
+// Loading + alerts
 WebsiteGenerator.prototype.showLoading = function() {
   const loader = document.createElement('div');
   loader.className = 'loader';

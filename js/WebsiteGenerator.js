@@ -2,6 +2,8 @@
 // WebsiteGenerator.js
 // ===========================
 
+const API_BASE = "https://website-generation.vercel.app/api";
+
 class WebsiteGenerator {
   constructor() {
     this.form = document.getElementById('websiteGeneratorForm');
@@ -29,16 +31,13 @@ class WebsiteGenerator {
   // Step Navigation
   // ===========================
   goToStep(stepNumber) {
-    // Hide all steps
     document.querySelectorAll('.form-step').forEach(step => {
       step.style.display = 'none';
     });
 
-    // Show target step
     const target = document.getElementById(`step${stepNumber}`);
     if (target) target.style.display = 'block';
 
-    // Update progress indicators
     document.querySelectorAll('.step').forEach(indicator => {
       indicator.classList.remove('active');
     });
@@ -52,23 +51,19 @@ class WebsiteGenerator {
   // Form Submission
   // ===========================
   handleSubmit() {
-    // Collect form data
     const formData = new FormData(this.form);
     const data = Object.fromEntries(formData.entries());
 
-    // Store business name for later use
     if (data.businessName) {
       localStorage.setItem('businessName', data.businessName);
     }
 
-    // Collect checkboxes properly (FormData only captures one value)
     data.pages = formData.getAll('pages');
     data.features = formData.getAll('features');
     data.enhancements = formData.getAll('enhancements');
 
     console.log('🚀 Submitting generator form:', data);
 
-    // Simulate generated pages (replace with API call to /generate)
     this.generatedPages = [
       `<html><body><h1>${data.businessName || 'My Website'}</h1><p>Home Page</p></body></html>`,
       `<html><body><h1>About ${data.businessName || 'Us'}</h1><p>About Page</p></body></html>`
@@ -76,7 +71,6 @@ class WebsiteGenerator {
 
     localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
 
-    // Go to loading step, then show preview
     this.goToStep(5);
     setTimeout(() => {
       this.updatePreview();
@@ -106,7 +100,6 @@ class WebsiteGenerator {
     doc.write(this.generatedPages[this.currentPage] || '<h1>Page not found</h1>');
     doc.close();
 
-    // Update page indicator
     const indicator = document.getElementById('pageIndicator');
     if (indicator) {
       indicator.textContent = `Page ${this.currentPage + 1} of ${this.generatedPages.length}`;
@@ -193,7 +186,7 @@ class WebsiteGenerator {
         localStorage.setItem('sessionId', sessionId);
       }
 
-      fetch('https://websitegeneration.onrender.com/stripe/create-checkout-session', {
+      fetch(`${API_BASE}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -243,7 +236,7 @@ class WebsiteGenerator {
       localStorage.setItem('sessionId', sessionId);
     }
 
-    fetch('https://websitegeneration.onrender.com/stripe/create-checkout-session', {
+    fetch(`${API_BASE}/stripe/create-checkout-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -268,5 +261,4 @@ class WebsiteGenerator {
   }
 }
 
-// ✅ Expose globally
 window.WebsiteGenerator = WebsiteGenerator;

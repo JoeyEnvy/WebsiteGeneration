@@ -1,5 +1,5 @@
 // ===========================
-// WebsiteGenerator.ui.js
+// WebsiteGenerator.ui.js — Vercel-ready
 // ===========================
 
 // Attach all event listeners (steps, preview controls, submit, purchase/download)
@@ -7,7 +7,6 @@ WebsiteGenerator.prototype.initializeEventListeners = function() {
   const form = document.getElementById('websiteGeneratorForm');
 
   // ---- Step Navigation ----
-  // Use optional chaining & validateStep before advancing
   document.getElementById('nextStep1')?.addEventListener('click', () => {
     if (this.validateStep?.('step1')) this.goToStep(2);
   });
@@ -65,7 +64,6 @@ WebsiteGenerator.prototype.initializeEventListeners = function() {
     downloadBtn.addEventListener('click', () => this.downloadGeneratedSite?.());
   }
 };
-
 
 // ===========================
 // Post-Generation Panel
@@ -125,7 +123,6 @@ WebsiteGenerator.prototype.showPostGenerationOptions = function() {
   }
 };
 
-
 // ===========================
 // Customization Panel Init
 // ===========================
@@ -136,5 +133,5 @@ WebsiteGenerator.prototype.initializeCustomizationPanel = function() {
   const tools = panel.querySelector('.custom-tools');
   if (tools) tools.style.display = 'flex';
 
-  // Add any other default setup here
+  // Add any additional setup for editor tools here
 };

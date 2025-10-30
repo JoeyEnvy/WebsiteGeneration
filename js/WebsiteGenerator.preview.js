@@ -1,3 +1,7 @@
+// ===========================
+// webgen.preview.js — Vercel-ready
+// ===========================
+
 WebsiteGenerator.prototype.updatePreview = function () {
   if (!this.generatedPages || this.generatedPages.length === 0) return;
 
