@@ -94,26 +94,6 @@ app.use((err, req, res, _next) => {
 });
 
 // ========================================================================
-// Server Startup
+// ✅ Export app instead of starting a server (for Vercel)
 // ========================================================================
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
-  if (process.env.PUBLIC_URL) {
-    console.log(`🌐 PUBLIC_URL: ${process.env.PUBLIC_URL.replace(/\/+$/, "")}`);
-  }
-
-  // Diagnostic log for key envs (safe subset)
-  const required = [
-    "PORKBUN_API_KEY",
-    "PORKBUN_SECRET_KEY",
-    "STRIPE_SECRET_KEY",
-    "SENDGRID_API_KEY",
-    "GITHUB_USERNAME",
-  ];
-  for (const key of required) {
-    if (!process.env[key]) {
-      console.warn(`⚠️ Missing environment variable: ${key}`);
-    }
-  }
-});
+export default app;
