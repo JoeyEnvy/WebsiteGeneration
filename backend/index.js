@@ -61,8 +61,12 @@ export const thirdParty = { stripe, fetch, sgMail, JSZip, uuidv4 };
 // ========================================================================
 // Health check
 // ========================================================================
+// ========================================================================
+// Health check (Vercel expects API routes under /api/*)
+// ========================================================================
+app.get("/api/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get("/", (_req, res) => res.send("OK"));
-app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+
 
 // ========================================================================
 // Mount API Routes
