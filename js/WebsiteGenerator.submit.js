@@ -2,8 +2,6 @@
 // webgen.submit.js — Vercel-ready
 // ===========================
 
-const API_BASE = "https://website-generation.vercel.app/api";
-
 WebsiteGenerator.prototype.handleSubmit = async function () {
   this.goToStep(5);
   this.showLoading();
@@ -20,8 +18,11 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       localStorage.setItem('sessionId', crypto.randomUUID());
     }
 
+    // ✅ Use global API base from core.js
+    const API = window.API_BASE;
+
     // ✅ Call /generate via Vercel backend
-    const response = await fetch(`${API_BASE}/generate`, {
+    const response = await fetch(`${API}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -45,7 +46,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
       const sessionId = localStorage.getItem('sessionId');
 
       // ✅ Store step data for backend persistence
-      const storeRes = await fetch(`${API_BASE}/store-step`, {
+      const storeRes = await fetch(`${API}/store-step`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

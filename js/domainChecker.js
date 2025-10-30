@@ -18,8 +18,8 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
-  // ✅ Use Vercel backend
-  const API_BASE = "https://website-generation.vercel.app/api";
+  // ✅ Use global API base from core.js
+  const API = window.API_BASE;
 
   // ------------------------------------------------------------------------
   // Input validation
@@ -67,7 +67,7 @@ function setupDomainChecker() {
 
     try {
       const checkRes = await fetch(
-        `${API_BASE}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
+        `${API}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
       );
       if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
 
@@ -89,7 +89,7 @@ function setupDomainChecker() {
       const duration = durationSelect?.value || "1";
       localStorage.setItem("domainDuration", duration);
 
-      const priceRes = await fetch(`${API_BASE}/full-hosting/domain/price`, {
+      const priceRes = await fetch(`${API}/full-hosting/domain/price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain, duration }),
@@ -127,7 +127,7 @@ function setupDomainChecker() {
     if (!resultDisplay.textContent.includes("available")) return;
 
     try {
-      const res = await fetch(`${API_BASE}/full-hosting/domain/price`, {
+      const res = await fetch(`${API}/full-hosting/domain/price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain, duration: durationSelect.value }),

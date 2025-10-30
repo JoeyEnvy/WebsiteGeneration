@@ -1,42 +1,57 @@
 // ===========================
-// webgen.helpers.js — Prototype helpers and Stripe checkout
-// Depends on: main.js (WebsiteGenerator class) and window.API_BASE
+// WebsiteGenerator.helpers.js — Prototype helpers and Stripe checkout
+// Depends on: WebsiteGenerator class + window.API_BASE
 // ===========================
 
-WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
+// ===========================
+// Stripe Checkout Helper
+// ===========================
+WebsiteGenerator.prototype.startStripeCheckout = async function (type) {
   try {
     // Ensure sessionId
-    let sessionId = localStorage.getItem('sessionId');
+    let sessionId = localStorage.getItem("sessionId");
     if (!sessionId) {
-      sessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
-      localStorage.setItem('sessionId', sessionId);
+      sessionId =
+        window.crypto?.randomUUID?.() || String(Date.now());
+      localStorage.setItem("sessionId", sessionId);
     }
 
     // Build payload
     const businessName =
       this.form?.querySelector('[name="businessName"]')?.value ||
-      localStorage.getItem('businessName') ||
-      'website';
+      localStorage.getItem("businessName") ||
+      "website";
 
     const payload = { type, sessionId, businessName };
 
-    if (type === 'full-hosting') {
-      const domain = (localStorage.getItem('customDomain') || '').trim().toLowerCase();
-      const durationYears = parseInt(localStorage.getItem('domainDuration') || '1', 10) || 1;
+    if (type === "full-hosting") {
+      const domain = (localStorage.getItem("customDomain") || "")
+        .trim()
+        .toLowerCase();
+      const durationYears =
+        parseInt(localStorage.getItem("domainDuration") || "1", 10) || 1;
       payload.domain = domain;
       payload.durationYears = durationYears; // backend expects durationYears
     }
 
-    const response = await fetch(`${window.API_BASE}/stripe/create-checkout-session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const response = await fetch(
+      `${window.API_BASE}/stripe/create-checkout-session`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
 
     // Avoid parsing HTML error pages as JSON blindly
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Stripe init failed: ${response.status} ${response.statusText} — ${text.slice(0,200)}`);
+      throw new Error(
+        `Stripe init failed: ${response.status} ${response.statusText} — ${text.slice(
+          0,
+          200
+        )}`
+      );
     }
 
     const data = await response.json();
@@ -47,56 +62,64 @@ WebsiteGenerator.prototype.startStripeCheckout = async function(type) {
 
     throw new Error('Stripe response missing "url".');
   } catch (err) {
-    console.error('Stripe Checkout error:', err);
+    console.error("Stripe Checkout error:", err);
     alert(`Something went wrong with payment.\n${err.message || err}`);
   }
 };
 
-// Basic step helpers
-WebsiteGenerator.prototype.goToStep = function(stepNumber) {
-  document.querySelectorAll('.form-step').forEach(step => step.style.display = 'none');
+// ===========================
+// Step Helpers
+// ===========================
+WebsiteGenerator.prototype.goToStep = function (stepNumber) {
+  document
+    .querySelectorAll(".form-step")
+    .forEach((step) => (step.style.display = "none"));
   const el = document.getElementById(`step${stepNumber}`);
-  if (el) el.style.display = 'block';
+  if (el) el.style.display = "block";
   this.currentStep = stepNumber;
   this.highlightStep(stepNumber);
 };
 
-WebsiteGenerator.prototype.highlightStep = function(stepNumber) {
-  document.querySelectorAll('.step-progress-bar .step').forEach((el, index) => {
-    el.classList.toggle('active', index === stepNumber - 1);
-  });
+WebsiteGenerator.prototype.highlightStep = function (stepNumber) {
+  document
+    .querySelectorAll(".step-progress-bar .step")
+    .forEach((el, index) => {
+      el.classList.toggle("active", index === stepNumber - 1);
+    });
 };
 
-// Loading + alerts
-WebsiteGenerator.prototype.showLoading = function() {
-  const loader = document.createElement('div');
-  loader.className = 'loader';
-  loader.innerHTML = 'Generating website...';
+// ===========================
+// Loading & Alerts
+// ===========================
+WebsiteGenerator.prototype.showLoading = function () {
+  const loader = document.createElement("div");
+  loader.className = "loader";
+  loader.innerHTML = "Generating website...";
   this.form.appendChild(loader);
 
   const submitBtn = this.form.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.disabled = true;
 };
 
-WebsiteGenerator.prototype.hideLoading = function() {
-  const loader = this.form.querySelector('.loader');
+WebsiteGenerator.prototype.hideLoading = function () {
+  const loader = this.form.querySelector(".loader");
   if (loader) loader.remove();
 
   const submitBtn = this.form.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.disabled = false;
 };
 
-WebsiteGenerator.prototype.showSuccess = function(message) {
-  const alert = document.createElement('div');
-  alert.className = 'alert alert-success';
+WebsiteGenerator.prototype.showSuccess = function (message) {
+  const alert = document.createElement("div");
+  alert.className = "alert alert-success";
   alert.innerHTML = message;
   this.form.insertBefore(alert, this.form.firstChild);
   setTimeout(() => alert.remove(), 5000);
 };
 
-WebsiteGenerator.prototype.showError = function(message) {
-  const alert = document.createElement('div');
-  alert.className = 'alert alert-error';
+WebsiteGenerator.prototype.showError = function (message) {
+  const alert = document.createElement("div");
+  alert.className = "alert alert-error";
   alert.innerHTML = message;
   this.form.insertBefore(alert, this.form.firstChild);
   setTimeout(() => alert.remove(), 5000);

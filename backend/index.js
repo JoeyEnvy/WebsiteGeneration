@@ -69,16 +69,17 @@ app.get("/", (_req, res) => res.send("OK"));
 
 
 // ========================================================================
-// Mount API Routes
+// Mount API Routes (Vercel prefix)
 // ========================================================================
-app.use("/stripe", stripeRoutes);
-app.use("/", sessionRoutes);
-app.use("/", domainRoutes);
-app.use("/", utilityRoutes);
-app.use("/deploy", deployLiveRoutes);
-app.use("/deploy", deployGithubRoutes);
-app.use("/full-hosting", fullHostingDomainRoutes);
-app.use("/full-hosting", fullHostingGithubRoutes);
+app.use("/api/stripe", stripeRoutes);
+app.use("/api", sessionRoutes);
+app.use("/api", domainRoutes);
+app.use("/api", utilityRoutes);
+app.use("/api/deploy", deployLiveRoutes);
+app.use("/api/deploy", deployGithubRoutes);
+app.use("/api/full-hosting", fullHostingDomainRoutes);
+app.use("/api/full-hosting", fullHostingGithubRoutes);
+
 
 // ========================================================================
 // Static frontend files (served from /public)
