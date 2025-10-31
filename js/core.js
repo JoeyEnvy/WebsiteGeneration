@@ -1,3 +1,6 @@
+// Global API base (Vercel backend)
+window.API_BASE = "https://website-generation.vercel.app/api";
+
 // Clear previous site data on hard refresh
 window.addEventListener('beforeunload', () => {
   localStorage.removeItem('generatedPages');
