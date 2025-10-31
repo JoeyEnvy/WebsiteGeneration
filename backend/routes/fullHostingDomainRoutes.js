@@ -23,23 +23,20 @@ router.get("/domain/check", async (req, res) => {
   }
 
   try {
-    const response = await fetch(
-      // ✅ Use AllOrigins proxy instead of corsproxy.io
-      `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.porkbun.com/api/json/v3/domain/check")}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "WebsiteGenerator/1.0"
-        },
-        body: JSON.stringify({
-          apikey: process.env.PORKBUN_API_KEY,
-          secretapikey: process.env.PORKBUN_SECRET_KEY,
-          domain: cleanedDomain
-        }),
-        timeout: 10000
-      }
-    );
+    // ✅ Direct call to Porkbun API (no proxy)
+    const response = await fetch("https://api.porkbun.com/api/json/v3/domain/check", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "WebsiteGenerator/1.0"
+      },
+      body: JSON.stringify({
+        apikey: process.env.PORKBUN_API_KEY,
+        secretapikey: process.env.PORKBUN_SECRET_KEY,
+        domain: cleanedDomain
+      }),
+      timeout: 10000
+    });
 
     const text = await response.text();
     console.log("🧩 Raw response from Porkbun:", text);
@@ -70,7 +67,7 @@ router.get("/domain/check", async (req, res) => {
     return res.json({ available: isAvailable });
   } catch (err) {
     console.error("❌ Availability check failed:", err);
-    return res.status(200).json({ available: false, error: "Availability check failed" });
+    return res.status(502).json({ available: false, error: "Availability check failed" });
   }
 });
 
@@ -126,18 +123,15 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
     /* ---------- 1️⃣ Pre-check availability ---------- */
     let available = false;
     try {
-      const checkRes = await fetch(
-        `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.porkbun.com/api/json/v3/domain/check")}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            apikey: process.env.PORKBUN_API_KEY,
-            secretapikey: process.env.PORKBUN_SECRET_KEY,
-            domain: cleanedDomain
-          })
-        }
-      );
+      const checkRes = await fetch("https://api.porkbun.com/api/json/v3/domain/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apikey: process.env.PORKBUN_API_KEY,
+          secretapikey: process.env.PORKBUN_SECRET_KEY,
+          domain: cleanedDomain
+        })
+      });
       const checkData = await checkRes.json();
       available =
         checkData.status === "SUCCESS" &&
@@ -169,14 +163,11 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
         contact
       };
 
-      const purchaseRes = await fetch(
-        `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.porkbun.com/api/json/v3/domain/create")}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(purchasePayload)
-        }
-      );
+      const purchaseRes = await fetch("https://api.porkbun.com/api/json/v3/domain/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(purchasePayload)
+      });
 
       const purchaseData = await purchaseRes.json();
       console.log("🛒 Purchase response", purchaseData);
