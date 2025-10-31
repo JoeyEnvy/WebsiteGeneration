@@ -12,7 +12,30 @@ export const isValidDomain = (d) =>
   /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(d || "").trim());
 
 /* ============================================================
-   GET /full-hosting/domain/check → Check availability (Porkbun)
+   Helper: Internal proxy call to Porkbun via /api/proxy/porkbun
+   ============================================================ */
+async function callPorkbun(endpoint, payload) {
+  const proxyUrl = `${process.env.PUBLIC_URL || "https://website-generation.vercel.app"}/api/proxy/porkbun`;
+  const response = await fetch(proxyUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: `https://api.porkbun.com/api/json/v3/${endpoint}`,
+      payload
+    })
+  });
+
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error("⚠️ Invalid JSON from proxy:", text.slice(0, 200));
+    throw new Error("Invalid JSON from Porkbun");
+  }
+}
+
+/* ============================================================
+   GET /full-hosting/domain/check → Check availability
    ============================================================ */
 router.get("/domain/check", async (req, res) => {
   const { domain = "" } = req.query;
@@ -23,35 +46,13 @@ router.get("/domain/check", async (req, res) => {
   }
 
   try {
-    // ✅ Direct call to Porkbun API (no proxy)
-    const response = await fetch("https://api.porkbun.com/api/json/v3/domain/check", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "WebsiteGenerator/1.0"
-      },
-      body: JSON.stringify({
-        apikey: process.env.PORKBUN_API_KEY,
-        secretapikey: process.env.PORKBUN_SECRET_KEY,
-        domain: cleanedDomain
-      }),
-      timeout: 10000
+    const data = await callPorkbun("domain/check", {
+      apikey: process.env.PORKBUN_API_KEY,
+      secretapikey: process.env.PORKBUN_SECRET_KEY,
+      domain: cleanedDomain
     });
 
-    const text = await response.text();
-    console.log("🧩 Raw response from Porkbun:", text);
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("⚠️ Non-JSON response:", text.slice(0, 200));
-      return res.status(502).json({
-        available: false,
-        error: "Invalid response from Porkbun (HTML)",
-        raw: text.slice(0, 200)
-      });
-    }
+    console.log("🧩 Porkbun check response:", data);
 
     if (data.status !== "SUCCESS") {
       return res.status(200).json({
@@ -66,7 +67,7 @@ router.get("/domain/check", async (req, res) => {
 
     return res.json({ available: isAvailable });
   } catch (err) {
-    console.error("❌ Availability check failed:", err);
+    console.error("❌ Domain check failed:", err);
     return res.status(502).json({ available: false, error: "Availability check failed" });
   }
 });
@@ -95,7 +96,7 @@ router.post("/domain/price", (req, res) => {
 });
 
 /* ============================================================
-   POST /deploy-full-hosting/domain → Purchase domain (Porkbun)
+   POST /deploy-full-hosting/domain → Purchase domain
    ============================================================ */
 router.post("/deploy-full-hosting/domain", async (req, res) => {
   try {
@@ -120,69 +121,53 @@ router.post("/deploy-full-hosting/domain", async (req, res) => {
       });
     }
 
-    /* ---------- 1️⃣ Pre-check availability ---------- */
-    let available = false;
-    try {
-      const checkRes = await fetch("https://api.porkbun.com/api/json/v3/domain/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apikey: process.env.PORKBUN_API_KEY,
-          secretapikey: process.env.PORKBUN_SECRET_KEY,
-          domain: cleanedDomain
-        })
-      });
-      const checkData = await checkRes.json();
-      available =
-        checkData.status === "SUCCESS" &&
-        (checkData.available === "yes" || checkData.available === "1" || checkData.available === true);
-      console.log("🔎 Pre-check", checkData);
-    } catch (e) {
-      console.warn("⚠️ Availability pre-check failed:", e.message);
+    /* ---------- 1️⃣ Check availability ---------- */
+    const checkData = await callPorkbun("domain/check", {
+      apikey: process.env.PORKBUN_API_KEY,
+      secretapikey: process.env.PORKBUN_SECRET_KEY,
+      domain: cleanedDomain
+    });
+
+    const available =
+      checkData.status === "SUCCESS" &&
+      (checkData.available === "yes" || checkData.available === "1" || checkData.available === true);
+
+    console.log("🔎 Availability check:", checkData);
+
+    if (!available) {
+      return res.status(409).json({ error: "Domain unavailable or already registered" });
     }
 
-    /* ---------- 2️⃣ Purchase if available ---------- */
-    if (available) {
-      const contact = {
-        nameFirst: "Website",
-        nameLast: "Customer",
-        emailAddress: "support@websitegenerator.co.uk",
-        phone: "+44.2030000000",
-        address: "123 Example Street",
-        city: "London",
-        state: "London",
-        postalcode: "EC1A1AA",
-        country: "GB"
-      };
+    /* ---------- 2️⃣ Purchase ---------- */
+    const contact = {
+      nameFirst: "Website",
+      nameLast: "Customer",
+      emailAddress: "support@websitegenerator.co.uk",
+      phone: "+44.2030000000",
+      address: "123 Example Street",
+      city: "London",
+      state: "London",
+      postalcode: "EC1A1AA",
+      country: "GB"
+    };
 
-      const purchasePayload = {
-        apikey: process.env.PORKBUN_API_KEY,
-        secretapikey: process.env.PORKBUN_SECRET_KEY,
-        domain: cleanedDomain,
-        years,
-        contact
-      };
+    const purchaseData = await callPorkbun("domain/create", {
+      apikey: process.env.PORKBUN_API_KEY,
+      secretapikey: process.env.PORKBUN_SECRET_KEY,
+      domain: cleanedDomain,
+      years,
+      contact
+    });
 
-      const purchaseRes = await fetch("https://api.porkbun.com/api/json/v3/domain/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(purchasePayload)
-      });
+    console.log("🛒 Purchase response:", purchaseData);
 
-      const purchaseData = await purchaseRes.json();
-      console.log("🛒 Purchase response", purchaseData);
-
-      if (purchaseData.status !== "SUCCESS") {
-        throw new Error(purchaseData.message || JSON.stringify(purchaseData));
-      }
-
-      console.log(`✅ Domain ${cleanedDomain} purchased successfully.`);
-    } else {
-      return res.status(409).json({ error: "Domain unavailable or already registered" });
+    if (purchaseData.status !== "SUCCESS") {
+      throw new Error(purchaseData.message || JSON.stringify(purchaseData));
     }
 
     /* ---------- 3️⃣ Update session ---------- */
     tempSessions[sessionId] = { ...session, domain: cleanedDomain, domainPurchased: true };
+
     res.json({ success: true, customDomain: cleanedDomain, years });
   } catch (err) {
     console.error("❌ Domain step failed:", err);

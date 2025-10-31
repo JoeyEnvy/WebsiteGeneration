@@ -32,6 +32,9 @@ import deployGithubRoutes from "./routes/deployGithubRoutes.js";
 import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 
+// ✅ NEW: import your proxy route
+import proxyRoutes from "./routes/proxyRoutes.js";
+
 // ========================================================================
 // App setup
 // ========================================================================
