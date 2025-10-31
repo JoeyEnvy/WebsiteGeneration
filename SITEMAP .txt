@@ -1,5 +1,8 @@
 --------------- Backend Files
 
+Root
+
+vercel.json
 
 Backend
 
@@ -13,6 +16,9 @@ package.json
                          domainPricing.js
                          githubUtils.js
                          netlifyDeploy.js
+
+                API 
+                         server.js
                 Routes 
                          deployGithubRoutes.js
                          deployLiveRoutes.js
