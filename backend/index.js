@@ -41,7 +41,7 @@ app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 
 // ========================================================================
-// ✅ Strong CORS configuration
+/** CORS **/
 // ========================================================================
 const allowedOrigins = [
   "https://joeyenvy.github.io",
@@ -61,23 +61,30 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
-// Handle preflight first
+// Apply CORS first
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
-// Manual header fallback to ensure coverage
+// Universal preflight to avoid timeouts
+app.options("*", (req, res) => {
+  const o = req.headers.origin;
+  if (o && (allowedOrigins.includes(o) || /\.vercel\.app$/.test(o))) {
+    res.setHeader("Access-Control-Allow-Origin", o);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  }
+  return res.sendStatus(204);
+});
+
+// Manual header fallback
 app.use((req, res, next) => {
   const o = req.headers.origin;
   if (o && (allowedOrigins.includes(o) || /\.vercel\.app$/.test(o))) {
     res.setHeader("Access-Control-Allow-Origin", o);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With"
-    );
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
   }
-  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 
@@ -140,6 +147,6 @@ app.use((err, req, res, _next) => {
 });
 
 // ========================================================================
-// ✅ Export app (for serverless usage on Vercel)
+// Export app (serverless on Vercel)
 // ========================================================================
 export default app;
