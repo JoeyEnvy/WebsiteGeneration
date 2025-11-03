@@ -31,8 +31,6 @@ import deployLiveRoutes from "./routes/deployLiveRoutes.js";
 import deployGithubRoutes from "./routes/deployGithubRoutes.js";
 import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
-
-// ✅ NEW: import your proxy route
 import proxyRoutes from "./routes/proxyRoutes.js";
 
 // ========================================================================
@@ -41,8 +39,52 @@ import proxyRoutes from "./routes/proxyRoutes.js";
 const app = express();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
-app.use(cors());
-app.use(helmet());
+
+// ========================================================================
+// ✅ Strong CORS configuration
+// ========================================================================
+const allowedOrigins = [
+  "https://joeyenvy.github.io",
+  "https://website-generation.vercel.app"
+];
+
+const corsOptions = {
+  origin(origin, cb) {
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      return cb(null, true);
+    }
+    return cb(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 204
+};
+
+// Handle preflight first
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+// Manual header fallback to ensure coverage
+app.use((req, res, next) => {
+  const o = req.headers.origin;
+  if (o && (allowedOrigins.includes(o) || /\.vercel\.app$/.test(o))) {
+    res.setHeader("Access-Control-Allow-Origin", o);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With"
+    );
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
+// ========================================================================
+// Security + compression
+// ========================================================================
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(compression());
 
 // ========================================================================
@@ -55,24 +97,20 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" })
   : null;
 
-// ✅ In-memory session store
+// ========================================================================
+// Shared in-memory session store
+// ========================================================================
 export const tempSessions = {};
-
-// ✅ Export shared utilities
 export const thirdParty = { stripe, fetch, sgMail, JSZip, uuidv4 };
 
 // ========================================================================
 // Health check
 // ========================================================================
-// ========================================================================
-// Health check (Vercel expects API routes under /api/*)
-// ========================================================================
 app.get("/api/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get("/", (_req, res) => res.send("OK"));
 
-
 // ========================================================================
-// Mount API Routes (Vercel prefix)
+// Mount API Routes (all prefixed with /api)
 // ========================================================================
 app.use("/api/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
@@ -82,14 +120,14 @@ app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
 app.use("/api/full-hosting", fullHostingDomainRoutes);
 app.use("/api/full-hosting", fullHostingGithubRoutes);
-
+app.use("/api/proxy", proxyRoutes);
 
 // ========================================================================
 // Static frontend files (served from /public)
 // ========================================================================
 app.use(
   express.static(path.join(__dirname, "public"), {
-    extensions: ["html"],
+    extensions: ["html"]
   })
 );
 
@@ -102,6 +140,6 @@ app.use((err, req, res, _next) => {
 });
 
 // ========================================================================
-// ✅ Export app instead of starting a server (for Vercel)
+// ✅ Export app (for serverless usage on Vercel)
 // ========================================================================
 export default app;
