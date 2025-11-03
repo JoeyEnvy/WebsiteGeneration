@@ -1,25 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/api/server.js",
-      "use": "@vercel/node",
-      "config": { "includeFiles": ["backend/**"] }
+  "functions": {
+    "api/server.js": {
+      "runtime": "nodejs18.x",
+      "includeFiles": "backend/**"
     }
-  ],
+  },
   "routes": [
-    { "src": "/api/(.*)", "dest": "backend/api/server.js" },
+    { "src": "/api/(.*)", "dest": "api/server.js" },
     { "src": "/(.*)", "dest": "public/$1" }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://joeyenvy.github.io" },
-        { "key": "Vary", "value": "Origin" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With" }
-      ]
-    }
   ]
 }

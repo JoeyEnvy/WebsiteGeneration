@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import Stripe from "stripe";
@@ -41,50 +40,35 @@ app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 
 // ========================================================================
-/** CORS **/
+// ✅ Global CORS handling
 // ========================================================================
 const allowedOrigins = [
   "https://joeyenvy.github.io",
   "https://website-generation.vercel.app"
 ];
 
-const corsOptions = {
-  origin(origin, cb) {
-    if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      return cb(null, true);
-    }
-    return cb(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  optionsSuccessStatus: 204
-};
-
-// Apply CORS first
-app.use(cors(corsOptions));
-
-// Universal preflight to avoid timeouts
-app.options("*", (req, res) => {
-  const o = req.headers.origin;
-  if (o && (allowedOrigins.includes(o) || /\.vercel\.app$/.test(o))) {
-    res.setHeader("Access-Control-Allow-Origin", o);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-  }
-  return res.sendStatus(204);
-});
-
-// Manual header fallback
 app.use((req, res, next) => {
-  const o = req.headers.origin;
-  if (o && (allowedOrigins.includes(o) || /\.vercel\.app$/.test(o))) {
-    res.setHeader("Access-Control-Allow-Origin", o);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  const origin = req.headers.origin;
+
+  if (origin && (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
+
+  res.setHeader("Vary", "Origin");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With"
+  );
+
+  if (req.method === "OPTIONS") {
+    // Instant 204 response for all preflights
+    return res.sendStatus(204);
+  }
+
   next();
 });
 
@@ -100,6 +84,7 @@ app.use(compression());
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
+
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" })
   : null;
@@ -117,7 +102,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get("/", (_req, res) => res.send("OK"));
 
 // ========================================================================
-// Mount API Routes (all prefixed with /api)
+// Mount API Routes (prefixed with /api)
 // ========================================================================
 app.use("/api/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
@@ -147,6 +132,6 @@ app.use((err, req, res, _next) => {
 });
 
 // ========================================================================
-// Export app (serverless on Vercel)
+// ✅ Export app for Vercel serverless usage
 // ========================================================================
 export default app;
