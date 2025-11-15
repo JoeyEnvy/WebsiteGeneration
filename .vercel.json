@@ -9,5 +9,7 @@
   "routes": [
     { "src": "/api/(.*)", "dest": "api/server.js" },
     { "src": "/(.*)", "dest": "public/$1" }
-  ]
+  ],
+  "outputDirectory": "public",
+  "buildCommand": "echo 'no build step required'"
 }
