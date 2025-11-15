@@ -40,35 +40,24 @@ app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 
 // ========================================================================
-// ✅ Global CORS handling
+// ✅ Global CORS handling (GitHub Pages + Vercel)
 // ========================================================================
-const allowedOrigins = [
-  "https://joeyenvy.github.io",
-  "https://website-generation.vercel.app"
-];
-
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
+  const origin = req.headers.origin || "";
 
-  if (origin && (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin))) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
+  const allow =
+    origin.startsWith("https://joeyenvy.github.io") || // covers /WebsiteGeneration subpath
+    origin.startsWith("https://website-generation.vercel.app") ||
+    /\.vercel\.app$/.test(origin);
 
   res.setHeader("Vary", "Origin");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
-  );
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
 
-  if (req.method === "OPTIONS") {
-    // Instant 204 response for all preflights
-    return res.sendStatus(204);
-  }
+  // reflect allowed origin; otherwise fall back to *
+  res.setHeader("Access-Control-Allow-Origin", allow ? origin : "*");
 
+  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 
@@ -115,11 +104,12 @@ app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/proxy", proxyRoutes);
 
 // ========================================================================
-// Static frontend files (served from /public)
+// Static frontend files (served from repo-root /public)
+// NOTE: your /public is a sibling of /backend, not inside it.
 // ========================================================================
 app.use(
-  express.static(path.join(__dirname, "public"), {
-    extensions: ["html"]
+  express.static(path.resolve(__dirname, "../public"), {
+    extensions: ["html"],
   })
 );
 
