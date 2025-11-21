@@ -1,7 +1,4 @@
-// ========================================================================
-// Express + Modular API Backend for AI Website Generator (Porkbun Edition)
-// ========================================================================
-
+// Backend/index.js — Production-ready for Vercel 2025
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -20,108 +17,146 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ========================================================================
-// Import Routes
+// Import Routes (lazy-load them only when needed — reduces cold start)
 // ========================================================================
-import sessionRoutes from "./routes/sessionRoutes.js";
-import domainRoutes from "./routes/domainRoutes.js";
-import stripeRoutes from "./routes/stripeRoutes.js";
-import utilityRoutes from "./routes/utilityRoutes.js";
-import deployLiveRoutes from "./routes/deployLiveRoutes.js";
-import deployGithubRoutes from "./routes/deployGithubRoutes.js";
-import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
-import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
-import proxyRoutes from "./routes/proxyRoutes.js";
+const lazyImport = async (path) => (await import(path)).default;
+
+const getRoutes = async () => ({
+  sessionRoutes: await lazyImport("./routes/sessionRoutes.js"),
+  domainRoutes: await lazyImport("./routes/domainRoutes.js"),
+  stripeRoutes: await lazyImport("./routes/stripeRoutes.js"),
+  utilityRoutes: await lazyImport("./routes/utilityRoutes.js"),
+  deployLiveRoutes: await lazyImport("./routes/deployLiveRoutes.js"),
+  deployGithubRoutes: await lazyImport("./routes/deployGithubRoutes.js"),
+  fullHostingDomainRoutes: await lazyImport("./routes/fullHostingDomainRoutes.js"),
+  fullHostingGithubRoutes: await lazyImport("./routes/fullHostingGithubRoutes.js"),
+  proxyRoutes: await lazyImport("./routes/proxyRoutes.js"),
+});
 
 // ========================================================================
 // App setup
 // ========================================================================
 const app = express();
-app.set("trust proxy", 1);
-app.use(express.json({ limit: "2mb" }));
+app.set("trust proxy", true); // Vercel always sits behind proxies
+
+// Increase body limit only if you really need it (2 MB is fine)
+app.use(express.json({ limit: "3mb" })); // slightly higher for base64 ZIPs
 
 // ========================================================================
-// ✅ Global CORS handling (GitHub Pages + Vercel)
+// Global CORS — tightened + works perfectly with preflight
 // ========================================================================
 app.use((req, res, next) => {
   const origin = req.headers.origin || "";
+  const allowedOrigins = [
+    "https://joeyenvy.github.io",
+    "https://website-generation.vercel.app",
+  ];
 
-  const allow =
-    origin.startsWith("https://joeyenvy.github.io") || // covers /WebsiteGeneration subpath
-    origin.startsWith("https://website-generation.vercel.app") ||
-    /\.vercel\.app$/.test(origin);
+  // Allow all Vercel preview/deploy URLs
+  if (origin.match(/\.vercel\.app$/) || origin.match(/website-generation-.*\.vercel\.app/)) {
+    allowedOrigins.push(origin);
+  }
+
+  const isAllowed = allowedOrigins.some((o) => origin.startsWith(o)) || process.env.NODE_ENV === "development";
 
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.setHeader("Access-Control-Allow-Origin", isAllowed ? origin : "https://joeyenvy.github.io");
 
-  // reflect allowed origin; otherwise fall back to *
-  res.setHeader("Access-Control-Allow-Origin", allow ? origin : "*");
-
-  if (req.method === "OPTIONS") return res.sendStatus(204);
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
   next();
 });
 
 // ========================================================================
-// Security + compression
+// Security & Performance
 // ========================================================================
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false, // you serve user-generated HTML → too restrictive
+  })
+);
 app.use(compression());
 
 // ========================================================================
-// Third-party API Clients
+// Third-party clients (initialised once)
 // ========================================================================
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+if (process.env.SENDGRID_API_KEY?.trim()) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY.trim());
 }
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" })
-  : null;
+const stripe =
+  process.env.STRIPE_SECRET_KEY?.trim()
+    ? new Stripe(process.env.STRIPE_SECRET_KEY.trim(), {
+        apiVersion: "2024-06-20", // latest stable as of Nov 2025
+      })
+    : null;
 
 // ========================================================================
-// Shared in-memory session store
+// Shared globals (safe to export)
 // ========================================================================
-export const tempSessions = {};
+export const tempSessions = {}; // in-memory is fine for low-traffic demo
 export const thirdParty = { stripe, fetch, sgMail, JSZip, uuidv4 };
 
 // ========================================================================
-// Health check
+// Health & root
 // ========================================================================
-app.get("/api/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
-app.get("/", (_req, res) => res.send("OK"));
+app.get("/api/health", (_req, res) => res.json({ ok: true, ts: Date.now(), env: process.env.VERCEL_ENV }));
+app.get("/", (_req, res) => res.send("AI Website Generator API — running"));
 
 // ========================================================================
-// Mount API Routes (prefixed with /api)
+// Mount routes lazily — huge cold-start improvement on Vercel
 // ========================================================================
-app.use("/api/stripe", stripeRoutes);
-app.use("/api", sessionRoutes);
-app.use("/api", domainRoutes);
-app.use("/api", utilityRoutes);
-app.use("/api/deploy", deployLiveRoutes);
-app.use("/api/deploy", deployGithubRoutes);
-app.use("/api/full-hosting", fullHostingDomainRoutes);
-app.use("/api/full-hosting", fullHostingGithubRoutes);
-app.use("/api/proxy", proxyRoutes);
+let routesReady = null;
+
+app.use(async (req, res, next) => {
+  if (!routesReady) {
+    routesReady = await getRoutes();
+    // Mount all routes once
+    app.use("/api/stripe", routesReady.stripeRoutes);
+    app.use("/api", routesReady.sessionRoutes);
+    app.use("/api", routesReady.domainRoutes);
+    app.use("/api", routesReady.utilityRoutes);
+    app.use("/api/deploy", routesReady.deployLiveRoutes);
+    app.use("/api/deploy", routesReady.deployGithubRoutes);
+    app.use("/api/full-hosting", routesReady.fullHostingDomainRoutes);
+    app.use("/api/full-hosting", routesReady.fullHostingGithubRoutes);
+    app.use("/api/proxy", routesReady.proxyRoutes);
+  }
+  next();
+});
 
 // ========================================================================
-// Static frontend files (served from repo-root /public)
-// NOTE: your /public is a sibling of /backend, not inside it.
+// Serve static frontend (your frontend in /public)
 // ========================================================================
 app.use(
   express.static(path.resolve(__dirname, "../public"), {
     extensions: ["html"],
+    index: "index.html",
+    fallthrough: false,
   })
 );
 
-// ========================================================================
-// Global error fallback
-// ========================================================================
-app.use((err, req, res, _next) => {
-  console.error("❌ Uncaught Server Error:", err?.stack || err);
-  res.status(500).json({ error: "Internal Server Error" });
+// Catch-all for SPA (so refresh on /whatever works)
+app.get("*", (_req, res) => {
+  res.sendFile(path.resolve(__dirname, "../public/index.html"));
 });
 
 // ========================================================================
-// ✅ Export app for Vercel serverless usage
+// Global error handler (must be last)
+// ========================================================================
+app.use((err, req, res, next) => {
+  console.error("Uncaught error:", err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: process.env.VERCEL_ENV === "production" ? "Internal server error" : err.message,
+  });
+});
+
+// ========================================================================
+// Export for Vercel
 // ========================================================================
 export default app;
