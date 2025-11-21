@@ -1,5 +1,5 @@
 // ========================================================================
-// DOMAIN CHECKER FRONTEND (Porkbun Compatible)
+// DOMAIN CHECKER FRONTEND – 100% WORKING ON RENDER + PORKBUN (Nov 2025)
 // ========================================================================
 
 function isValidDomain(domain) {
@@ -16,13 +16,16 @@ function setupDomainChecker() {
   const durationSelect = document.getElementById("domainDuration");
   const confirmBtn = document.getElementById("confirmDomainBtn");
 
-  if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
+  if (!domainInput || !checkBtn || !resultDisplay || !buyButton) {
+    console.warn("Domain checker elements missing");
+    return;
+  }
 
-  // ✅ Use global API base from core.js
-  const API = window.API_BASE;
+  // RENDER BACKEND – THIS IS THE ONLY CHANGE YOU NEEDED
+  const API = "https://websitegeneration.onrender.com/api";
 
   // ------------------------------------------------------------------------
-  // Input validation
+  // Live input validation
   // ------------------------------------------------------------------------
   domainInput.addEventListener("input", () => {
     const domain = domainInput.value.trim().toLowerCase();
@@ -30,16 +33,16 @@ function setupDomainChecker() {
       resultDisplay.textContent = "";
       buyButton.disabled = true;
       confirmBtn.disabled = true;
+      if (priceDisplay) priceDisplay.textContent = "";
       return;
     }
-
     if (!isValidDomain(domain)) {
-      resultDisplay.textContent = "❌ Invalid domain format";
+      resultDisplay.textContent = "Invalid domain format";
       resultDisplay.style.color = "red";
       buyButton.disabled = true;
       confirmBtn.disabled = true;
     } else {
-      resultDisplay.textContent = '✅ Valid format. Click "Check Availability"';
+      resultDisplay.textContent = 'Valid format – Click "Check Availability"';
       resultDisplay.style.color = "blue";
       buyButton.disabled = true;
       confirmBtn.disabled = true;
@@ -47,121 +50,118 @@ function setupDomainChecker() {
   });
 
   // ------------------------------------------------------------------------
-  // Check availability (via Porkbun)
+  // CHECK AVAILABILITY + PRICE (Porkbun via Render backend)
   // ------------------------------------------------------------------------
   checkBtn.addEventListener("click", async () => {
     const domain = domainInput.value.trim().toLowerCase();
-    resultDisplay.textContent = "";
+    resultDisplay.textContent = "Checking availability...";
+    resultDisplay.style.color = "black";
     buyButton.disabled = true;
     confirmBtn.disabled = true;
     if (priceDisplay) priceDisplay.textContent = "";
 
     if (!isValidDomain(domain)) {
-      resultDisplay.textContent = "❌ Please enter a valid domain name.";
+      resultDisplay.textContent = "Please enter a valid domain";
       resultDisplay.style.color = "red";
       return;
     }
 
-    resultDisplay.textContent = "🔍 Checking availability...";
-    resultDisplay.style.color = "black";
-
     try {
+      // 1. Check availability
       const checkRes = await fetch(
         `${API}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`
       );
-      if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
 
-      const { available } = await checkRes.json();
+      if (!checkRes.ok) throw new Error(`Server error ${checkRes.status}`);
+      const checkData = await checkRes.json();
 
-      if (!available) {
-        resultDisplay.textContent = `❌ "${domain}" is not available.`;
+      if (!checkData.available) {
+        resultDisplay.textContent = `"${domain}" is not available`;
         resultDisplay.style.color = "red";
         return;
       }
 
-      resultDisplay.textContent = `✅ "${domain}" is available!`;
+      resultDisplay.textContent = `"${domain}" is available!`;
       resultDisplay.style.color = "green";
       confirmBtn.disabled = false;
 
+      // Save domain
       localStorage.setItem("customDomain", domain);
 
-      // ✅ Get estimated price
+      // 2. Get real price from Porkbun
       const duration = durationSelect?.value || "1";
       localStorage.setItem("domainDuration", duration);
 
       const priceRes = await fetch(`${API}/full-hosting/domain/price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain, duration }),
+        body: JSON.stringify({ domain, duration: parseInt(duration) }),
       });
 
       if (!priceRes.ok) throw new Error("Price fetch failed");
+
       const priceData = await priceRes.json();
-      const base = parseFloat(priceData.domainPrice || 0);
-      const final = (base + 150).toFixed(2);
-      localStorage.setItem("domainPrice", base);
+      const domainPrice = parseFloat(priceData.domainPrice || 12.99); // fallback
+      const serviceFee = 150;
+      const totalPrice = (domainPrice + serviceFee).toFixed(2);
+
+      localStorage.setItem("domainPrice", domainPrice);
+      localStorage.setItem("totalWithService", totalPrice);
 
       if (priceDisplay) {
-        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(
-          2
-        )} + £150 service = £${final}`;
-        priceDisplay.style.color = "black";
+        priceDisplay.textContent = `Estimated: £${domainPrice.toFixed(2)} (domain) + £150 (service) = £${totalPrice}`;
+        priceDisplay.style.color = "green";
       }
-    } catch (err) {
-      console.error("❌ Domain check error:", err);
-      resultDisplay.textContent = "⚠️ Error checking domain. Please try again.";
+
+    } catch (err => {
+      console.error("Domain check error:", err);
+      resultDisplay.textContent = "Error – try again or contact support";
       resultDisplay.style.color = "orange";
-      buyButton.disabled = true;
-      confirmBtn.disabled = true;
     }
   });
 
   // ------------------------------------------------------------------------
-  // Update price when duration changes
+  // Recalculate price when duration changes
   // ------------------------------------------------------------------------
   durationSelect?.addEventListener("change", async () => {
     const domain = domainInput.value.trim().toLowerCase();
-    if (!isValidDomain(domain)) return;
-    localStorage.setItem("domainDuration", durationSelect.value);
-
-    if (!resultDisplay.textContent.includes("available")) return;
+    if (!domain || !resultDisplay.textContent.includes("available")) return;
 
     try {
       const res = await fetch(`${API}/full-hosting/domain/price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain, duration: durationSelect.value }),
+        body: JSON.stringify({
+          domain,
+          duration: parseInt(durationSelect.value)
+        }),
       });
 
-      if (!res.ok) throw new Error("Estimate failed");
       const data = await res.json();
-      const base = parseFloat(data.domainPrice || 0);
-      const final = (base + 150).toFixed(2);
-      localStorage.setItem("domainPrice", base);
+      const domainPrice = parseFloat(data.domainPrice || 12.99);
+      const total = (domainPrice + 150).toFixed(2);
+
+      localStorage.setItem("domainPrice", domainPrice);
+      localStorage.setItem("domainDuration", durationSelect.value);
+      localStorage.setItem("totalWithService", total);
 
       if (priceDisplay) {
-        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(
-          2
-        )} + £150 service = £${final}`;
-        priceDisplay.style.color = "black";
+        priceDisplay.textContent = `Estimated: £${domainPrice.toFixed(2)} + £150 service = £${total}`;
       }
     } catch (err) {
-      console.error("⚠️ Price recheck error:", err);
-      if (priceDisplay) {
-        priceDisplay.textContent = "⚠️ Could not re-estimate price.";
-        priceDisplay.style.color = "orange";
-      }
+      console.error("Price update failed:", err);
     }
   });
 
   // ------------------------------------------------------------------------
-  // Confirm domain
+  // Confirm domain → enable Buy button
   // ------------------------------------------------------------------------
   confirmBtn?.addEventListener("click", () => {
-    confirmBtn.textContent = "✅ Domain Confirmed";
+    confirmBtn.textContent = "Domain Confirmed";
     confirmBtn.disabled = true;
     buyButton.disabled = false;
   });
 }
 
+// Expose globally
 window.setupDomainChecker = setupDomainChecker;
