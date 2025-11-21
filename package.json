@@ -8,7 +8,7 @@
     "dev": "vercel dev"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
