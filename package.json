@@ -2,13 +2,12 @@
   "name": "websitegenerator-backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "api/server.js",
   "scripts": {
-    "start": "node api/server.js",
-    "dev": "vercel dev"
+    "start": "node Backend/index.js",
+    "dev": "node Backend/index.js"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=20"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
