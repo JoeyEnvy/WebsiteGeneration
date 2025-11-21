@@ -676,7 +676,7 @@
   </div>
 </footer>
 
-<!-- ====== SCRIPTS (final clean setup) ====== -->
+<!-- ====== SCRIPTS (FINAL CLEAN + WORKING SETUP – Nov 2025) ====== -->
 <script src="public/js/core.js"></script>
 <script src="public/js/WebsiteGenerator.js"></script>
 <script src="public/js/WebsiteGenerator.helpers.js"></script>
@@ -684,8 +684,10 @@
 <script src="public/js/WebsiteGenerator.submit.js"></script>
 <script src="public/js/WebsiteGenerator.ui.js"></script>
 <script src="public/js/WebsiteGenerator.validation.js"></script>
-<script src="public/js/domainChecker.js"></script>
-<script src="public/js/init.js"></script>
+
+<!-- DOMAIN CHECKER + INIT – MUST BE type="module" because they use modern JS (arrow functions, async/await) -->
+<script type="module" src="public/js/domainChecker.js"></script>
+<script type="module" src="public/js/init.js"></script>
 
 
 
