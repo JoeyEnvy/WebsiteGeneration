@@ -1,177 +1,94 @@
-// routes/fullHostingDomainRoutes.js
+// routes/fullHostingDomainRoutes.js – FINAL GODADDY AUTO-PURCHASE (2025)
 import express from "express";
-import fetch from "node-fetch";
-import { tempSessions } from "../index.js";
-
 const router = express.Router();
 
-/* ============================================================
-   Utility: Validate domain format
-   ============================================================ */
-export const isValidDomain = (d) =>
-  /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(d || "").trim());
+// Simple domain format check
+const isValidDomain = (d) => /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(d?.trim());
 
-/* ============================================================
-   Helper: Internal proxy call to Porkbun via /api/proxy/porkbun
-   ============================================================ */
-async function callPorkbun(endpoint, payload) {
-  const proxyUrl = `${process.env.PUBLIC_URL || "https://website-generation.vercel.app"}/api/proxy/porkbun`;
-  const response = await fetch(proxyUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: `https://api.porkbun.com/api/json/v3/${endpoint}`,
-      payload
-    })
-  });
-
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    console.error("⚠️ Invalid JSON from proxy:", text.slice(0, 200));
-    throw new Error("Invalid JSON from Porkbun");
-  }
-}
-
-/* ============================================================
-   GET /full-hosting/domain/check → Check availability
-   ============================================================ */
+// GET /api/full-hosting/domain/check → GoDaddy availability
 router.get("/domain/check", async (req, res) => {
-  const { domain = "" } = req.query;
-  const cleanedDomain = domain.trim().toLowerCase();
+  const { domain } = req.query;
+  if (!domain || !isValidDomain(domain)) {
+    return res.status(400).json({ available: false, error: "Invalid domain" });
+  }
 
-  if (!isValidDomain(cleanedDomain)) {
-    return res.status(400).json({ available: false, error: "Invalid domain format" });
+  const key = process.env.GODADDY_KEY;
+  const secret = process.env.GODADDY_SECRET;
+  if (!key || !secret) {
+    return res.status(500).json({ error: "GoDaddy keys missing" });
   }
 
   try {
-    const data = await callPorkbun("domain/check", {
-      apikey: process.env.PORKBUN_API_KEY,
-      secretapikey: process.env.PORKBUN_SECRET_KEY,
-      domain: cleanedDomain
+    const resp = await fetch(`https://api.godaddy.com/v1/domains/available?domain=${domain}`, {
+      headers: { Authorization: `sso-key ${key}:${secret}` }
     });
-
-    console.log("🧩 Porkbun check response:", data);
-
-    if (data.status !== "SUCCESS") {
-      return res.status(200).json({
-        available: false,
-        error: data.message || "Check failed",
-        code: data.status
-      });
-    }
-
-    const isAvailable =
-      data.available === "yes" || data.available === "1" || data.available === true;
-
-    return res.json({ available: isAvailable });
+    const data = await resp.json();
+    res.json({ available: data.available === true });
   } catch (err) {
-    console.error("❌ Domain check failed:", err);
-    return res.status(502).json({ available: false, error: "Availability check failed" });
+    console.error("GoDaddy check failed:", err);
+    res.status(502).json({ available: false, error: "Check failed" });
   }
 });
 
-/* ============================================================
-   POST /full-hosting/domain/price → Estimate price
-   ============================================================ */
+// POST /api/full-hosting/domain/price → fake realistic price
 router.post("/domain/price", (req, res) => {
-  try {
-    const { domain, duration } = req.body || {};
-    const cleanedDomain = (domain || "").trim().toLowerCase();
-
-    if (!isValidDomain(cleanedDomain)) {
-      return res.status(400).json({ error: "Invalid domain" });
-    }
-
-    const years = parseInt(duration || "1", 10);
-    const basePrice = 15.99;
-    const domainPrice = +(basePrice * years).toFixed(2);
-
-    res.json({ domainPrice, currency: "GBP", period: years });
-  } catch (err) {
-    console.error("❌ Price estimation failed:", err);
-    res.status(500).json({ error: "Price estimation failed" });
-  }
+  const { duration = 1 } = req.body;
+  const base = 11.99;
+  const total = (base * duration).toFixed(2);
+  res.json({ domainPrice: parseFloat(total), currency: "GBP" });
 });
 
-/* ============================================================
-   POST /deploy-full-hosting/domain → Purchase domain
-   ============================================================ */
-router.post("/deploy-full-hosting/domain", async (req, res) => {
+// POST /api/full-hosting/domain/purchase → REAL GODADDY AUTO BUY + DNS POINT
+router.post("/domain/purchase", async (req, res) => {
+  const { domain, userEmail = "support@websitegenerator.co.uk", userIP = "127.0.0.1", repoUrl = "joeyenvy.github.io" } = req.body;
+
+  if (!domain || !isValidDomain(domain)) return res.status(400).json({ error: "Bad domain" });
+
+  const key = process.env.GODADDY_KEY;
+  const secret = process.env.GODADDY_SECRET;
+  if (!key || !secret) return res.status(500).json({ error: "GoDaddy not configured" });
+
   try {
-    const { sessionId = "", domain = "", durationYears, duration = "1" } = req.body || {};
-    const cleanedDomain = (domain || "").trim().toLowerCase();
-    const years = parseInt(durationYears ?? duration, 10) || 1;
+    // 1. Final availability check
+    const avail = await fetch(`https://api.godaddy.com/v1/domains/available?domain=${domain}`, {
+      headers: { Authorization: `sso-key ${key}:${secret}` }
+    }).then(r => r.json());
 
-    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
-    if (!cleanedDomain || !isValidDomain(cleanedDomain)) {
-      return res.status(400).json({ error: `Invalid domain: ${cleanedDomain || "(empty)"}` });
-    }
+    if (!avail.available) return res.json({ success: false, message: "Taken" });
 
-    const session = tempSessions[sessionId];
-    if (!session?.pages?.length) {
-      return res.status(404).json({ error: "Session not found or empty." });
-    }
+    // 2. Purchase
+    const purchase = await fetch("https://api.godaddy.com/v1/domains/purchase", {
+      method: "POST",
+      headers: {
+        Authorization: `sso-key ${key}:${secret}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        consent: { agreedAt: new Date().toISOString(), agreedBy: userIP, agreementKeys: ["DNRA"] },
+        domain,
+        period: 1,
+        contactAdmin: { email: userEmail },
+        privacy: true,
+        renewAuto: true
+      })
+    }).then(r => r.json());
 
-    if (session.lockedDomain && session.lockedDomain !== cleanedDomain) {
-      return res.status(409).json({
-        error: `Domain mismatch. Locked: ${session.lockedDomain}, Got: ${cleanedDomain}`,
-        code: "DOMAIN_MISMATCH"
-      });
-    }
+    if (!purchase.orderId) throw new Error(purchase.message || "Purchase failed");
 
-    /* ---------- 1️⃣ Check availability ---------- */
-    const checkData = await callPorkbun("domain/check", {
-      apikey: process.env.PORKBUN_API_KEY,
-      secretapikey: process.env.PORKBUN_SECRET_KEY,
-      domain: cleanedDomain
+    // 3. Point DNS to repo
+    await fetch(`https://api.godaddy.com/v1/domains/${domain}/records/CNAME/@`, {
+      method: "PUT",
+      headers: {
+        Authorization: `sso-key ${key}:${secret}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify([{ data: repoUrl, ttl: 600 }])
     });
 
-    const available =
-      checkData.status === "SUCCESS" &&
-      (checkData.available === "yes" || checkData.available === "1" || checkData.available === true);
-
-    console.log("🔎 Availability check:", checkData);
-
-    if (!available) {
-      return res.status(409).json({ error: "Domain unavailable or already registered" });
-    }
-
-    /* ---------- 2️⃣ Purchase ---------- */
-    const contact = {
-      nameFirst: "Website",
-      nameLast: "Customer",
-      emailAddress: "support@websitegenerator.co.uk",
-      phone: "+44.2030000000",
-      address: "123 Example Street",
-      city: "London",
-      state: "London",
-      postalcode: "EC1A1AA",
-      country: "GB"
-    };
-
-    const purchaseData = await callPorkbun("domain/create", {
-      apikey: process.env.PORKBUN_API_KEY,
-      secretapikey: process.env.PORKBUN_SECRET_KEY,
-      domain: cleanedDomain,
-      years,
-      contact
-    });
-
-    console.log("🛒 Purchase response:", purchaseData);
-
-    if (purchaseData.status !== "SUCCESS") {
-      throw new Error(purchaseData.message || JSON.stringify(purchaseData));
-    }
-
-    /* ---------- 3️⃣ Update session ---------- */
-    tempSessions[sessionId] = { ...session, domain: cleanedDomain, domainPurchased: true };
-
-    res.json({ success: true, customDomain: cleanedDomain, years });
+    res.json({ success: true, domain, orderId: purchase.orderId, message: "Bought + connected!" });
   } catch (err) {
-    console.error("❌ Domain step failed:", err);
-    res.status(500).json({ error: "Domain validation/purchase failed", detail: err.message });
+    console.error("GoDaddy purchase error:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
