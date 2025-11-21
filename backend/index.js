@@ -1,6 +1,5 @@
 // Backend/index.js – FINAL VERSION (Render + GoDaddy Auto-Purchase Ready)
-// Works on Render (full server) and Vercel (if you ever go back)
-
+// Fixed static serving for repo-root index.html + Backend/public assets
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -13,6 +12,13 @@ import sgMail from "@sendgrid/mail";
 import JSZip from "jszip";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// ES modules __dirname fix
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.join(__dirname, "..");                    // Repo root (where index.html lives)
+const PUBLIC = path.join(__dirname, "public");              // Backend/public for assets
 
 const app = express();
 
@@ -20,11 +26,14 @@ const app = express();
 // Middleware
 // ========================================================================
 app.set("trust proxy", true);
-app.use(express.json({ limit: "5mb" }));     // Increased for GoDaddy payloads
+app.use(express.json({ limit: "5mb" }));
 app.use(compression());
-app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: false
+}));
 
-// CORS – allows your live site + localhost
+// CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = [
@@ -43,7 +52,7 @@ app.use((req, res, next) => {
 });
 
 // ========================================================================
-// Third-party services (with logs if missing)
+// Third-party services
 // ========================================================================
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -55,7 +64,6 @@ const stripe = process.env.STRIPE_SECRET_KEY
   : null;
 if (stripe) console.log("Stripe ready");
 
-// GoDaddy Reseller API Keys – REQUIRED FOR AUTO-PURCHASE
 if (process.env.GODADDY_KEY && process.env.GODADDY_SECRET) {
   console.log("GoDaddy Reseller API ready – auto domain purchase ENABLED");
 } else {
@@ -72,10 +80,10 @@ export const thirdParty = { stripe, fetch, sgMail, JSZip, uuidv4 };
 // Simple routes
 // ========================================================================
 app.get("/api/health", (req, res) => res.json({ ok: true, time: Date.now(), env: "render" }));
-app.get("/", (req, res) => res.send("AI Website Generator + GoDaddy Auto-Domain API – LIVE"));
+app.get("/api", (req, res) => res.send("AI Website Generator Backend – LIVE"));
 
 // ========================================================================
-// ALL YOUR ROUTES (just import – no lazy loading needed)
+// ALL ROUTES
 // ========================================================================
 import sessionRoutes from "./routes/sessionRoutes.js";
 import domainRoutes from "./routes/domainRoutes.js";
@@ -87,7 +95,6 @@ import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 import proxyRoutes from "./routes/proxyRoutes.js";
 
-// Mount them
 app.use("/api/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
@@ -99,13 +106,37 @@ app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/proxy", proxyRoutes);
 
 // ========================================================================
-// Serve frontend from /public
+// STATIC SERVING – THIS IS THE FIX (Render 2025 Gold Standard)
 // ========================================================================
-app.use(express.static(path.join(process.cwd(), "public")));
+// 1. Serve assets from Backend/public
+app.use(express.static(PUBLIC));
+// 2. Serve root files (including index.html in repo root)
+app.use(express.static(ROOT));
 
-// SPA fallback (so refresh works)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "public", "index.html"));
+// ========================================================================
+// SPA FALLBACK – Critical for React/Vite/SPA refresh
+// ========================================================================
+app.get("*", (req, res, next) => {
+  // Don't break API routes
+  if (req.originalUrl.startsWith("/api/")) {
+    return next();
+  }
+
+  const rootIndex = path.join(ROOT, "index.html");
+  
+  // Serve root index.html for all non-file routes
+  if (require("fs").existsSync(rootIndex)) {
+    console.log("Serving root index.html →", rootIndex);
+    return res.sendFile(rootIndex);
+  }
+
+  // Fallback: if no root index.html, try public/index.html
+  const publicIndex = path.join(PUBLIC, "index.html");
+  if (require("fs").existsSync(publicIndex)) {
+    return res.sendFile(publicIndex);
+  }
+
+  res.status(404).send("index.html not found – check repo structure");
 });
 
 // ========================================================================
@@ -117,13 +148,15 @@ app.use((err, req, res, next) => {
 });
 
 // ========================================================================
-// START SERVER – REQUIRED FOR RENDER
+// START SERVER
 // ========================================================================
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`SERVER FULLY LIVE ON PORT ${PORT}`);
-  console.log(`Visit: https://websitegeneration.onrender.com`);
+  console.log(`Visit → https://websitegeneration.onrender.com`);
+  console.log(`Root static → ${ROOT}`);
+  console.log(`Public assets → ${PUBLIC}`);
 });
 
-// Keep export for Vercel (harmless on Render)
+// Keep for Vercel (ignored on Render)
 export default app;
