@@ -1,4 +1,6 @@
-import serverless from "serverless-http";
-import app from "../backend/index.js";
-export const handler = serverless(app);
-export default handler;
+import app from "../Backend/index.js";
+
+export default function handler(req, res) {
+  // Pass the incoming request directly to Express
+  return app(req, res);
+}
