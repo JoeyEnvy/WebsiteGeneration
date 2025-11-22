@@ -431,11 +431,9 @@
     <p>Would you like instructions or help pushing your website online?</p>
 
     <!-- 💡 Deployment Options -->
-    <div class="deploy-options">
-
-      <!-- 🌐 Option: Full Hosting + Custom Domain -->
+      <!-- Full Hosting + Custom Domain – FULLY FIXED & CLEAN -->
       <div class="deploy-option-card">
-        <h4>🌐 Full Hosting + Custom Domain</h4>
+        <h4>Full Hosting + Custom Domain</h4>
         <p>We’ll register your domain and fully host your website.</p>
         <ul>
           <li>Domain purchase included</li>
@@ -443,30 +441,32 @@
           <li>Email support</li>
         </ul>
 
-        <!-- 🔍 Domain Input -->
-        <label for="customDomain">Check domain availability:</label>
-        <input type="text" id="customDomain" placeholder="e.g. mybusiness.co.uk" />
-        <button id="checkDomainBtn">Check Availability</button>
-        <p id="domainCheckResult"></p>
-        <p id="domainPriceDisplay" style="margin-top: 6px; font-weight: bold;"></p>
+        <!-- FIXED IDs – matches WebsiteGenerator.js perfectly -->
+        <label for="customDomainInput">Check domain availability:</label>
+        <input type="text" id="customDomainInput" placeholder="e.g. mybusiness.co.uk" autocomplete="off" />
+        <button id="checkDomainBtn" class="btn btn-outline" style="margin-top:8px;">Check Availability</button>
 
-        <!-- 📅 Domain Duration -->
-        <label for="domainDuration" style="margin-top: 10px; display: block;">Choose domain duration:</label>
-        <select id="domainDuration" style="margin: 8px 0 12px;">
+        <!-- Status message (Available / Taken / Checking…) -->
+        <div id="domainStatus" style="margin:12px 0; font-weight:bold; min-height:24px;"></div>
+
+        <!-- Optional price display -->
+        <p id="domainPriceDisplay" style="margin-top:6px; font-weight:bold; color:#00ff00;"></p>
+
+        <!-- Duration selector -->
+        <label for="domainDuration" style="margin-top:12px; display:block;">Domain duration:</label>
+        <select id="domainDuration">
           <option value="1">1 Year (Included)</option>
           <option value="3">3 Years (+£150)</option>
         </select>
 
-        <!-- ℹ️ Domain Info -->
-        <p class="domain-term-info" style="font-size: 0.9rem; color: #666;">
-          📅 Domain will be registered in your name.<br />
-          Extensions and renewals available via 
-          <a href="mailto:support@websitegenerator.co.uk">support</a>.
+        <p class="domain-term-info" style="font-size:0.9rem; color:#666; margin-top:12px;">
+          Domain registered in your name • Renewals via <a href="mailto:support@websitegeneration.co.uk">support</a>
         </p>
 
-        <!-- ✅ Confirm + Buy -->
-        <button id="confirmDomainBtn" class="btn btn-outline" disabled>✅ Confirm This Domain</button>
-        <button id="deployFullHosting" class="btn btn-primary" style="margin-top: 10px;" disabled>Buy Full Hosting + URL</button>
+        <!-- Buy button – starts hidden, shown only when domain is available & confirmed -->
+        <button id="deployFullHosting" class="btn btn-primary" style="margin-top:16px; display:none;">
+          Buy Full Hosting + Domain Now
+        </button>
       </div>
 
       <!-- ⚡ Option: Netlify Hosting -->
@@ -676,7 +676,12 @@
   </div>
 </footer>
 
-<!-- ====== ALL SCRIPTS – FINAL WORKING ORDER (Nov 2025) ====== -->
+<!-- ====== ALL SCRIPTS – FINAL CLEAN VERSION (November 2025) ====== -->
+<script>
+// CRITICAL: Tell your JS where the backend lives
+window.API_BASE = 'https://websitegeneration.onrender.com';
+</script>
+
 <script src="public/js/core.js"></script>
 <script src="public/js/WebsiteGenerator.js"></script>
 <script src="public/js/WebsiteGenerator.helpers.js"></script>
@@ -685,216 +690,41 @@
 <script src="public/js/WebsiteGenerator.ui.js"></script>
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
-<!-- CRITICAL: domainChecker.js and init.js use arrow functions + async/await → MUST be type="module" -->
-<script type="module">
-  // domainChecker.js – converted to inline module (guaranteed to work, no more => errors)
-  function isValidDomain(domain) {
-    const domainRegex = /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/;
-    return domainRegex.test(domain.trim().toLowerCase());
-  }
-
-  window.setupDomainChecker = function() {
-    const domainInput = document.getElementById("customDomain");
-    const checkBtn = document.getElementById("checkDomainBtn");
-    const resultDisplay = document.getElementById("domainCheckResult");
-    const buyButton = document.getElementById("deployFullHosting");
-    const priceDisplay = document.getElementById("domainPriceDisplay");
-    const durationSelect = document.getElementById("domainDuration");
-    const confirmBtn = document.getElementById("confirmDomainBtn");
-
-    if (!domainInput || !checkBtn || !resultDisplay || !buyButton) {
-      console.warn("Domain checker elements missing");
-      return;
-    }
-
-    const API = "https://websitegeneration.onrender.com/api";
-
-    domainInput.addEventListener("input", () => {
-      const domain = domainInput.value.trim().toLowerCase();
-      if (!domain) {
-        resultDisplay.textContent = "";
-        buyButton.disabled = true;
-        confirmBtn.disabled = true;
-        if (priceDisplay) priceDisplay.textContent = "";
-        return;
-      }
-      if (!isValidDomain(domain)) {
-        resultDisplay.textContent = "Invalid domain format";
-        resultDisplay.style.color = "red";
-        buyButton.disabled = true;
-        confirmBtn.disabled = true;
-      } else {
-        resultDisplay.textContent = 'Valid format – Click "Check Availability"';
-        resultDisplay.style.color = "blue";
-        buyButton.disabled = true;
-        confirmBtn.disabled = true;
-      }
-    });
-
-    checkBtn.addEventListener("click", async () => {
-      const domain = domainInput.value.trim().toLowerCase();
-      resultDisplay.textContent = "Checking availability...";
-      resultDisplay.style.color = "black";
-      buyButton.disabled = true;
-      confirmBtn.disabled = true;
-      if (priceDisplay) priceDisplay.textContent = "";
-
-      if (!isValidDomain(domain)) {
-        resultDisplay.textContent = "Please enter a valid domain";
-        resultDisplay.style.color = "red";
-        return;
-      }
-
-      try {
-        const checkRes = await fetch(`${API}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`);
-        if (!checkRes.ok) throw new Error("Check failed");
-        const checkData = await checkRes.json();
-
-        if (!checkData.available) {
-          resultDisplay.textContent = `"${domain}" is not available`;
-          resultDisplay.style.color = "red";
-          return;
-        }
-
-        resultDisplay.textContent = `"${domain}" is available!`;
-        resultDisplay.style.color = "green";
-        confirmBtn.disabled = false;
-        localStorage.setItem("customDomain", domain);
-
-        const duration = durationSelect?.value || "1";
-        localStorage.setItem("domainDuration", duration);
-
-        const priceRes = await fetch(`${API}/full-hosting/domain/price`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain, duration: parseInt(duration) })
-        });
-        const priceData = await priceRes.json();
-        const domainPrice = parseFloat(priceData.domainPrice || 12.99);
-        const totalPrice = (domainPrice + 150).toFixed(2);
-
-        localStorage.setItem("domainPrice", domainPrice);
-        localStorage.setItem("totalWithService", totalPrice);
-
-        if (priceDisplay) {
-          priceDisplay.textContent = `Estimated: £${domainPrice.toFixed(2)} (domain) + £150 service = £${totalPrice}`;
-          priceDisplay.style.color = "green";
-        }
-      } catch (err) {
-        console.error(err);
-        resultDisplay.textContent = "Error – try again";
-        resultDisplay.style.color = "orange";
-      }
-    });
-
-    durationSelect?.addEventListener("change", () => { /* same as before – omitted for brevity */ });
-    confirmBtn?.addEventListener("click", () => {
-      confirmBtn.textContent = "Domain Confirmed";
-      confirmBtn.disabled = true;
-      buyButton.disabled = false;
-    });
-  };
-</script>
-
-<!-- init.js – also inline module, runs immediately after domainChecker is defined -->
-<script type="module">
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof WebsiteGenerator !== 'function') {
-      console.error('WebsiteGenerator class not loaded');
-      return;
-    }
-    const gen = new WebsiteGenerator(document.getElementById('websiteGeneratorForm'));
-    window.generator = gen;
-    gen.initializeEventListeners?.();
-    gen.goToStep?.(1);
-    gen.highlightStep?.(1);
-
-    if (typeof window.setupDomainChecker === 'function') {
-      window.setupDomainChecker();
-      console.log('Domain checker initialized');
-    } else {
-      console.warn('setupDomainChecker still missing');
-    }
-
-    console.log('WebsiteGenerator initialized and ready');
-  });
-</script>
-
-
-<!-- Optional Inline Script -->
+<!-- UI Enhancements (hamburger, scroll bar, preview hints, etc.) -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  // ===== 💬 Click Preview Hint Logic =====
+  // Preview click hint
   const previewFrame = document.getElementById('previewFrame');
   const hintMessage = document.getElementById('iframeHintMessage');
-
   if (previewFrame && hintMessage) {
     previewFrame.addEventListener('click', () => {
       hintMessage.style.display = 'block';
-      clearTimeout(hintMessage._timeout);
-      hintMessage._timeout = setTimeout(() => {
-        hintMessage.style.display = 'none';
-      }, 5000);
+      clearTimeout(hintMessage._t);
+      hintMessage._t = setTimeout(() => hintMessage.style.display = 'none', 5000);
     });
   }
 
-  // ===== 📈 Scroll Progress Bar =====
-  const scrollProgress = document.getElementById('scrollProgressBar');
+  // Scroll progress bar
+  const bar = document.getElementById('scrollProgressBar');
   window.addEventListener('scroll', () => {
-    if (!scrollProgress) return;
-    const scrollTop = window.scrollY;
-    const docHeight = document.body.scrollHeight - window.innerHeight;
-    const scrollPercent = (scrollTop / docHeight) * 100;
-    scrollProgress.style.width = scrollPercent + "%";
+    if (!bar) return;
+    const h = document.body.scrollHeight - window.innerHeight;
+    bar.style.width = (window.scrollY / h * 100) + '%';
   });
 
-  // ===== 🧭 Navbar Styling on Scroll =====
+  // Navbar scroll effect
   const navbar = document.querySelector('.navbar');
   window.addEventListener('scroll', () => {
-    if (!navbar) return;
     if (window.scrollY > 60) {
-      navbar.style.background = "rgba(0, 0, 0, 0.85)";
-      navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+      navbar.style.background = "rgba(0,0,0,0.9)";
+      navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.4)";
     } else {
-      navbar.style.background = "rgba(0, 0, 0, 0.6)";
+      navbar.style.background = "rgba(0,0,0,0.6)";
       navbar.style.boxShadow = "var(--shadow)";
     }
   });
 
-  // ===== 🚀 Post-Generation UI Enhancements =====
-  const previewContainer = document.getElementById('previewContainer');
-  const brandingPanel = document.getElementById('brandingPanel');
-  const controls = document.querySelector('.preview-controls');
-  const finalStep = document.getElementById('step5');
-
-  function showPreviewEnhancements() {
-    if (previewContainer) previewContainer.classList.add('fullscreen');
-    if (controls) controls.classList.add('post-gen-ui');
-    if (brandingPanel) brandingPanel.style.display = 'block';
-
-    setTimeout(() => {
-      previewContainer?.scrollIntoView({ behavior: 'smooth' });
-    }, 300);
-  }
-
-  if (finalStep) {
-    const observer = new MutationObserver((mutationsList) => {
-      for (const mutation of mutationsList) {
-        if (
-          mutation.type === 'attributes' &&
-          mutation.attributeName === 'style' &&
-          mutation.target.style.display !== 'none'
-        ) {
-          showPreviewEnhancements();
-          observer.disconnect();
-          break;
-        }
-      }
-    });
-    observer.observe(finalStep, { attributes: true, attributeFilter: ['style'] });
-  }
-
-  // ===== 📱 Mobile Hamburger Nav Toggle =====
+  // Hamburger menu
   const hamburger = document.getElementById('hamburger');
   const navLinks = document.querySelector('.nav-links');
   if (hamburger && navLinks) {
@@ -903,6 +733,21 @@ document.addEventListener('DOMContentLoaded', function () {
       hamburger.classList.toggle('active');
     });
   }
+
+  // Post-generation UI enhancements
+  const observer = new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.attributeName === 'style' && getComputedStyle(m.target).display !== 'none') {
+        document.getElementById('previewContainer')?.classList.add('fullscreen');
+        document.querySelector('.preview-controls')?.classList.add('post-gen-ui');
+        document.getElementById('brandingPanel').style.display = 'block';
+        document.getElementById('previewContainer')?.scrollIntoView({behavior:'smooth'});
+        observer.disconnect();
+      }
+    }
+  });
+  const step5 = document.getElementById('step5');
+  if (step5) observer.observe(step5, {attributes:true});
 });
 </script>
 

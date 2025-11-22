@@ -1,5 +1,6 @@
 // ===========================
 // WebsiteGenerator.js — Vercel/Render-ready (Full Fixed Version – Nov 2025)
+// Handles null elements, CORS-friendly fetches, duration for GoDaddy purchase
 // ===========================
 class WebsiteGenerator {
   constructor() {
@@ -18,79 +19,135 @@ class WebsiteGenerator {
         console.warn("⚠️ Could not parse saved pages from localStorage");
       }
     }
+    // FIXED: Dynamic API base (use Vercel or Render – set in HTML <script>window.API_BASE = 'https://website-generation.vercel.app';</script>)
+    if (!window.API_BASE) {
+      window.API_BASE = 'https://website-generation.vercel.app'; // Or 'https://websitegeneration.onrender.com'
+    }
     this.initializeDeploymentButtons();
-    this.initializeDomainChecker(); // NEW: Wire domain check on load
+    this.initializeDomainChecker(); // Wire domain check on load
   }
 
   // ===========================
-  // NEW: Domain Availability Check (Integrated with Backend)
+  // FIXED: Domain Availability Check (Null-Safe, Duration-Aware)
   // ===========================
   async checkDomainAvailability(domain) {
     if (!domain || !domain.includes(".")) {
-      alert("Please enter a valid domain");
+      alert("Please enter a valid domain (e.g., mybusiness.com)");
       return false;
     }
 
     const button = document.getElementById("checkDomainBtn");
+    if (!button) {
+      console.error("Check button not found – add <button id='checkDomainBtn'> to HTML");
+      return false;
+    }
     const originalText = button.textContent;
     button.disabled = true;
     button.textContent = "Checking...";
 
+    const statusEl = document.getElementById("domainStatus");
+    if (statusEl) statusEl.textContent = "Checking...";
+
     try {
-      const res = await fetch(`${window.API_BASE}/full-hosting/domain/check?domain=${domain.toLowerCase().trim()}`, {
-        method: "GET",  // Matches your route (GET)
+      const res = await fetch(`${window.API_BASE}/api/full-hosting/domain/check?domain=${domain.toLowerCase().trim()}`, {
+        method: "GET",
         headers: { "Content-Type": "application/json" }
       });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
 
       if (data.available) {
         const price = data.price || 9.88;
-        const duration = 1; // Default 1 year
+        const duration = parseInt(document.getElementById("domainDuration")?.value || 1); // From selector
         localStorage.setItem("customDomain", domain.toLowerCase().trim());
         localStorage.setItem("domainPrice", price.toString());
         localStorage.setItem("domainDuration", duration.toString());
-        alert(`✅ ${domain} is AVAILABLE! Price: $${price}/year`);
-        document.getElementById("domainStatus").innerHTML = `
-          <strong style="color:green">✓ ${domain} is available!</strong><br>
-          <small>Price: $${price}/first year (1 year)</small>
-        `;
-        document.getElementById("deployFullHosting").style.display = "block"; // Show button
+        if (statusEl) {
+          statusEl.innerHTML = `
+            <strong style="color:green">✓ ${domain} is available!</strong><br>
+            <small>Price: $${price}/first year (${duration} year${duration > 1 ? 's' : ''})</small>
+          `;
+        }
+        alert(`✅ ${domain} is AVAILABLE! Price: $${price} for ${duration} year${duration > 1 ? 's' : ''}`);
+        const hostingBtn = document.getElementById("deployFullHosting");
+        if (hostingBtn) hostingBtn.style.display = "block";
         return true;
       } else {
+        if (statusEl) statusEl.innerHTML = `<strong style="color:red">✗ ${domain} is taken</strong>`;
         alert(`❌ ${domain} is already taken. Try another!`);
-        document.getElementById("domainStatus").innerHTML = `<strong style="color:red">✗ ${domain} is taken</strong>`;
         return false;
       }
     } catch (err) {
       console.error("Domain check error:", err);
-      alert("Domain check failed. Ensure backend is running and keys are set.");
-      document.getElementById("domainStatus").textContent = "Check failed – try again";
+      if (statusEl) statusEl.textContent = "Check failed – try again (CORS/backend issue?)";
+      alert(`❌ Domain check failed: ${err.message}. Check console/backend.`);
       return false;
     } finally {
-      button.disabled = false;
-      button.textContent = originalText;
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     }
   }
 
-  // NEW: Initialize Domain Checker (Wires button + input)
+  // FIXED: Initialize Domain Checker (Null-Safe Event Wiring)
   initializeDomainChecker() {
-    document.getElementById("checkDomainBtn")?.addEventListener("click", () => {
-      const input = document.getElementById("customDomainInput");
+    const checkBtn = document.getElementById("checkDomainBtn");
+    const input = document.getElementById("customDomainInput");
+    if (!checkBtn || !input) {
+      console.error("Domain elements missing – add <input id='customDomainInput'> and <button id='checkDomainBtn'> to HTML");
+      return;
+    }
+
+    checkBtn.addEventListener("click", () => {
       const domain = input.value.trim();
-      if (!domain) return alert("Enter a domain first (e.g., mybusiness.com)");
+      if (!domain) return alert("Enter a domain first");
       if (!domain.includes(".")) return alert("Include TLD like .com or .store");
       this.checkDomainAvailability(domain);
     });
 
-    // Optional: Enter key on input
-    document.getElementById("customDomainInput")?.addEventListener("keypress", (e) => {
+    // Enter key on input
+    input.addEventListener("keypress", (e) => {
       if (e.key === "Enter") this.checkDomainAvailability(e.target.value.trim());
     });
 
+    // Duration change updates localStorage
+    const durationSel = document.getElementById("domainDuration");
+    if (durationSel) {
+      durationSel.addEventListener("change", (e) => {
+        const duration = e.target.value;
+        localStorage.setItem("domainDuration", duration);
+        // Re-check price if domain saved
+        const savedDomain = localStorage.getItem("customDomain");
+        if (savedDomain) {
+          this.fetchFreshPrice(savedDomain, parseInt(duration));
+        }
+      });
+    }
+
     // Hide full hosting button initially if no domain saved
     if (!localStorage.getItem("customDomain")) {
-      document.getElementById("deployFullHosting").style.display = "none";
+      const hostingBtn = document.getElementById("deployFullHosting");
+      if (hostingBtn) hostingBtn.style.display = "none";
+    }
+  }
+
+  // NEW: Fetch Fresh Price (For Duration Changes)
+  async fetchFreshPrice(domain, duration) {
+    try {
+      const res = await fetch(`${window.API_BASE}/api/full-hosting/domain/price`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain, duration })
+      });
+      const priceData = await res.json();
+      localStorage.setItem("domainPrice", priceData.domainPrice.toString());
+      alert(`Updated: ${duration} years = $${priceData.domainPrice}`);
+    } catch (err) {
+      console.error("Price fetch failed:", err);
+      alert("Price update failed – using saved price");
     }
   }
 
@@ -208,10 +265,10 @@ class WebsiteGenerator {
   }
 
   // ===========================
-  // Deployment Buttons (Updated with Full Hosting)
+  // Deployment Buttons (Updated with Duration/Stripe Extras)
   // ===========================
   initializeDeploymentButtons() {
-    const API = window.API_BASE; // ✅ use global API base
+    const API = window.API_BASE;
     document.getElementById("deployGithubSelf")?.addEventListener("click", () =>
       this.startStripeCheckout("github-instructions")
     );
@@ -232,7 +289,7 @@ class WebsiteGenerator {
         sessionId = crypto.randomUUID();
         localStorage.setItem("sessionId", sessionId);
       }
-      fetch(`${API}/stripe/create-checkout-session`, {
+      fetch(`${API}/api/stripe/create-checkout-session`, {  // Note: /api prefix if needed
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -255,54 +312,76 @@ class WebsiteGenerator {
         });
     });
 
-    // FIXED FULL HOSTING: Requires confirmed domain
-    document.getElementById("deployFullHosting")?.addEventListener("click", () => {
-      const domain = localStorage.getItem("customDomain");
-      const duration = localStorage.getItem("domainDuration") || "1";
-      const businessName = localStorage.getItem("businessName") || "Website";
+    // FIXED FULL HOSTING: Validates domain/duration, fetches price, passes to Stripe (your markup here)
+    const hostingBtn = document.getElementById("deployFullHosting");
+    if (hostingBtn) {
+      hostingBtn.addEventListener("click", async () => {
+        const domain = localStorage.getItem("customDomain");
+        let duration = parseInt(localStorage.getItem("domainDuration") || "1");
+        const businessName = localStorage.getItem("businessName") || "Website";
+        const basePrice = parseFloat(localStorage.getItem("domainPrice") || "9.88");
 
-      if (!domain) {
-        alert("⚠️ Please check and confirm your domain first (Step 4).");
-        this.goToStep(4); // Redirect to domain step
-        return;
-      }
+        if (!domain) {
+          alert("⚠️ Please check and confirm your domain first (Step 4).");
+          this.goToStep(4);
+          return;
+        }
 
-      // Optional: Fetch fresh price before checkout
-      fetch(`${window.API_BASE}/full-hosting/domain/price`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain, duration: parseInt(duration) })
-      })
-        .then(res => res.json())
-        .then(priceData => {
-          localStorage.setItem("domainPrice", priceData.domainPrice.toString()); // Update price
-          this.startStripeCheckout("full-hosting", { domain, duration, price: priceData.domainPrice });
-        })
-        .catch(err => {
+        // Fetch fresh price for duration (GoDaddy scales linearly)
+        try {
+          const priceRes = await fetch(`${API}/api/full-hosting/domain/price`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain, duration })
+          });
+          const priceData = await priceRes.json();
+          const totalDomainPrice = priceData.domainPrice; // e.g., base * duration
+          const extraMarkup = totalDomainPrice * 0.20; // Your 20% fee example – adjust in Stripe backend
+          const stripeAmount = totalDomainPrice + extraMarkup; // "Slap extra money on top"
+
+          this.startStripeCheckout("full-hosting", { 
+            domain, 
+            duration, 
+            businessName,
+            amount: stripeAmount, // Passes to backend for Stripe session
+            metadata: { domain, duration } // For GoDaddy purchase post-payment
+          });
+        } catch (err) {
           console.error("Price fetch failed:", err);
-          this.startStripeCheckout("full-hosting", { domain, duration }); // Fallback
-        });
-    });
+          // Fallback to saved
+          const fallbackAmount = basePrice * duration * 1.20; // 20% markup
+          this.startStripeCheckout("full-hosting", { 
+            domain, 
+            duration, 
+            businessName,
+            amount: fallbackAmount
+          });
+        }
+      });
+    }
   }
 
   // ===========================
-  // Stripe Checkout (Updated to Pass Domain/Price)
+  // Stripe Checkout (Passes Domain/Duration/Amount for GoDaddy + Markup)
   // ===========================
   startStripeCheckout(type, extra = {}) {
-    const API = window.API_BASE; // ✅ use global API base
+    const API = window.API_BASE;
     const businessName = localStorage.getItem("businessName") || "Website";
     let sessionId = localStorage.getItem("sessionId");
     if (!sessionId) {
       sessionId = crypto.randomUUID();
       localStorage.setItem("sessionId", sessionId);
     }
-    const payload = { type, sessionId, businessName, ...extra }; // Includes domain/price if full-hosting
-    fetch(`${API}/stripe/create-checkout-session`, {
+    const payload = { type, sessionId, businessName, ...extra }; // Includes domain/duration/amount
+    fetch(`${API}/api/stripe/create-checkout-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data.url) window.location.href = data.url;
         else {
@@ -311,8 +390,8 @@ class WebsiteGenerator {
         }
       })
       .catch((err) => {
-        alert("❌ Error creating Stripe session.");
         console.error("Stripe error:", err);
+        alert(`❌ Error creating Stripe session: ${err.message}. Check CORS/backend.`);
       });
   }
 }
