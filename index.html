@@ -757,6 +757,25 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
+
+<script>
+// THIS IS THE MISSING PIECE – THE ONLY THING YOU NEED TO ADD
+document.addEventListener('DOMContentLoaded', () => {
+  // Create the main instance (if it doesn't exist yet)
+  if (!window.websiteGenerator) {
+    window.websiteGenerator = new WebsiteGenerator();
+  }
+  
+  // NOW attach ALL the event listeners (Next/Back, preview, deploy modal, etc.)
+  window.websiteGenerator.initializeEventListeners();
+  
+  console.log('%cWebsiteGenerator fully initialized – Next/Back buttons now ACTIVE', 'color:lime;font-weight:bold');
+});
+</script>
+
+
+
+
 </body>
 </html>
 
