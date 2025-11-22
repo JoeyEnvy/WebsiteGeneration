@@ -1,11 +1,39 @@
-// routes/fullHostingDomainRoutes.js – HYBRID PORKBUN CHECK + GODADDY PURCHASE
+// routes/fullHostingDomainRoutes.js – PORKBUN V3 POST FIXED (Nov 2025)
 import express from "express";
 const router = express.Router();
 
 // Domain validation
 const isValidDomain = (d) => /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(d?.trim());
 
-// GET /api/full-hosting/domain/check → Porkbun availability (fast, no limits)
+// Helper: Porkbun POST request with retry
+const porkbunPost = async (endpoint, body, retries = 2) => {
+  const apiKey = process.env.PORKBUN_API_KEY || "";
+  const secretKey = process.env.PORKBUN_SECRET_KEY || "";
+  if (!apiKey || !secretKey) throw new Error("Porkbun keys missing");
+
+  const fullBody = { ...body, apikey: apiKey, secretapikey: secretKey };
+  for (let i = 0; i <= retries; i++) {
+    const resp = await fetch(`https://api.porkbun.com/api/json/v3/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fullBody)
+    });
+
+    if (resp.status === 404) {
+      throw new Error(`Porkbun endpoint 404: ${endpoint} – API changed?`);
+    }
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error(`Porkbun attempt ${i + 1} failed:`, errorText);
+      if (i === retries) throw new Error(`Porkbun error ${resp.status}: ${errorText}`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Backoff
+    } else {
+      return resp.json();
+    }
+  }
+};
+
+// GET /api/full-hosting/domain/check → Porkbun availability (NOW POST, ultra-fast)
 router.get("/domain/check", async (req, res) => {
   const { domain } = req.query;
   if (!domain || !isValidDomain(domain)) {
@@ -13,19 +41,8 @@ router.get("/domain/check", async (req, res) => {
   }
 
   try {
-    // Porkbun check (POST to api.porkbun.com, 2025 hostname)
-    const resp = await fetch("https://api.porkbun.com/api/json/v3/domain/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        apikey: process.env.PORKBUN_API_KEY || "",
-        secretapikey: process.env.PORKBUN_SECRET_KEY || "",
-        domain
-      })
-    });
-
-    if (!resp.ok) throw new Error(`Porkbun error ${resp.status}`);
-    const data = await resp.json();
+    // FIXED: Real v3 POST /domain/available
+    const data = await porkbunPost("domain/available", { domain });
 
     if (data.status !== "SUCCESS") {
       return res.status(502).json({ available: false, error: data.message || "Check failed" });
@@ -36,12 +53,12 @@ router.get("/domain/check", async (req, res) => {
 
     res.json({ available });
   } catch (err) {
-    console.error("Porkbun check failed:", err);
+    console.error("Porkbun check failed:", err.message);
     res.status(502).json({ available: false, error: "Check unavailable – try again" });
   }
 });
 
-// POST /api/full-hosting/domain/price → Porkbun pricing
+// POST /api/full-hosting/domain/price → Porkbun pricing (POST, unchanged but with helper)
 router.post("/domain/price", async (req, res) => {
   const { domain, duration = 1 } = req.body;
   if (!domain || !isValidDomain(domain)) {
@@ -50,34 +67,26 @@ router.post("/domain/price", async (req, res) => {
 
   try {
     const years = parseInt(duration, 10);
-    const pricingResp = await fetch("https://api.porkbun.com/api/json/v3/domain/pricing", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        apikey: process.env.PORKBUN_API_KEY || "",
-        secretapikey: process.env.PORKBUN_SECRET_KEY || "",
-        domain
-      })
-    });
+    const pricingData = await porkbunPost("domain/pricing", { domain });
 
-    const pricingData = await pricingResp.json();
     if (pricingData.status !== "SUCCESS") {
       return res.status(502).json({ error: "Pricing unavailable" });
     }
 
-    // Extract price for TLD (e.g., .co.uk: pricingData.pricing["co.uk"].register)
-    const tld = domain.split('.').pop();  // .co.uk
-    const tldPrice = pricingData.pricing?.[tld]?.register || 11.99;  // Fallback
-    const domainPrice = (tldPrice * years).toFixed(2);
+    // Extract price (handles .co.uk, .store, etc.)
+    const tld = domain.split('.').slice(-2).join('.');
+    let tldPrice = pricingData.pricing?.[tld]?.register || pricingData.pricing?.[domain.split('.').pop()]?.register || 11.99;
+    if (typeof tldPrice === 'object') tldPrice = tldPrice.current || tldPrice.first || 11.99;
+    const domainPrice = (parseFloat(tldPrice) * years).toFixed(2);
 
     res.json({ domainPrice: parseFloat(domainPrice), currency: "GBP", period: years });
   } catch (err) {
-    console.error("Pricing failed:", err);
-    res.status(500).json({ domainPrice: 11.99, currency: "GBP", period: 1 });  // Fallback
+    console.error("Pricing failed:", err.message);
+    res.status(500).json({ domainPrice: 11.99, currency: "GBP", period: 1 });
   }
 });
 
-// POST /api/full-hosting/domain/purchase → GoDaddy auto-buy + DNS (your reseller)
+// POST /api/full-hosting/domain/purchase → GoDaddy (re-check with new POST, solid)
 router.post("/domain/purchase", async (req, res) => {
   const { domain, userEmail = "support@websitegenerator.co.uk", userIP = "127.0.0.1", repoUrl = "joeyenvy.github.io" } = req.body;
 
@@ -88,22 +97,13 @@ router.post("/domain/purchase", async (req, res) => {
   if (!key || !secret) return res.status(500).json({ error: "GoDaddy not ready" });
 
   try {
-    // Quick Porkbun re-check (optional, for confidence)
-    const porkbunResp = await fetch("https://api.porkbun.com/api/json/v3/domain/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        apikey: process.env.PORKBUN_API_KEY || "",
-        secretapikey: process.env.PORKBUN_SECRET_KEY || "",
-        domain
-      })
-    });
-    const porkbunData = await porkbunResp.json();
+    // Re-check with FIXED POST endpoint
+    const porkbunData = await porkbunPost("domain/available", { domain });
     if (porkbunData.status !== "SUCCESS" || porkbunData.available !== "yes") {
       return res.json({ success: false, message: "Domain no longer available" });
     }
 
-    // GoDaddy purchase
+    // GoDaddy purchase + DNS (unchanged, gold)
     const purchaseResp = await fetch("https://api.godaddy.com/v1/domains/purchase", {
       method: "POST",
       headers: {
@@ -123,7 +123,6 @@ router.post("/domain/purchase", async (req, res) => {
 
     if (!purchase.orderId) throw new Error(purchase.message || "Purchase failed");
 
-    // GoDaddy DNS to repo
     await fetch(`https://api.godaddy.com/v1/domains/${domain}/records`, {
       method: "PUT",
       headers: {
@@ -140,7 +139,7 @@ router.post("/domain/purchase", async (req, res) => {
 
     res.json({ success: true, domain, orderId: purchase.orderId, message: "Purchased via GoDaddy + connected!" });
   } catch (err) {
-    console.error("Hybrid purchase error:", err);
+    console.error("Hybrid purchase error:", err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
