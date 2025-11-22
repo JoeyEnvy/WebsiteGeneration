@@ -1,37 +1,94 @@
-// routes/domainRoutes.js – FINAL FIX (22 Nov 2025)
-import express from "express";
+// routes/domainRoutes.js – YOUR ORIGINAL PORKBUN VERSION, PATH FIXED (22 Nov 2025)
+import express from 'express';
+import fetch from 'node-fetch';
+import { getDomainPriceInPounds } from '../utils/domainPricing.js';
+
 const router = express.Router();
 
-// This is the EXACT endpoint your frontend has been crying for
-router.post("/domain/check", async (req, res) => {
-  const { domain } = req.body;
+/**
+ * Validate domain structure
+ */
+const isValidDomain = (domain) =>
+  /^([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$/.test(domain.trim().toLowerCase());
 
-  if (!domain || typeof domain !== "string" || domain.trim() === "") {
-    return res.status(400).json({ available: "no", error: "Invalid domain" });
+/**
+ * ✅ Domain Availability Checker (Porkbun API) – PATH FIXED TO /domain/check
+ */
+router.post('/domain/check', async (req, res) => {  // ← THIS WAS /check-domain, NOW FIXED
+  const { domain, duration } = req.body || {};
+  if (!domain || typeof domain !== 'string') {
+    return res.status(400).json({ available: false, error: 'Invalid domain format.' });
   }
-
+  const cleanedDomain = domain.trim().toLowerCase();
+  const period = parseInt(duration, 10) || 1;
+  if (!isValidDomain(cleanedDomain)) {
+    return res.status(400).json({ error: 'Invalid domain structure.' });
+  }
   try {
-    // Call your existing working GoDaddy checker (the GET one you already have)
-    const godaddyResp = await fetch(
-      `https://websitegeneration.onrender.com/domain/check?domain=${encodeURIComponent(domain.trim())}`
-    );
-
-    if (!godaddyResp.ok) throw new Error("GoDaddy unreachable");
-
-    const data = await godaddyResp.json();
-
-    // Convert GoDaddy's format → what your frontend expects
-    const available = data.available === true ? "yes" : "no";
-    const price = data.priceUSD 
-      ? `£${(data.priceUSD * 0.79).toFixed(2)}` 
-      : "£11.99";
-
-    res.json({ available, price });
+    const response = await fetch('https://api.porkbun.com/api/json/v3/domain/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apikey: process.env.PORKBUN_API_KEY,
+        secretapikey: process.env.PORKBUN_SECRET_KEY,
+        domain: cleanedDomain
+      })
+    });
+    const data = await response.json();
+    if (data.status !== 'SUCCESS') {
+      console.error('❌ Porkbun API error:', data);
+      return res.status(502).json({
+        available: false,
+        error: 'Porkbun API failed',
+        detail: data
+      });
+    }
+    const isAvailable = data.available === 'yes';  // ← Porkbun returns "yes"/"no" string
+    const domainPrice = getDomainPriceInPounds(cleanedDomain, period);
+    res.json({
+      available: isAvailable,  // ← true/false – perfect for frontend
+      price: domainPrice,     // ← Added for your UI display
+      currency: 'GBP',
+      period
+    });
   } catch (err) {
-    console.error("Domain check proxy failed:", err.message);
-    // Never break the frontend — always return valid JSON
-    res.json({ available: "yes", price: "£11.99" });
+    console.error('💥 Domain check error:', err);
+    res.status(500).json({
+      available: false,
+      error: 'Domain availability check failed.',
+      detail: err.message
+    });
   }
+});
+
+/**
+ * ✅ Domain Price Estimator
+ */
+router.post('/get-domain-price', (req, res) => {
+  const { domain, duration } = req.body || {};
+  const cleanedDomain = domain?.trim().toLowerCase();
+  const period = parseInt(duration, 10) || 1;
+  if (!isValidDomain(cleanedDomain)) {
+    return res.status(400).json({ error: 'Invalid domain structure.' });
+  }
+  try {
+    const domainPrice = getDomainPriceInPounds(cleanedDomain, period);
+    res.json({ domainPrice, currency: 'GBP', period });
+  } catch (err) {
+    console.error('💥 Price mapping error:', err);
+    res.json({
+      error: 'Failed to estimate price',
+      fallbackPrice: 15.99 * period,
+      detail: err.message
+    });
+  }
+});
+
+/**
+ * ✅ Health check
+ */
+router.get('/ping-domain-routes', (req, res) => {
+  res.json({ ok: true, message: '✅ domainRoutes.js (Porkbun) is live' });
 });
 
 export default router;
