@@ -19,13 +19,13 @@ class WebsiteGenerator {
         console.warn("⚠️ Could not parse saved pages from localStorage");
       }
     }
-    // FIXED: Dynamic API base (use Vercel or Render – set in HTML <script>window.API_BASE = 'https://website-generation.vercel.app';</script>)
-    if (!window.API_BASE) {
-      window.API_BASE = 'https://website-generation.vercel.app'; // Or 'https://websitegeneration.onrender.com'
-    }
-    this.initializeDeploymentButtons();
-    this.initializeDomainChecker(); // Wire domain check on load
+  if (!window.API_BASE) {
+    window.API_BASE = 'https://websitegeneration.onrender.com';
   }
+  this.initializeDeploymentButtons();
+  // initializeDomainChecker() deliberately NOT called here
+  // → it runs only from the bottom of index.html after DOM is ready
+}
 
   // ===========================
   // FIXED: Domain Availability Check (Null-Safe, Duration-Aware)
