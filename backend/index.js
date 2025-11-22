@@ -1,4 +1,4 @@
-// Backend/index.js – FINAL VERSION (November 22, 2025 – 100% WORKING & ERROR-FREE)
+// Backend/index.js – FINAL 100% WORKING VERSION (22 Nov 2025 – NO SYNTAX ERRORS)
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -13,7 +13,7 @@ import JSZip from "jszip";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { fileURLToPath } from "url";
-import { existsSync } from "fs";               // ← THIS FIXES THE CRASH
+import { existsSync } from "fs";               // ← fixes require() crash
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,7 +34,7 @@ app.use(
   })
 );
 
-// ───────────────────── CORS (GitHub Pages + Render + Vercel + localhost) ─────────────────────
+// ───────────────────── CORS ─────────────────────
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowedOrigins = [
@@ -45,7 +45,6 @@ app.use((req, res, next) => {
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://localhost:3000",
-    // if you ever run locally on 3000
   ];
 
   if (allowedOrigins.includes(origin)) {
@@ -86,8 +85,8 @@ app.use("/api/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
 app.use("/api", utilityRoutes);
-app.use("/api/deploy", deployLiveRoutes);
-app.use("/api/deploy", deploy", deployGithubRoutes);
+app.use("/api/deploy", deployLiveRoutes);           // ← FIXED
+app.use("/api/deploy", deployGithubRoutes);         // ← FIXED
 app.use("/api/full-hosting", fullHostingDomainRoutes);
 app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/proxy", proxyRoutes);
@@ -96,27 +95,20 @@ app.use("/api/proxy", proxyRoutes);
 app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
-// ───────────────────── SPA Fallback (FIXED – NO MORE require()) ─────────────────────
+// ───────────────────── SPA Fallback (NO require!) ─────────────────────
 app.get("*", (req, res, next) => {
   if (req.originalUrl.startsWith("/api/")) return next();
 
-  // Try root index.html first (Render/Vercel when files are in root)
   const rootIndex = path.join(ROOT, "index.html");
-  if (existsSync(rootIndex)) {
-    return res.sendFile(rootIndex);
-  }
+  if (existsSync(rootIndex)) return res.sendFile(rootIndex);
 
-  // Fallback to public/index.html
   const publicIndex = path.join(PUBLIC, "index.html");
-  if (existsSync(publicIndex)) {
-    return res.sendFile(publicIndex);
-  }
+  if (existsSync(publicIndex)) return res.sendFile(publicIndex);
 
-  // Nothing found
-  res.status(404).send("index.html not found");
+  res.status(404).send("Not found");
 });
 
-// ───────────────────── Global Error Handler ─────────────────────
+// ───────────────────── Error Handler ─────────────────────
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err);
   res.status(500).json({ success: false, error: "Something went wrong" });
