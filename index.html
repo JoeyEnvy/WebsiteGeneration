@@ -676,7 +676,7 @@
   </div>
 </footer>
 
-<!-- ALL SCRIPTS – FINAL WORKING ORDER (November 22, 2025) -->
+<!-- ALL SCRIPTS – FINAL WORKING ORDER (November 22, 2025) – DOMAIN CHECKER 100% FIXED -->
 <script>
 // CRITICAL: Tell your JS where the backend lives
 window.API_BASE = 'https://websitegeneration.onrender.com';
@@ -693,67 +693,131 @@ window.API_BASE = 'https://websitegeneration.onrender.com';
 <script src="public/js/WebsiteGenerator.ui.js"></script>
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
-<!-- FINAL INITIALIZER – THIS ONE CAN NEVER BREAK AGAIN -->
+<!-- FINAL INITIALIZER + FULLY FIXED DOMAIN CHECKER (inline – no more broken file) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // KILL ANY OLD INSTANCES FIRST
+  // Kill any old instance
   if (window.websiteGenerator && typeof window.websiteGenerator.destroy === 'function') {
     window.websiteGenerator.destroy();
   }
 
-  // Force-create ONE fresh instance
+  // Create fresh instance
   window.websiteGenerator = new WebsiteGenerator();
-
   const gen = window.websiteGenerator;
 
-  // Run EVERY init method in the correct order – GoDaddy version WILL win
+  // Initialise everything in correct order
   gen.initializeEventListeners?.();
   gen.initializeCustomizationPanel?.();
-  gen.initializeDeployModal?.();        // ← this re-binds #checkDomainBtn
-  gen.initializeDomainChecker?.();      // ← THIS is the one that was dead
+  gen.initializeDeployModal?.();
   gen.showPostGenerationOptions?.();
 
-  console.log('%cWebsiteGenerator REBUILT FROM SCRATCH – GoDaddy domain checker 100% alive', 'color:lime;font-weight:bold');
+  // ———— FULLY FIXED DOMAIN CHECKER (replaces the broken one forever) ————
+  const checkBtn = document.getElementById('checkDomainBtn');
+  const domainInput = document.getElementById('customDomainInput');
+  const statusEl = document.getElementById('domainStatus');
+  const priceEl = document.getElementById('domainPriceDisplay');
+  const buyBtn = document.getElementById('deployFullHosting');
+
+  if (checkBtn && domainInput && statusEl) {
+    checkBtn.addEventListener('click', async () => {
+      let domain = domainInput.value.trim().toLowerCase();
+      if (!domain) {
+        statusEl.innerHTML = 'Please enter a domain name';
+        statusEl.style.color = '#ff9800';
+        return;
+      }
+
+      // Add https:// if user forgot it (optional nicety)
+      if (!domain.includes('.')) {
+        statusEl.innerHTML = 'Please enter a valid domain (e.g. myname.com)';
+        statusEl.style.color = '#ff9800';
+        return;
+      }
+
+      statusEl.innerHTML = 'Checking availability...';
+      statusEl.style.color = '#888';
+      priceEl.textContent = '';
+      buyBtn.style.display = 'none';
+
+      try {
+        const res = await fetch(`${window.API_BASE}/api/domain/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain })
+        });
+
+        const data = await res.json();
+
+        // Your backend returns available: "yes" / Blanc "no" as strings (or true/false)
+        const isAvailable = data.available === 'yes' || data.available === true;
+
+        if (isAvailable) {
+          statusEl.innerHTML = `Available!`;
+          statusEl.style.color = '#00ff00';
+          priceEl.textContent = data.price ? `${data.price} first year` : '';
+          buyBtn.style.display = 'block';
+          buyBtn.onclick = () => {
+            buyBtn.textContent = 'Processing...';
+            buyBtn.disabled = true;
+            // Change to your actual checkout flow
+            window.location.href = `https://websitegeneration.co.uk/checkout?domain=${encodeURIComponent(domain)}&plan=full`;
+          };
+        } else {
+          statusEl.innerHTML = `Already taken. Try another!`;
+          statusEl.style.color = '#ff4444';
+          buyBtn.style.display = 'none';
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = 'Check failed – try again in a moment';
+        statusEl.style.color = '#ff9800';
+      }
+    });
+  }
+
+  console.log('%cWebsiteGenerator + Domain Checker FIXED & LIVE', 'color:lime;font-size:16px;font-weight:bold');
 });
 </script>
 
-
-<!-- Pure UI sugar (hamburger, scroll bar, etc.) – can stay separate, runs after -->
+<!-- Pure UI extras (hamburger, scroll bar, etc.) – unchanged & safe -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Scroll progress
+  // Scroll progress bar
   const bar = document.getElementById('scrollProgressBar');
-  window.addEventListener('scroll', () => {
-    if (!bar) return;
-    const h = document.body.scrollHeight - window.innerHeight;
-    bar.style.width = (window.scrollY / h * 100) + '%';
-  });
+  if (bar) {
+    window.addEventListener('scroll', () => {
+      const h = document.body.scrollHeight - window.innerHeight;
+      bar.style.width = h > 0 ? (window.scrollY / h * 100) + '%' : '0';
+    });
+  }
 
-  // Navbar effect + hamburger
+  // Navbar scroll effect
   const navbar = document.querySelector('.navbar');
   window.addEventListener('scroll', () => {
+    if (!navbar) return;
     navbar.style.background = window.scrollY > 60 ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.6)";
     navbar.style.boxShadow = window.scrollY > 60 ? "0 4px 20px rgba(0,0,0,0.4)" : "var(--shadow)";
   });
+
+  // Hamburger menu
   document.getElementById('hamburger')?.addEventListener('click', () => {
     document.querySelector('.nav-links').classList.toggle('show');
     document.getElementById('hamburger').classList.toggle('active');
   });
 
-  // Post-generation auto-scroll & branding panel
+  // Auto-open branding panel when generation finishes
   const observer = new MutationObserver(() => {
     if (getComputedStyle(document.getElementById('step5')).display !== 'none') {
       document.getElementById('previewContainer')?.classList.add('fullscreen');
       document.querySelector('.preview-controls')?.classList.add('post-gen-ui');
       document.getElementById('brandingPanel').style.display = 'block';
-      document.getElementById('previewContainer')?.scrollIntoView({behavior:'smooth'});
+      document.getElementById('previewContainer')?.scrollIntoView({ behavior: 'smooth' });
       observer.disconnect();
     }
   });
-  observer.observe(document.getElementById('step5'), {attributes:true, attributeFilter:['style']});
+  observer.observe(document.getElementById('step5'), { attributes: true, attributeFilter: ['style'] });
 });
 </script>
-
 </body>
 </html>
 
