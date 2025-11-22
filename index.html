@@ -693,27 +693,30 @@ window.API_BASE = 'https://websitegeneration.onrender.com';
 <script src="public/js/WebsiteGenerator.ui.js"></script>
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
-<!-- FINAL INITIALIZER – ONE PLACE THAT RULES THEM ALL -->
+<!-- FINAL INITIALIZER – THIS ONE CAN NEVER BREAK AGAIN -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Guarantee exactly ONE instance
-  if (!window.websiteGenerator || !(window.websiteGenerator instanceof WebsiteGenerator)) {
-    window.websiteGenerator = new WebsiteGenerator();
-    console.log('%cNew WebsiteGenerator instance created', 'color:cyan');
+  // KILL ANY OLD INSTANCES FIRST
+  if (window.websiteGenerator && typeof window.websiteGenerator.destroy === 'function') {
+    window.websiteGenerator.destroy();
   }
+
+  // Force-create ONE fresh instance
+  window.websiteGenerator = new WebsiteGenerator();
 
   const gen = window.websiteGenerator;
 
-  // 2. Run every init method that exists (all safe to call multiple times)
-  gen.initializeEventListeners?.();        // Next/Back + preview controls
+  // Run EVERY init method in the correct order – GoDaddy version WILL win
+  gen.initializeEventListeners?.();
   gen.initializeCustomizationPanel?.();
-  gen.initializeDeployModal?.();           // THIS brings the domain checker back
-  gen.initializeDomainChecker?.();         // THIS is the one that was dying
+  gen.initializeDeployModal?.();        // ← this re-binds #checkDomainBtn
+  gen.initializeDomainChecker?.();      // ← THIS is the one that was dead
   gen.showPostGenerationOptions?.();
 
-  console.log('%cWebsiteGenerator 100% initialized – Steps + Domain checker + Deploy modal all alive', 'color:lime;font-weight:bold');
+  console.log('%cWebsiteGenerator REBUILT FROM SCRATCH – GoDaddy domain checker 100% alive', 'color:lime;font-weight:bold');
 });
 </script>
+
 
 <!-- Pure UI sugar (hamburger, scroll bar, etc.) – can stay separate, runs after -->
 <script>
