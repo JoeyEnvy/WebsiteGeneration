@@ -676,21 +676,26 @@
   </div>
 </footer>
 
-<!-- ====== ALL SCRIPTS – FINAL CLEAN VERSION (November 2025) ====== -->
+<!-- ALL SCRIPTS – FINAL WORKING ORDER (November 22, 2025) -->
 <script>
 // CRITICAL: Tell your JS where the backend lives
 window.API_BASE = 'https://websitegeneration.onrender.com';
 </script>
 
+<!-- 1. Core first (has apiFetch, debounce, etc.) -->
 <script src="public/js/core.js"></script>
+
+<!-- 2. MAIN CLASS – MUST LOAD BEFORE ANYTHING USES IT -->
 <script src="public/js/WebsiteGenerator.js"></script>
+
+<!-- 3. Everything else – NOW SAFE TO RUN -->
 <script src="public/js/WebsiteGenerator.helpers.js"></script>
 <script src="public/js/WebsiteGenerator.preview.js"></script>
 <script src="public/js/WebsiteGenerator.submit.js"></script>
-<script src="public/js/WebsiteGenerator.ui.js"></script>
+<script src="public/js/WebsiteGenerator.ui.js"></script>         <!-- ← MOVED DOWN -->
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
-<!-- UI Enhancements (hamburger, scroll bar, preview hints, etc.) -->
+<!-- UI Enhancements (hamburger, scroll, etc.) -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   // Preview click hint
@@ -734,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Post-generation UI enhancements
+  // Post-generation enhancements
   const observer = new MutationObserver(muts => {
     for (const m of muts) {
       if (m.attributeName === 'style' && getComputedStyle(m.target).display !== 'none') {
