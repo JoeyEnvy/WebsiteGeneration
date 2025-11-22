@@ -682,34 +682,43 @@
 window.API_BASE = 'https://websitegeneration.onrender.com';
 </script>
 
-<!-- 1. Core first (has apiFetch, debounce, etc.) -->
+<!-- 1. Core utilities -->
 <script src="public/js/core.js"></script>
-
-<!-- 2. MAIN CLASS – MUST LOAD BEFORE ANYTHING USES IT -->
+<!-- 2. Main class -->
 <script src="public/js/WebsiteGenerator.js"></script>
-
-<!-- 3. Everything else – NOW SAFE TO RUN -->
+<!-- 3. All the modular parts -->
 <script src="public/js/WebsiteGenerator.helpers.js"></script>
 <script src="public/js/WebsiteGenerator.preview.js"></script>
 <script src="public/js/WebsiteGenerator.submit.js"></script>
-<script src="public/js/WebsiteGenerator.ui.js"></script>         <!-- ← MOVED DOWN -->
+<script src="public/js/WebsiteGenerator.ui.js"></script>
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
-<!-- UI Enhancements (hamburger, scroll, etc.) -->
+<!-- FINAL INITIALIZER – ONE PLACE THAT RULES THEM ALL -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Preview click hint
-  const previewFrame = document.getElementById('previewFrame');
-  const hintMessage = document.getElementById('iframeHintMessage');
-  if (previewFrame && hintMessage) {
-    previewFrame.addEventListener('click', () => {
-      hintMessage.style.display = 'block';
-      clearTimeout(hintMessage._t);
-      hintMessage._t = setTimeout(() => hintMessage.style.display = 'none', 5000);
-    });
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Guarantee exactly ONE instance
+  if (!window.websiteGenerator || !(window.websiteGenerator instanceof WebsiteGenerator)) {
+    window.websiteGenerator = new WebsiteGenerator();
+    console.log('%cNew WebsiteGenerator instance created', 'color:cyan');
   }
 
-  // Scroll progress bar
+  const gen = window.websiteGenerator;
+
+  // 2. Run every init method that exists (all safe to call multiple times)
+  gen.initializeEventListeners?.();        // Next/Back + preview controls
+  gen.initializeCustomizationPanel?.();
+  gen.initializeDeployModal?.();           // THIS brings the domain checker back
+  gen.initializeDomainChecker?.();         // THIS is the one that was dying
+  gen.showPostGenerationOptions?.();
+
+  console.log('%cWebsiteGenerator 100% initialized – Steps + Domain checker + Deploy modal all alive', 'color:lime;font-weight:bold');
+});
+</script>
+
+<!-- Pure UI sugar (hamburger, scroll bar, etc.) – can stay separate, runs after -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Scroll progress
   const bar = document.getElementById('scrollProgressBar');
   window.addEventListener('scroll', () => {
     if (!bar) return;
@@ -717,64 +726,30 @@ document.addEventListener('DOMContentLoaded', function () {
     bar.style.width = (window.scrollY / h * 100) + '%';
   });
 
-  // Navbar scroll effect
+  // Navbar effect + hamburger
   const navbar = document.querySelector('.navbar');
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 60) {
-      navbar.style.background = "rgba(0,0,0,0.9)";
-      navbar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.4)";
-    } else {
-      navbar.style.background = "rgba(0,0,0,0.6)";
-      navbar.style.boxShadow = "var(--shadow)";
-    }
+    navbar.style.background = window.scrollY > 60 ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.6)";
+    navbar.style.boxShadow = window.scrollY > 60 ? "0 4px 20px rgba(0,0,0,0.4)" : "var(--shadow)";
+  });
+  document.getElementById('hamburger')?.addEventListener('click', () => {
+    document.querySelector('.nav-links').classList.toggle('show');
+    document.getElementById('hamburger').classList.toggle('active');
   });
 
-  // Hamburger menu
-  const hamburger = document.getElementById('hamburger');
-  const navLinks = document.querySelector('.nav-links');
-  if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => {
-      navLinks.classList.toggle('show');
-      hamburger.classList.toggle('active');
-    });
-  }
-
-  // Post-generation enhancements
-  const observer = new MutationObserver(muts => {
-    for (const m of muts) {
-      if (m.attributeName === 'style' && getComputedStyle(m.target).display !== 'none') {
-        document.getElementById('previewContainer')?.classList.add('fullscreen');
-        document.querySelector('.preview-controls')?.classList.add('post-gen-ui');
-        document.getElementById('brandingPanel').style.display = 'block';
-        document.getElementById('previewContainer')?.scrollIntoView({behavior:'smooth'});
-        observer.disconnect();
-      }
+  // Post-generation auto-scroll & branding panel
+  const observer = new MutationObserver(() => {
+    if (getComputedStyle(document.getElementById('step5')).display !== 'none') {
+      document.getElementById('previewContainer')?.classList.add('fullscreen');
+      document.querySelector('.preview-controls')?.classList.add('post-gen-ui');
+      document.getElementById('brandingPanel').style.display = 'block';
+      document.getElementById('previewContainer')?.scrollIntoView({behavior:'smooth'});
+      observer.disconnect();
     }
   });
-  const step5 = document.getElementById('step5');
-  if (step5) observer.observe(step5, {attributes:true});
+  observer.observe(document.getElementById('step5'), {attributes:true, attributeFilter:['style']});
 });
 </script>
-
-
-
-<script>
-// THIS IS THE MISSING PIECE – THE ONLY THING YOU NEED TO ADD
-document.addEventListener('DOMContentLoaded', () => {
-  // Create the main instance (if it doesn't exist yet)
-  if (!window.websiteGenerator) {
-    window.websiteGenerator = new WebsiteGenerator();
-  }
-  
-  // NOW attach ALL the event listeners (Next/Back, preview, deploy modal, etc.)
-  window.websiteGenerator.initializeEventListeners();
-  
-  console.log('%cWebsiteGenerator fully initialized – Next/Back buttons now ACTIVE', 'color:lime;font-weight:bold');
-});
-</script>
-
-
-
 
 </body>
 </html>
