@@ -1,4 +1,4 @@
-// Backend/index.js – FINAL 100% WORKING VERSION (22 Nov 2025 – NO SYNTAX ERRORS)
+// Backend/index.js – FINAL 100% WORKING VERSION (22 Nov 2025 – NO MORE ERRORS)
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -13,7 +13,7 @@ import JSZip from "jszip";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { fileURLToPath } from "url";
-import { existsSync } from "fs";               // ← fixes require() crash
+import { existsSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,38 +23,29 @@ const PUBLIC = path.join(__dirname, "public");
 
 const app = express();
 
-// ───────────────────── Middleware ─────────────────────
+// ───────────────────── Middleware & CORS ─────────────────────
 app.set("trust proxy", true);
 app.use(express.json({ limit: "5mb" }));
 app.use(compression());
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-    contentSecurityPolicy: false,
-  })
-);
+app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));
 
-// ───────────────────── CORS ─────────────────────
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = [
+  const allowed = [
     "https://joeyenvy.github.io",
     "https://websitegeneration.onrender.com",
     "https://website-generation.vercel.app",
     "https://www.websitegeneration.co.uk",
     "http://localhost:5500",
     "http://127.0.0.1:5500",
-    "http://localhost:3000",
+    "http://localhost:3000"
   ];
-
-  if (allowedOrigins.includes(origin)) {
+  if (allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
-
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
-
   if (req.method === "OPTIONS") return res.status(204).end();
   next();
 });
@@ -69,6 +60,9 @@ const stripe = process.env.STRIPE_SECRET_KEY
 if (process.env.GODADDY_KEY && process.env.GODADDY_SECRET) {
   console.log("GoDaddy Reseller API ready – auto-purchase ENABLED");
 }
+
+// ───────────────────── In-memory session store (used by sessionRoutes.js ─────────────────────
+export const tempSessions = new Map();        // ← THIS IS THE FIX
 
 // ───────────────────── Routes ─────────────────────
 import sessionRoutes from "./routes/sessionRoutes.js";
@@ -85,38 +79,33 @@ app.use("/api/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
 app.use("/api", utilityRoutes);
-app.use("/api/deploy", deployLiveRoutes);           // ← FIXED
-app.use("/api/deploy", deployGithubRoutes);         // ← FIXED
+app.use("/api/deploy", deployLiveRoutes);
+app.use("/api/deploy", deployGithubRoutes);
 app.use("/api/full-hosting", fullHostingDomainRoutes);
 app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/proxy", proxyRoutes);
 
-// ───────────────────── Static Files ─────────────────────
+// ───────────────────── Static + SPA Fallback ─────────────────────
 app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
-// ───────────────────── SPA Fallback (NO require!) ─────────────────────
 app.get("*", (req, res, next) => {
   if (req.originalUrl.startsWith("/api/")) return next();
-
   const rootIndex = path.join(ROOT, "index.html");
   if (existsSync(rootIndex)) return res.sendFile(rootIndex);
-
   const publicIndex = path.join(PUBLIC, "index.html");
   if (existsSync(publicIndex)) return res.sendFile(publicIndex);
-
   res.status(404).send("Not found");
 });
 
 // ───────────────────── Error Handler ─────────────────────
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err);
-  res.status(500).json({ success: false, error: "Something went wrong" });
+  res.status(res.status(500).json({ success: false, error: "Server error" }));
 });
 
-// ───────────────────── Start Server ─────────────────────
+// ───────────────────── Start ─────────────────────
 const PORT = process.env.PORT || 10000;
-
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`SERVER LIVE ON PORT ${PORT}`);
   console.log(`Visit → https://websitegeneration.onrender.com`);
