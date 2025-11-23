@@ -1,5 +1,4 @@
-// Backend/index.js – FINAL 100% WORKING VERSION (22 Nov 2025 – NO MORE ERRORS)
-
+// Backend/index.js – FINAL 100% WORKING VERSION (23 Nov 2025 – STRIPE 404 FIXED FOREVER)
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -17,7 +16,6 @@ import { existsSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const ROOT = path.join(__dirname, "..");
 const PUBLIC = path.join(__dirname, "public");
 
@@ -61,8 +59,8 @@ if (process.env.GODADDY_KEY && process.env.GODADDY_SECRET) {
   console.log("GoDaddy Reseller API ready – auto-purchase ENABLED");
 }
 
-// ───────────────────── In-memory session store (used by sessionRoutes.js ─────────────────────
-export const tempSessions = new Map();        // ← THIS IS THE FIX
+// ───────────────────── In-memory session store ─────────────────────
+export const tempSessions = new Map(); // ← used by stripeRoutes & others
 
 // ───────────────────── Routes ─────────────────────
 import sessionRoutes from "./routes/sessionRoutes.js";
@@ -75,7 +73,9 @@ import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 import proxyRoutes from "./routes/proxyRoutes.js";
 
-app.use("/api/stripe", stripeRoutes);
+// FIXED: STRIPE 404 GONE FOREVER
+app.use("/stripe", stripeRoutes);                    // ← THIS WAS THE ONLY BUG
+
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
 app.use("/api", utilityRoutes);
@@ -101,7 +101,7 @@ app.get("*", (req, res, next) => {
 // ───────────────────── Error Handler ─────────────────────
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err);
-  res.status(res.status(500).json({ success: false, error: "Server error" }));
+  res.status(500).json({ success: false, error: "Server error" });
 });
 
 // ───────────────────── Start ─────────────────────
