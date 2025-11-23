@@ -1,5 +1,4 @@
 // routes/stripeRoutes.js – FINAL 100% COMPLETE & WORKING (23 Nov 2025)
-
 import express from "express";
 import Stripe from "stripe";
 import { tempSessions } from "../index.js";
@@ -22,20 +21,18 @@ const isValidDomain = (d) =>
 
 const clampYears = (n) => Math.max(1, Math.min(10, parseInt(n, 10) || 1));
 
-// REAL PRICES IN PENCE (GBP)
+// REAL PRICES IN PENCE (GBP) – FIXED: NO STRAY {
 const priceMap = {
-  {
-  "zip-download":        { price:  500, name: "ZIP Download Only" },
-  "github-instructions": { price:  999, name: "GitHub Instructions" },
-  "github-hosted":       { price: 1999, name: "GitHub Pages Hosting" },
-  "netlify-hosted":      { price: 1999, name: "Netlify Hosting" },
-  "full-hosting":        { price: 2999, name: "Full Hosting + Custom Domain – £29.99" },
+  "zip-download": { price: 500, name: "ZIP Download Only" },
+  "github-instructions": { price: 999, name: "GitHub Instructions" },
+  "github-hosted": { price: 1999, name: "GitHub Pages Hosting" },
+  "netlify-hosted": { price: 1999, name: "Netlify Hosting" },
+  "full-hosting": { price: 2999, name: "Full Hosting + Custom Domain – £29.99" },
 };
 
 // CREATE CHECKOUT SESSION – ONLY ROUTE YOU NEED
 router.post("/create-checkout-session", async (req, res) => {
   console.log("Stripe checkout request:", req.body);
-
   try {
     const {
       type = "full-hosting",
@@ -53,7 +50,7 @@ router.post("/create-checkout-session", async (req, res) => {
     const domain = rawDomain.trim().toLowerCase();
     const years = clampYears(durationYears);
 
-    if type === "full-hosting" && (!domain || !isValidDomain(domain))) {
+    if (type === "full-hosting" && (!domain || !isValidDomain(domain))) {
       return res.status(400).json({ error: "Valid domain required for full-hosting" });
     }
 
@@ -96,7 +93,6 @@ router.post("/create-checkout-session", async (req, res) => {
 
     console.log("Stripe session created →", session.id);
     res.json({ url: session.url });
-
   } catch (err) {
     console.error("Stripe error:", err);
     res.status(500).json({ error: "Payment setup failed" });
