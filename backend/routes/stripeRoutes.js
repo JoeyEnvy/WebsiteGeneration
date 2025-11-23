@@ -21,7 +21,7 @@ const isValidDomain = (d) =>
 
 const clampYears = (n) => Math.max(1, Math.min(10, parseInt(n, 10) || 1));
 
-// REAL PRICES IN PENCE (GBP) – FIXED: NO STRAY {
+// REAL PRICES IN PENCE (GBP) – FIXED SYNTAX, 50P TEST MODE
 const priceMap = {
   "zip-download": { price: 500, name: "ZIP Download Only" },
   "github-instructions": { price: 999, name: "GitHub Instructions" },
@@ -99,4 +99,4 @@ router.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-export default router;f"full-hosting": { price: 2999, name: "Full Hosting + Custom Domain – £29.99" },
+export default router;
