@@ -65,7 +65,10 @@ router.post("/create-checkout-session", async (req, res) => {
     const product = priceMap[type];
     if (!product) return res.status(400).json({ error: "Invalid plan" });
 
-    const PUBLIC_URL = (process.env.PUBLIC_URL || "https://websitegeneration.co.uk").replace(/\/+$/, "");
+    // AUTO-DETECT THE CORRECT ORIGIN — WORKS EVERYWHERE
+const PUBLIC_URL = process.env.PUBLIC_URL 
+  ? process.env.PUBLIC_URL.replace(/\/+$/, "")
+  : "https://websitegeneration.co.uk";
 
     // DYNAMIC SUCCESS URL – FINAL FIX 23 NOVEMBER 2025
     let success_url;

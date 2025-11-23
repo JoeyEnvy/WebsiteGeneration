@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
           buyBtn.disabled = true;
 
           try {
-            const res = await fetch(`${window.API_BASE}/api/stripe/create-checkout-session`, {
+           const res = await fetch(`${window.API_BASE}/stripe/create-checkout-session`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
