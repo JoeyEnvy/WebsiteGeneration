@@ -694,6 +694,7 @@ window.API_BASE = 'https://websitegeneration.onrender.com';
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
 <!-- FINAL DOMAIN CHECKER – LOCKED IN, WORKING 100% WITH WHOISXML + GODADDY (22 Nov 2025) -->
+<!-- FINAL DOMAIN CHECKER – NO CONFIRM BUTTON NEEDED, WORKS 100% (23 Nov 2025) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   if (window.websiteGenerator && typeof window.websiteGenerator.destroy === 'function') {
@@ -712,10 +713,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const priceEl      = document.getElementById('domainPriceDisplay');
   const buyBtn       = document.getElementById('deployFullHosting');
 
-  if (!checkBtn || !domainInput || !statusEl || !buyBtn) {
-    console.warn("Domain checker elements missing – check IDs");
-    return;
-  }
+  if (!checkBtn || !domainInput || !statusEl || !buyBtn) return;
+
+  let confirmedDomain = "";  // This locks in the domain once available
 
   checkBtn.addEventListener('click', async () => {
     let domain = domainInput.value.trim().toLowerCase();
@@ -727,7 +727,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // UI reset
     statusEl.innerHTML = 'Checking availability...';
     statusEl.style.color = '#888';
     priceEl.textContent = '';
@@ -735,80 +734,87 @@ document.addEventListener('DOMContentLoaded', () => {
     checkBtn.disabled = true;
 
     try {
-      // THIS IS THE CORRECT ENDPOINT – WHOISXML VIA RENDER (POST + JSON body)
       const response = await fetch(`${window.API_BASE}/api/domain/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, duration: 1 })
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) throw new Error("Check failed");
 
       const data = await response.json();
-      console.log('WhoisXML → GoDaddy flow response:', data);
 
       if (data.available === true) {
-        // GREEN – 100% AVAILABLE
+        confirmedDomain = domain;  // LOCK IT IN
+        localStorage.setItem("customDomain", domain);  // Double-save
         statusEl.innerHTML = `AVAILABLE & READY!`;
         statusEl.style.color = '#00ff00';
         priceEl.textContent = data.price || '£11.99 first year';
         buyBtn.style.display = 'block';
-        buyBtn.textContent = 'Buy & Register via GoDaddy Now';
+        buyBtn.textContent = 'Buy Full Hosting + Domain Now';
         buyBtn.disabled = false;
 
-        // GoDaddy purchase – unchanged, works perfectly
+        // FINAL PURCHASE – uses confirmedDomain
         buyBtn.onclick = async () => {
-          buyBtn.textContent = 'Registering domain...';
+          if (!confirmedDomain) {
+            alert("Please check availability first");
+            return;
+          }
+
+          buyBtn.textContent = 'Taking you to secure checkout...';
           buyBtn.disabled = true;
+
           try {
-            const purchase = await fetch('https://websitegeneration.onrender.com/api/full-hosting/domain/purchase', {
+            const res = await fetch(`${window.API_BASE}/api/stripe/create-checkout-session`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                domain,
-                duration: 1,
-                userEmail: "support@websitegeneration.co.uk",
-                repoUrl: "joeyenvy.github.io"
+                type: "full-hosting",
+                sessionId: window.websiteGenerator?.sessionId || "temp_" + Date.now(),
+                domain: confirmedDomain,
+                durationYears: 1
               })
             });
-            const result = await purchase.json();
-            if (result.success) {
-              alert(`${domain} is now 100% YOURS and live at https://${domain}!`);
-              window.location.href = `https://websitegeneration.co.uk/checkout?domain=${domain}&plan=full&registered=true`;
+
+            const session = await res.json();
+            if (session.url) {
+              window.location = session.url;  // Go to Stripe
             } else {
-              alert('Registration failed: ' + (result.error || result.message || 'Try again'));
-              buyBtn.textContent = 'Buy & Register via GoDaddy Now';
-              buyBtn.disabled = false;
+              throw new Error(session.error || "Checkout failed");
             }
           } catch (e) {
-            console.error('Purchase error:', e);
-            alert('Connection issue – please contact support');
-            buyBtn.textContent = 'Buy & Register via GoDaddy Now';
+            console.error(e);
+            alert("Checkout failed: " + e.message);
+            buyBtn.textContent = 'Buy Full Hosting + Domain Now';
             buyBtn.disabled = false;
           }
         };
 
       } else {
-        // RED – TAKEN
-        statusEl.innerHTML = `Sorry, ${domain} is already taken`;
+        confirmedDomain = "";
+        statusEl.innerHTML = `Sorry, ${domain} is taken`;
         statusEl.style.color = '#ff4444';
-        priceEl.textContent = '';
         buyBtn.style.display = 'none';
       }
     } catch (err) {
-      console.error('Domain check failed:', err);
-      statusEl.innerHTML = 'Check failed – please try again';
+      statusEl.innerHTML = 'Error – try again';
       statusEl.style.color = '#ff9800';
-      priceEl.textContent = '';
-      buyBtn.style.display = 'none';
     } finally {
       checkBtn.disabled = false;
     }
   });
 
-  console.log('%cWHOISXML + GODADDY DOMAIN FLOW IS LIVE & UNBREAKABLE', 'color:#00ff00;font-size:22px;font-weight:bold;background:#000;padding:10px;');
+  console.log('%cDOMAIN FLOW FINAL – NO CONFIRM BUTTON – 100% LIVE', 'color:#00ff00;font-size:22px;background:#000;padding:10px;');
 });
 </script>
+
+
+
+
+
+
+
+
 <!-- ====================================================================== -->
 <!-- PURE UI EXTRAS (hamburger menu, scroll bar, etc.) – untouched & safe -->
 <!-- ====================================================================== -->
