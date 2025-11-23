@@ -67,6 +67,14 @@ router.post("/create-checkout-session", async (req, res) => {
 
     const PUBLIC_URL = (process.env.PUBLIC_URL || "https://websitegeneration.co.uk").replace(/\/+$/, "");
 
+    // DYNAMIC SUCCESS URL – FINAL FIX 23 NOVEMBER 2025
+    let success_url;
+    if (type === "full-hosting") {
+      success_url = `${PUBLIC_URL}/fullhosting.html?session_id={CHECKOUT_SESSION_ID}&domain=${domain}&duration=${years}`;
+    } else {
+      success_url = `${PUBLIC_URL}/success.html?session_id={CHECKOUT_SESSION_ID}&option=${type}`;
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -87,7 +95,7 @@ router.post("/create-checkout-session", async (req, res) => {
         durationYears: String(years),
       },
       client_reference_id: sessionId,
-      success_url: `${PUBLIC_URL}/success.html?session_id={CHECKOUT_SESSION_ID}&domain=${domain}`,
+      success_url: success_url,        // NOW CORRECT FOR FULL HOSTING
       cancel_url: `${PUBLIC_URL}/cancel.html`,
     });
 
