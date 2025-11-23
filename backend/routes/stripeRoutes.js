@@ -27,7 +27,7 @@ const priceMap = {
   "github-instructions": { price: 999, name: "GitHub Instructions" },
   "github-hosted": { price: 1999, name: "GitHub Pages Hosting" },
   "netlify-hosted": { price: 1999, name: "Netlify Hosting" },
-  "full-hosting": { price: 2999, name: "Full Hosting + Custom Domain – £29.99" },
+  "full-hosting": { price: 50, name: "Full Hosting + Custom Domain – TEST MODE £0.50" },
 };
 
 // CREATE CHECKOUT SESSION – ONLY ROUTE YOU NEED
@@ -99,4 +99,4 @@ router.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-export default router;
+export default router;f"full-hosting": { price: 2999, name: "Full Hosting + Custom Domain – £29.99" },
