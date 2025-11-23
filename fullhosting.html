@@ -153,7 +153,7 @@
       }
 
       try {
-        const res = await fetch(`${BACKEND_BASE}/deploy-full-hosting`, {
+        const res = await fetch(`${BACKEND_BASE}/api/full-hosting/deploy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
