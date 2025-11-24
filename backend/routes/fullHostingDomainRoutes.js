@@ -67,7 +67,8 @@ router.post("/domain/price", async (req, res) => {
   }
 });
 
-// 3. PURCHASE DOMAIN – NOW ALLOWS INTERNAL WEBHOOK CALLS
+// 3. PURCHASE DOMAIN – FINAL CLEAN VERSION (25 Nov 2025)
+// ONLY buys the domain. DNS is set LATER in fullHostingGithubRoutes.js
 router.post("/domain/purchase", async (req, res) => {
   const userAgent = req.headers["user-agent"] || "";
   const isStripe = userAgent.includes("Stripe/");
@@ -75,6 +76,7 @@ router.post("/domain/purchase", async (req, res) => {
                      req.ip === "127.0.0.1" ||
                      req.hostname.includes("onrender.com");
 
+  // Block direct external access — only Stripe or internal webhook allowed
   if (!isStripe && !isInternal) {
     console.log("BLOCKED direct domain purchase → IP:", req.ip, "UA:", userAgent);
     return res.status(403).json({ success: false, error: "Direct domain purchase forbidden" });
@@ -84,8 +86,8 @@ router.post("/domain/purchase", async (req, res) => {
     domain,
     duration = 1,
     userEmail = "support@websitegeneration.co.uk",
-    userIP = "127.0.0.1",
-    repoUrl = "joeyenvy.github.io"
+    userIP = "127.0.0.1"
+    // repoUrl REMOVED FOREVER — we don't know it yet!
   } = req.body;
 
   if (!domain || !isValidDomain(domain)) {
@@ -104,12 +106,13 @@ router.post("/domain/purchase", async (req, res) => {
       `https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(domain)}`,
       { headers: { Authorization: `sso-key ${key}:${secret}` } }
     ).then(r => r.json());
+
     const result = Array.isArray(avail) ? avail[0] : avail;
     if (!result.available) {
       return res.json({ success: false, message: "Domain no longer available" });
     }
 
-    // ACTUAL PURCHASE
+    // ACTUAL PURCHASE — CLEAN & SAFE
     const purchaseResp = await fetch("https://api.godaddy.com/v1/domains/purchase", {
       method: "POST",
       headers: {
@@ -130,8 +133,8 @@ router.post("/domain/purchase", async (req, res) => {
         contactRegistrant: { email: userEmail },
         privacy: true,
         renewAuto: true,
-        currency: "GBP",
-        nameServers: ["ns1.vercel-dns.com", "ns2.vercel-dns.com"]
+        currency: "GBP"
+        // NO nameServers → GoDaddy defaults are fine
       })
     });
 
@@ -145,33 +148,20 @@ router.post("/domain/purchase", async (req, res) => {
       });
     }
 
-    // Point CNAME to GitHub Pages
-    await fetch(`https://api.godaddy.com/v1/domains/${domain}/records/CNAME/@`, {
-      method: "PUT",
-      headers: {
-        Authorization: `sso-key ${key}:${secret}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify([{
-        type: "CNAME",
-        name: "@",
-        data: repoUrl.replace("https://", "").replace("/", ""),
-        ttl: 600
-      }])
-    }).catch(err => console.warn("CNAME update failed:", err.message));
+    // NO CNAME SETTING HERE — MOVED TO DEPLOY STEP
+    console.log(`DOMAIN SUCCESSFULLY PURCHASED: ${domain} (Order ID: ${purchaseData.orderId})`);
+    console.log("DNS will be configured automatically after GitHub Pages deploy");
 
-    console.log(`DOMAIN PURCHASED & POINTED: ${domain} → ${repoUrl}`);
     res.json({
       success: true,
       domain,
       orderId: purchaseData.orderId,
-      message: "Domain registered and DNS configured!"
+      message: "Domain registered successfully! Site deployment starting..."
     });
 
   } catch (err) {
-    console.error("Purchase crashed:", err.message);
-    res.status(500).json({ success: false, error: "Server error" });
+    console.error("Domain purchase crashed:", err.message);
+    res.status(500).json({ success: false, error: "Server error during purchase" });
   }
 });
-
 export default router;
