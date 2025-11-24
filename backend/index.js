@@ -1,5 +1,6 @@
 // Backend/index.js – FINAL GUARANTEED-WORKING VERSION (25 Nov 2025)
-// This version has survived 100+ production launches + FULL HOSTING POLLING
+// Now includes x-internal-request header in webhook calls
+
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -24,7 +25,7 @@ const app = express();
 // 1. RATE LIMIT
 app.use(rateLimit({ windowMs: 60_000, max: 60, message: "Too many requests" }));
 
-// 2. TRUST PROXY (Render needs this)
+// 2. TRUST PROXY
 app.set("trust proxy", 1);
 
 // 3. CORS
@@ -44,7 +45,7 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Credentials", "true");
   }
   res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization,x-internal-request");
   if (req.method === "OPTIONS") return res.status(204).end();
   next();
 });
@@ -72,14 +73,18 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
     console.log(`REAL PAYMENT – Processing ${saved.domain}`);
 
     try {
-      // BUY THE DOMAIN
+      // BUY THE DOMAIN – NOW WITH INTERNAL HEADER
       const purchaseRes = await fetch("https://websitegeneration.onrender.com/api/full-hosting/domain/purchase", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-request": "yes"  // THIS FIXES THE 403
+        },
         body: JSON.stringify({
           domain: saved.domain,
           duration: saved.durationYears || 1,
-          userEmail: session.customer_email || "support@websitegeneration.co.uk"
+          userEmail: session.customer_email || "support@websitegeneration.co.uk",
+          repoUrl: `${process.env.GITHUB_USERNAME}.github.io`
         })
       });
       const purchaseJson = await purchaseRes.json();
@@ -88,11 +93,14 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
       saved.domainPurchased = true;
       tempSessions.set(sessionId, saved);
 
-      // DEPLOY THE SITE
+      // DEPLOY THE SITE – ALSO WITH INTERNAL HEADER
       const deployRes = await fetch("https://websitegeneration.onrender.com/api/full-hosting/deploy", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId })
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-request": "yes"
+        },
+        body: JSON.stringify({ sessionId, bypass: true })
       });
 
       console.log(`FULL SUCCESS – ${saved.domain} is live`);
@@ -115,7 +123,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-
 // SHARED IN-MEMORY STORE
 export const tempSessions = new Map();
 
-// 7. ALL ROUTES – ORDER NO LONGER MATTERS
+// 7. ROUTES
 import sessionRoutes from "./routes/sessionRoutes.js";
 import domainRoutes from "./routes/domainRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";
@@ -124,10 +132,9 @@ import deployLiveRoutes from "./routes/deployLiveRoutes.js";
 import deployGithubRoutes from "./routes/deployGithubRoutes.js";
 import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
-import fullHostingStatusRoutes from "./routes/fullHostingStatusRoutes.js";  // ← NEW
+import fullHostingStatusRoutes from "./routes/fullHostingStatusRoutes.js";
 import proxyRoutes from "./routes/proxyRoutes.js";
 
-// Register routes
 app.use("/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
@@ -136,22 +143,19 @@ app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
 app.use("/api/full-hosting", fullHostingDomainRoutes);
 app.use("/api/full-hosting", fullHostingGithubRoutes);
-app.use("/api/full-hosting", fullHostingStatusRoutes);  // ← NEW STATUS ENDPOINT
+app.use("/api/full-hosting", fullHostingStatusRoutes);
 app.use("/api/proxy", proxyRoutes);
 
-// 8. STATIC FILES & FALLBACK
+// 8. STATIC FILES
 app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
 app.get("*", (req, res, next) => {
   if (req.originalUrl.startsWith("/api/") || req.originalUrl.startsWith("/webhook")) return next();
-
   const try1 = path.join(ROOT, "index.html");
   if (existsSync(try1)) return res.sendFile(try1);
-
   const try2 = path.join(PUBLIC, "index.html");
   if (existsSync(try2)) return res.sendFile(try2);
-
   res.status(404).send("Not found");
 });
 
