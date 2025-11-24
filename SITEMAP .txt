@@ -30,12 +30,45 @@ package.json
                          utilityRoutes.js
 
 
+Backend/                          ← root folder (Render deploys this)
+│
+├── index.js                      ← FINAL version (already given above)
+├── package.json                  ← your existing one (just make sure it has these deps)
+├── 
+│
+├── public/
+│   └── fullhosting.html          ← FINAL success page with polling (already given)
+│
+├── routes/
+│   ├── sessionRoutes.js
+│   ├── domainRoutes.js
+│   ├── stripeRoutes.js
+│   ├── utilityRoutes.js
+│   ├── deployLiveRoutes.js
+│   ├── deployGithubRoutes.js       ← can keep your old one (not used for full-hosting)
+│   ├── fullHostingDomainRoutes.js  ← your working GoDaddy purchase route
+│   ├── fullHostingGithubRoutes.js  ← FINAL version (already given above)
+│   ├── fullHostingStatusRoutes.js  ← ONLY 22 lines – see below
+│   └── proxyRoutes.js
+│
+└── utils/
+    ├── githubUtils.js            ← must have: sanitizeRepoName, getUniqueRepoName, enableGitHubPagesFromBranch
+    ├── dnsUtils.js
+    ├── domainPricing.js
+    └── createNetlifySite.js
+         deployToNetlifyApi.js
+         domainPricing.js
+         netlifyDeploy.js
+
+
+
+
+
 --------- Frontend Files 
 
 Public
 
 core.js
-domainChecker.js
 init.js
 WebsiteGenerator.helpers.js
 WebsiteGenerator.js

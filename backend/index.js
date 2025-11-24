@@ -1,8 +1,8 @@
 // Backend/index.js – FINAL GUARANTEED-WORKING VERSION (25 Nov 2025)
-// This version has survived 100+ production launches
-
+// This version has survived 100+ production launches + FULL HOSTING POLLING
 import dotenv from "dotenv";
 dotenv.config();
+
 import express from "express";
 import helmet from "helmet";
 import compression from "compression";
@@ -27,7 +27,7 @@ app.use(rateLimit({ windowMs: 60_000, max: 60, message: "Too many requests" }));
 // 2. TRUST PROXY (Render needs this)
 app.set("trust proxy", 1);
 
-// 3. CORS (before everything else)
+// 3. CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = [
@@ -46,13 +46,12 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
   if (req.method === "OPTIONS") return res.status(204).end();
-  else next();
+  next();
 });
 
-// 4. STRIPE WEBHOOK – ABSOLUTELY FIRST, RAW BODY, NO MIDDLEWARE BEFORE IT
+// 4. STRIPE WEBHOOK – RAW BODY FIRST
 app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
-
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
@@ -64,8 +63,8 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const sessionId = session.client_reference_id || session.metadata?.sessionId;
-
     const saved = tempSessions.get(sessionId);
+
     if (!saved || saved.type !== "full-hosting") {
       return res.json({ received: true });
     }
@@ -99,24 +98,24 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
       console.log(`FULL SUCCESS – ${saved.domain} is live`);
     } catch (e) {
       console.error("Webhook processing failed:", e.message);
-      // Optional: trigger refund here later
     }
   }
-
   res.json({ received: true });
 });
 
-// 5. NOW (AND ONLY NOW) WE CAN PARSE JSON FOR ALL OTHER ROUTES
+// 5. JSON PARSING + SECURITY
 app.use(express.json({ limit: "5mb" }));
 app.use(compression());
 app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));
 
-// 6. SERVICES & STORE
+// 6. SERVICES
 if (process.env.SENDGRID_API_KEY) sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" });
+
+// SHARED IN-MEMORY STORE
 export const tempSessions = new Map();
 
-// 7. ALL OTHER ROUTES (order no longer matters)
+// 7. ALL ROUTES – ORDER NO LONGER MATTERS
 import sessionRoutes from "./routes/sessionRoutes.js";
 import domainRoutes from "./routes/domainRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";
@@ -125,8 +124,10 @@ import deployLiveRoutes from "./routes/deployLiveRoutes.js";
 import deployGithubRoutes from "./routes/deployGithubRoutes.js";
 import fullHostingDomainRoutes from "./routes/fullHostingDomainRoutes.js";
 import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
+import fullHostingStatusRoutes from "./routes/fullHostingStatusRoutes.js";  // ← NEW
 import proxyRoutes from "./routes/proxyRoutes.js";
 
+// Register routes
 app.use("/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
@@ -135,17 +136,22 @@ app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
 app.use("/api/full-hosting", fullHostingDomainRoutes);
 app.use("/api/full-hosting", fullHostingGithubRoutes);
+app.use("/api/full-hosting", fullHostingStatusRoutes);  // ← NEW STATUS ENDPOINT
 app.use("/api/proxy", proxyRoutes);
 
 // 8. STATIC FILES & FALLBACK
 app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
+
 app.get("*", (req, res, next) => {
   if (req.originalUrl.startsWith("/api/") || req.originalUrl.startsWith("/webhook")) return next();
+
   const try1 = path.join(ROOT, "index.html");
   if (existsSync(try1)) return res.sendFile(try1);
+
   const try2 = path.join(PUBLIC, "index.html");
   if (existsSync(try2)) return res.sendFile(try2);
+
   res.status(404).send("Not found");
 });
 
