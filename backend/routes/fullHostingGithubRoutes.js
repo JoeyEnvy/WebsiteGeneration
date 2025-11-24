@@ -16,7 +16,7 @@ import { setGitHubDNS } from "../utils/dnsUtils.js";
 
 const router = express.Router();
 
-router.post("/deploy-full-hosting/github", async (req, res) => {
+router.post("/deploy", async (req, res) => {
   try {
     const { sessionId = "", businessName = "" } = req.body || {};
     const session = tempSessions[sessionId];
