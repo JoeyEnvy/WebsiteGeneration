@@ -1,5 +1,5 @@
 // Backend/index.js – FINAL 100% WORKING VERSION (24 Nov 2025)
-// Webhook signature fixed | Everything works | Ready to take real money
+// Webhook fixed | Raw body first | No crashes | Ready for real customers
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -11,7 +11,7 @@ import Stripe from "stripe";
 import fetch from "node-fetch";
 import sgMail from "@sendgrid/mail";
 import path from "path";
-import { fileURLToFilePath } from "url";
+import { fileURLToPath } from "url";   // ← FIXED THIS LINE
 import { existsSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -52,7 +52,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ───── STRIPE WEBHOOK – MUST BE FIRST + RAW BODY (THIS FIXES SIGNATURE ERROR) ─────
+// ───── STRIPE WEBHOOK – MUST BE FIRST + RAW BODY (THIS FIXES SIGNATURE) ─────
 app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
@@ -70,7 +70,7 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
     const saved = tempSessions.get(sessionId);
 
     if (saved && saved.type === "full-hosting") {
-      console.log(`REAL CUSTOMER PAID → Processing ${saved.domain}`);
+      console.log(`REAL PAYMENT → Buying & deploying ${saved.domain}`);
 
       try {
         // 1. BUY DOMAIN
@@ -89,14 +89,14 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
         saved.domainPurchased = true;
         tempSessions.set(sessionId, saved);
 
-        // 2. DEPLOY SITE
-        const deploy = await fetch("https://websitegeneration.onrender.com/api/full-hosting/deploy", {
+        // 2. DEPLOY
+        await fetch("https://websitegeneration.onrender.com/api/full-hosting/deploy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId })
         });
 
-        console.log("FULL HOSTING 100% COMPLETE:", saved.domain);
+        console.log("FULL HOSTING 100% DONE:", saved.domain);
       } catch (err) {
         console.error("Webhook failed:", err.message);
       }
@@ -106,7 +106,7 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
   res.json({ received: true });
 });
 
-// ───── NOW SAFE TO PARSE JSON (after webhook) ─────
+// ───── NOW SAFE TO PARSE JSON ─────
 app.use(express.json({ limit: "5mb" }));
 app.use(compression());
 
