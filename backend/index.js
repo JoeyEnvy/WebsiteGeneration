@@ -1,5 +1,5 @@
-// Backend/index.js – FINAL RENDER + STRIPE WEBHOOK 100% WORKING (25 Nov 2025)
-// Fixed: express.raw() added → "No webhook payload" error GONE FOREVER
+// Backend/index.js – FINAL 100% WORKING ON RENDER (25 Nov 2025)
+// Fixed: Internal calls via localhost → Cloudflare bypassed → domain purchase SUCCESS
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -50,7 +50,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 4. STRIPE WEBHOOK – THE ONLY VERSION THAT WORKS ON RENDER (raw body + instant ack)
+// 4. STRIPE WEBHOOK – FINAL VERSION (raw body + localhost internal calls)
 app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res) => {
   const sig = req.headers['stripe-signature'];
 
@@ -62,10 +62,9 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // INSTANT 200 — Stripe + Render are happy
+  // Instant 200 — Stripe + Render happy
   res.json({ received: true });
 
-  // Background processing — Stripe doesn't wait
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const sessionId = session.client_reference_id || session.metadata?.sessionId || session.id;
@@ -78,8 +77,8 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res
         try {
           console.log(`STARTING FULL HOSTING → ${saved.domain}`);
 
-          // BUY DOMAIN
-          const purchase = await fetch('https://websitegeneration.onrender.com/api/full-hosting/domain/purchase', {
+          // BUY DOMAIN — TRUE INTERNAL CALL (localhost bypasses Cloudflare)
+          const purchase = await fetch('http://localhost:10000/api/full-hosting/domain/purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-internal-request': 'yes' },
             body: JSON.stringify({
@@ -90,13 +89,12 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res
           });
           const pResult = await purchase.json();
           if (!pResult.success) throw new Error(pResult.error || 'Domain purchase failed');
-
           console.log(`DOMAIN PURCHASED → ${saved.domain}`);
           saved.domainPurchased = true;
           tempSessions.set(sessionId, saved);
 
-          // DEPLOY
-          const deploy = await fetch('https://websitegeneration.onrender.com/api/full-hosting/deploy', {
+          // DEPLOY — TRUE INTERNAL CALL
+          const deploy = await fetch('http://localhost:10000/api/full-hosting/deploy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-internal-request': 'yes' },
             body: JSON.stringify({ sessionId })
@@ -112,7 +110,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res
   }
 });
 
-// 5. JSON + SECURITY (AFTER webhook — important!)
+// 5. JSON + SECURITY (after webhook)
 app.use(express.json({ limit: "5mb" }));
 app.use(compression());
 app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));
