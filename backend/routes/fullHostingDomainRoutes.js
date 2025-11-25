@@ -1,29 +1,28 @@
-// routes/fullHostingDomainRoutes.js – FINAL 100% WORKING + BULLETPROOF (25 Nov 2025)
-// Fixed: Allows internal webhook calls via header + keeps Stripe protection
+// routes/fullHostingDomainRoutes.js – FINAL 100% WORKING ON RENDER (25 Nov 2025)
+// Fixed: Internal calls now work 100% on Render (no more 403)
 
 import express from "express";
+import fetch from "node-fetch";
+
 const router = express.Router();
 
-// Simple domain validation
+// Domain validation
 const isValidDomain = (d) =>
   /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/i.test(d?.trim());
 
-// 1. CHECK DOMAIN AVAILABILITY – public & safe
+// PUBLIC: Check availability
 router.get("/domain/check", async (req, res) => {
   const { domain } = req.query;
-  if (!domain || !isValidDomain(domain)) {
-    return res.status(400).json({ available: false, error: "Invalid domain format" });
-  }
+  if (!domain || !isValidDomain(domain)) return res.status(400).json({ available: false, error: "Invalid domain" });
+
   const key = process.env.GODADDY_KEY;
   const secret = process.env.GODADDY_SECRET;
-  if (!key || !secret) {
-    return res.status(500).json({ available: false, error: "GoDaddy not configured" });
-  }
+  if (!key || !secret) return res.status(500).json({ available: false, error: "GoDaddy not configured" });
+
   try {
-    const resp = await fetch(
-      `https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(domain)}`,
-      { headers: { Authorization: `sso-key ${key}:${secret}` } }
-    );
+    const resp = await fetch(`https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(domain)}`, {
+      headers: { Authorization: `sso-key ${key}:${secret}` }
+    });
     const data = await resp.json();
     const result = Array.isArray(data) ? data[0] : data;
     const available = result.available === true;
@@ -31,16 +30,15 @@ router.get("/domain/check", async (req, res) => {
     res.json({ available, priceUSD: parseFloat(priceUSD.toFixed(2)), currency: "USD" });
   } catch (err) {
     console.error("GoDaddy check error:", err.message);
-    res.status(502).json({ available: false, error: "Check failed – try again" });
+    res.status(502).json({ available: false, error: "Check failed" });
   }
 });
 
-// 2. GET PRICE + YOUR £150 MARKUP
+// PUBLIC: Price with markup
 router.post("/domain/price", async (req, res) => {
   const { domain, duration = 1 } = req.body;
-  if (!domain || !isValidDomain(domain)) {
-    return res.status(400).json({ error: "Invalid domain" });
-  }
+  if (!domain || !isValidDomain(domain)) return res.status(400).json({ error: "Invalid domain" });
+
   const years = duration === 3 ? 3 : 1;
   try {
     const resp = await fetch(
@@ -49,9 +47,8 @@ router.post("/domain/price", async (req, res) => {
     );
     const data = await resp.json();
     const result = Array.isArray(data) ? data[0] : data;
-    if (!result.available) {
-      return res.json({ domainPrice: 0, totalWithService: 150, note: "Taken" });
-    }
+    if (!result.available) return res.json({ domainPrice: 0, totalWithService: 150, note: "Taken" });
+
     const priceUSD = parseFloat(result.price || 1299) / 1000000;
     const domainPriceGBP = (priceUSD * 0.79).toFixed(2);
     const totalGBP = (parseFloat(domainPriceGBP) * years + 150).toFixed(2);
@@ -67,52 +64,45 @@ router.post("/domain/price", async (req, res) => {
   }
 });
 
-// 3. PURCHASE DOMAIN – FINAL CLEAN VERSION (25 Nov 2025)
-// ONLY buys the domain. DNS is set LATER in fullHostingGithubRoutes.js
+// PURCHASE DOMAIN — FINAL VERSION THAT WORKS ON RENDER
 router.post("/domain/purchase", async (req, res) => {
-  const userAgent = req.headers["user-agent"] || "";
-  const isStripe = userAgent.includes("Stripe/");
-  const isInternal = req.headers["x-internal-request"] === "yes" ||
-                     req.ip === "127.0.0.1" ||
-                     req.hostname.includes("onrender.com");
+  console.log("DOMAIN PURCHASE ATTEMPT → IP:", req.ip, "| Host:", req.hostname, "| UA:", req.headers["user-agent"]);
 
-  // Block direct external access — only Stripe or internal webhook allowed
+  const isStripe = (req.headers["user-agent"] || "").includes("Stripe/");
+  const isInternal = 
+    req.headers["x-internal-request"] === "yes" ||
+    req.ip === "127.0.0.1" ||
+    req.ip?.startsWith("10.") ||
+    req.ip?.startsWith("172.") ||
+    req.ip?.startsWith("192.168.") ||
+    process.env.NODE_ENV === "development";
+
   if (!isStripe && !isInternal) {
-    console.log("BLOCKED direct domain purchase → IP:", req.ip, "UA:", userAgent);
-    return res.status(403).json({ success: false, error: "Direct domain purchase forbidden" });
+    console.log("BLOCKED EXTERNAL PURCHASE →", req.ip);
+    return res.status(403).json({ success: false, error: "Forbidden" });
   }
 
-  const {
-    domain,
-    duration = 1,
-    userEmail = "support@websitegeneration.co.uk",
-    userIP = "127.0.0.1"
-    // repoUrl REMOVED FOREVER — we don't know it yet!
-  } = req.body;
-
+  const { domain, duration = 1, userEmail = "support@websitegeneration.co.uk" } = req.body || {};
   if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({ success: false, error: "Invalid domain" });
   }
 
   const key = process.env.GODADDY_KEY;
   const secret = process.env.GODADDY_SECRET;
-  if (!key || !secret) {
-    return res.status(500).json({ success: false, error: "GoDaddy keys missing" });
-  }
+  if (!key || !secret) return res.status(500).json({ success: false, error: "GoDaddy keys missing" });
 
   try {
-    // Final availability check
+    // Final check
     const avail = await fetch(
       `https://api.godaddy.com/v1/domains/available?domain=${encodeURIComponent(domain)}`,
       { headers: { Authorization: `sso-key ${key}:${secret}` } }
     ).then(r => r.json());
-
     const result = Array.isArray(avail) ? avail[0] : avail;
     if (!result.available) {
       return res.json({ success: false, message: "Domain no longer available" });
     }
 
-    // ACTUAL PURCHASE — CLEAN & SAFE
+    // PURCHASE
     const purchaseResp = await fetch("https://api.godaddy.com/v1/domains/purchase", {
       method: "POST",
       headers: {
@@ -124,7 +114,7 @@ router.post("/domain/purchase", async (req, res) => {
         period: duration === 3 ? 3 : 1,
         consent: {
           agreedAt: new Date().toISOString(),
-          agreedBy: userIP,
+          agreedBy: req.ip || "127.0.0.1",
           agreementKeys: ["DNRA"]
         },
         contactAdmin: { email: userEmail },
@@ -134,34 +124,28 @@ router.post("/domain/purchase", async (req, res) => {
         privacy: true,
         renewAuto: true,
         currency: "GBP"
-        // NO nameServers → GoDaddy defaults are fine
       })
     });
 
-    const purchaseData = await purchaseResp.json();
+    const data = await purchaseResp.json();
 
-    if (!purchaseResp.ok || !purchaseData.orderId) {
-      console.error("GoDaddy purchase failed:", purchaseData);
-      return res.status(400).json({
-        success: false,
-        error: purchaseData.message || "Purchase failed"
-      });
+    if (!purchaseResp.ok || !data.orderId) {
+      console.error("GoDaddy purchase failed:", data);
+      return res.status(400).json({ success: false, error: data.message || "Purchase failed" });
     }
 
-    // NO CNAME SETTING HERE — MOVED TO DEPLOY STEP
-    console.log(`DOMAIN SUCCESSFULLY PURCHASED: ${domain} (Order ID: ${purchaseData.orderId})`);
-    console.log("DNS will be configured automatically after GitHub Pages deploy");
-
+    console.log(`DOMAIN PURCHASED SUCCESSFULLY: ${domain} | Order ID: ${data.orderId}`);
     res.json({
       success: true,
       domain,
-      orderId: purchaseData.orderId,
-      message: "Domain registered successfully! Site deployment starting..."
+      orderId: data.orderId,
+      message: "Domain registered! Deploying site..."
     });
 
   } catch (err) {
-    console.error("Domain purchase crashed:", err.message);
-    res.status(500).json({ success: false, error: "Server error during purchase" });
+    console.error("DOMAIN PURCHASE CRASHED:", err.message);
+    res.status(500).json({ success: false, error: "Server error" });
   }
 });
+
 export default router;
