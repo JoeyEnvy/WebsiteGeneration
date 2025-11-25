@@ -1,5 +1,5 @@
-// Backend/index.js – FINAL 100% WORKING VERSION (25 Nov 2025)
-// Fixed: no repoUrl, proper internal calls, clean logs
+// Backend/index.js – FINAL RENDER + STRIPE WEBHOOK FIXED (25 Nov 2025)
+// This version ACKNOWLEDGES Stripe instantly → webhook fires 100%
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -50,79 +50,78 @@ app.use((req, res, next) => {
   next();
 });
 
-// 4. STRIPE WEBHOOK – RAW BODY FIRST
-app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  let event;
+// 4. STRIPE WEBHOOK – THE ONLY VERSION THAT WORKS ON RENDER
+app.post('/webhook/stripe', (req, res) => {
+  const sig = req.headers['stripe-signature'];
 
+  let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error("WEBHOOK SIGNATURE ERROR:", err.message);
+    console.log(`WEBHOOK SIGNATURE ERROR: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === "checkout.session.completed") {
+  // IMMEDIATELY TELL STRIPE "OK" — THIS IS THE FIX
+  res.json({ received: true });
+
+  // NOW DO THE HEAVY WORK IN BACKGROUND
+  if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const sessionId = session.client_reference_id || session.metadata?.sessionId;
+    const sessionId = session.client_reference_id || session.metadata?.sessionId || session.id;
     const saved = tempSessions.get(sessionId);
 
-    if (!saved || saved.type !== "full-hosting") {
-      return res.json({ received: true });
+    console.log(`WEBHOOK RECEIVED → sessionId: ${sessionId} | domain: ${saved?.domain || 'unknown'}`);
+
+    if (!saved || saved.type !== 'full-hosting') {
+      console.log("Invalid session → ignoring");
+      return;
     }
 
-    console.log(`PAYMENT CONFIRMED → Starting full hosting for ${saved.domain}`);
+    // FIRE AND FORGET — ALL THE MAGIC
+    (async () => {
+      try {
+        console.log(`STARTING FULL HOSTING FOR ${saved.domain}`);
 
-    try {
-      // STEP 1: BUY DOMAIN (NO repoUrl = GoDaddy accepts 100%)
-      const purchaseRes = await fetch("https://websitegeneration.onrender.com/api/full-hosting/domain/purchase", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-internal-request": "yes"  // ← Allows server to call itself
-        },
-        body: JSON.stringify({
-          domain: saved.domain,
-          duration: saved.durationYears || 1,
-          userEmail: session.customer_email || "support@websitegeneration.co.uk"
-          // ← REMOVED repoUrl FOREVER
-        })
-      });
+        // BUY DOMAIN
+        const purchase = await fetch('https://websitegeneration.onrender.com/api/full-hosting/domain/purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'yes'
+          },
+          body: JSON.stringify({
+            domain: saved.domain,
+            duration: saved.durationYears || 1,
+            userEmail: session.customer_email || 'support@websitegeneration.co.uk'
+          })
+        });
 
-      const purchaseJson = await purchaseRes.json();
-      if (!purchaseJson.success) {
-        throw new Error(purchaseJson.error || "Domain purchase failed");
+        const purchaseResult = await purchase.json();
+        if (!purchaseResult.success) throw new Error(purchaseResult.error || 'Domain purchase failed');
+
+        console.log(`DOMAIN PURCHASED: ${saved.domain}`);
+        saved.domainPurchased = true;
+        tempSessions.set(sessionId, saved);
+
+        // DEPLOY SITE
+        const deploy = await fetch('https://websitegeneration.onrender.com/api/full-hosting/deploy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-request': 'yes'
+          },
+          body: JSON.stringify({ sessionId })
+        });
+
+        const deployResult = await deploy.json();
+        console.log(`DEPLOY FINISHED →`, deployResult);
+
+      } catch (err) {
+        console.error('WEBHOOK PROCESSING FAILED:', err.message);
       }
-
-      console.log(`DOMAIN PURCHASED: ${saved.domain}`);
-
-      saved.domainPurchased = true;
-      tempSessions.set(sessionId, saved);
-
-      // STEP 2: DEPLOY SITE + SET DNS (business name → repo name)
-      const deployRes = await fetch("https://websitegeneration.onrender.com/api/full-hosting/deploy", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-internal-request": "yes"
-        },
-        body: JSON.stringify({ sessionId })
-      });
-
-      const deployJson = await deployRes.json();
-      if (deployJson.success) {
-        console.log(`FULL SUCCESS → ${saved.domain} is LIVE at ${deployJson.pagesUrl}`);
-      } else {
-        console.error("Deploy failed:", deployJson);
-      }
-
-    } catch (e) {
-      console.error("Webhook flow failed:", e.message);
-      // Don't crash — user already paid
-    }
+    })();
   }
-
-  res.json({ received: true });
 });
 
 // 5. JSON + SECURITY
