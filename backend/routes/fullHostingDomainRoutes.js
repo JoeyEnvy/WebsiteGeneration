@@ -55,7 +55,8 @@ router.post("/domain/purchase", async (req, res) => {
       method: "POST",
       headers: {
         Authorization: `sso-key ${key}:${secret}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"  // ← GoDaddy now wants this
       },
       body: JSON.stringify({
         domain,
@@ -63,15 +64,18 @@ router.post("/domain/purchase", async (req, res) => {
         consent: {
           agreedAt: new Date().toISOString(),
           agreedBy: req.ip || "127.0.0.1",
-          agreementKeys: ["DNRA"]
+          agreementKeys: ["DNRA", "DRP"]   // ← THIS FIXES IT
         },
-        contactAdmin: { email: userEmail },
-        contactBilling: { email: userEmail },
-        contactTech: { email: userEmail },
-        contactRegistrant: { email: userEmail },
+        contactAdmin:     { email: userEmail },
+        contactBilling:   { email: userEmail },
+        contactTech:      { email: userEmail },
+        contactRegistrant:{ email: userEmail },
         privacy: true,
         renewAuto: true,
-        currency: "GBP"
+        currency: "GBP",
+        // These two fields are now effectively required for GBP purchases in 2025
+        nameServers: ["ns1.godaddy.com", "ns2.godaddy.com"],  // default GoDaddy NS
+        locked: false
       })
     });
 
