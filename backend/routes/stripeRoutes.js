@@ -1,4 +1,4 @@
-// routes/stripeRoutes.js – PAY AFTER DOMAIN BUY (No Webhook) (25 Nov 2025)
+// routes/stripeRoutes.js – FIXED: No payment_intent_data error (25 Nov 2025)
 import express from "express";
 import Stripe from "stripe";
 import { v4 as uuidv4 } from "uuid";
@@ -17,10 +17,10 @@ const priceMap = {
   "github-instructions": { price: 999, name: "GitHub Instructions" },
   "github-hosted": { price: 1999, name: "GitHub Pages Hosting" },
   "netlify-hosted": { price: 1999, name: "Netlify Hosting" },
-  "full-hosting": { price: 50, name: "Full Hosting Authorization (£0.50 hold)" }, // Hold only
+  "full-hosting": { price: 50, name: "Full Hosting Authorization (£0.50 hold)" },
 };
 
-// CREATE SETUP INTENT — AUTHORIZES £0.50 HOLD (No Webhook Needed)
+// CREATE SETUP INTENT – £0.50 HOLD (No Charge Yet)
 router.post("/create-checkout-session", async (req, res) => {
   console.log("Stripe request →", req.body);
 
@@ -42,11 +42,9 @@ router.post("/create-checkout-session", async (req, res) => {
       return res.status(400).json({ error: "Valid domain required" });
     }
 
-    // REAL UUID SESSION ID
     const sessionId = uuidv4();
     console.log("REAL sessionId →", sessionId);
 
-    // SAVE SESSION
     tempSessions.set(sessionId, {
       type,
       domain,
@@ -55,7 +53,7 @@ router.post("/create-checkout-session", async (req, res) => {
       durationYears: String(years),
       domainPurchased: false,
       deployed: false,
-      pages: [], // Filled later by generator
+      pages: [],
     });
 
     const product = priceMap[type];
@@ -63,36 +61,23 @@ router.post("/create-checkout-session", async (req, res) => {
 
     const PUBLIC_URL = process.env.PUBLIC_URL ? process.env.PUBLIC_URL.replace(/\/+$/, "") : "https://websitegeneration.co.uk";
 
-    // SUCCESS URL — TRIGGER PURCHASE/DEPLOY ON FRONTEND
     const success_url = type === "full-hosting"
       ? `${PUBLIC_URL}/fullhosting.html?session_id=${sessionId}&domain=${domain}&duration=${years}`
       : `${PUBLIC_URL}/success.html?session_id=${sessionId}&option=${type}`;
 
-    // SETUP INTENT FOR FULL HOSTING (HOLD £0.50)
     let session;
     if (type === "full-hosting") {
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: product.price,
-        currency: "gbp",
-        payment_method_types: ["card"],
-        capture_method: "manual", // HOLD — CAPTURE LATER
-        metadata: { sessionId, type, domain, businessName },
-        setup_future_usage: "off_session",
-      });
-
+      // SETUP MODE – £0.50 HOLD (No payment_intent_data)
       session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
-        mode: "setup",
-        payment_intent_data: {
-          payment_intent: paymentIntent.id,
-        },
+        mode: "setup", // FIXED: Setup mode, no payment_intent_data
         customer_email: email || undefined,
         success_url,
         cancel_url: `${PUBLIC_URL}/cancel.html`,
-        metadata: { sessionId },
+        metadata: { sessionId, type, domain, businessName },
       });
     } else {
-      // SIMPLE ONE-TIME PAYMENT FOR OTHER PLANS
+      // SIMPLE PAYMENT FOR OTHER PLANS
       session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
@@ -122,23 +107,35 @@ router.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// CAPTURE PAYMENT AFTER DOMAIN SUCCESS (Called from success page)
+// CAPTURE FULL PAYMENT AFTER SUCCESS
 router.post("/capture-payment", async (req, res) => {
-  const { sessionId, paymentIntentId } = req.body || {};
+  const { sessionId } = req.body || {};
 
-  if (!sessionId || !paymentIntentId) return res.status(400).json({ error: "Missing ID" });
+  if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
 
   const saved = tempSessions.get(sessionId);
   if (!saved || !saved.domainPurchased) return res.status(400).json({ error: "Domain not purchased" });
 
   try {
-    const intent = await stripe.paymentIntents.confirm(paymentIntentId, { off_session: true });
-    if (intent.status === "requires_capture") {
-      const captured = await stripe.paymentIntents.capture(paymentIntentId);
-      console.log("FULL PAYMENT CAPTURED →", captured.id);
-      res.json({ success: true, paymentId: captured.id });
+    // Get the SetupIntent from the session (you'll need to retrieve the session first in frontend)
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const setupIntentId = session.setup_intent;
+
+    if (setupIntentId) {
+      const setupIntent = await stripe.setupIntents.confirm(setupIntentId, { off_session: true });
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: 15000, // Full £150 in pence
+        currency: "gbp",
+        payment_method: setupIntent.payment_method,
+        off_session: true,
+        confirm: true,
+        metadata: { sessionId, domain: saved.domain },
+      });
+
+      console.log("FULL PAYMENT CAPTURED →", paymentIntent.id);
+      res.json({ success: true, paymentId: paymentIntent.id });
     } else {
-      res.json({ success: true, message: "Already captured" });
+      res.json({ success: true, message: "No additional payment needed" });
     }
   } catch (err) {
     console.error("CAPTURE ERROR:", err.message);

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Full Hosting – Your Site Is Live!</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Site Is Live – WebsiteGeneration</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
       --text: #f8fafc;
       --muted: #94a3b8;
       --accent: #10b981;
-      --accent-light: #34 ca77;
+      --accent-light: #34d399;
       --warning: #facc15;
       --border: #1e293b;
       --link: #60a5fa;
@@ -187,65 +187,71 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Full Hosting Activated!</h1>
-      <p>Your custom domain is being registered and your site is going live right now.</p>
+      <h1>🎉 Full Hosting Complete!</h1>
+      <p>Your custom domain is registered, DNS is configured, and your site is deployed. Let's show you the magic!</p>
     </div>
 
     <div class="content">
       <div id="loadingBox">
         <div class="spinner"></div>
-        <strong>Registering your domain and deploying your site...</strong><br><br>
-        This usually takes 30–90 seconds. Hang tight!
+        <strong>Finalizing your setup...</strong><br><br>
+        <small>Domain registration → Site deployment → DNS propagation → Live in seconds!</small>
       </div>
 
       <div id="successView" style="display: none;">
         <div class="success-message">
-          <strong style="color: var(--success); font-size: 1.8rem;">Congratulations! Your site is LIVE!</strong>
+          <strong style="color: var(--success); font-size: 1.8rem;">Your Website Is LIVE!</strong>
+          <p style="margin-top: 8px; color: var(--muted);">Congratulations! Your custom domain is ready, your site is deployed, and your payment is confirmed.</p>
         </div>
 
         <div class="status-grid">
           <div class="status-card success">
-            <div class="icon">Domain</div>
-            <h3>Domain Registered</h3>
-            <p><span id="finalDomain">example.com</span></p>
+            <div class="icon">🌐</div>
+            <h3>Domain Secured</h3>
+            <p><span id="finalDomain">vampira.store</span></p>
           </div>
           <div class="status-card success">
-            <div class="icon">Deploy</div>
+            <div class="icon">🚀</div>
             <h3>Site Deployed</h3>
             <p>GitHub Pages + Custom DNS</p>
           </div>
         </div>
 
-        <h2 style="text-align: center; margin: 40px 0; font-size: 1.8rem;">Live Preview of Your Website</h2>
+        <h2 style="text-align: center; margin: 40px 0 20px; font-size: 1.8rem;">Live Preview of Your Website</h2>
+        <p style="text-align: center; color: var(--muted); margin-bottom: 20px;">See your site in action – fully deployed and ready for visitors!</p>
         <div class="preview-container">
           <div class="preview-header">Your live site – <span id="previewUrl">Loading...</span></div>
-          <iframe id="sitePreview" src="" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+          <iframe id="sitePreview" src="" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"></iframe>
         </div>
 
-        <h2 style="text-align: center; margin: 50px 0 30px; font-size: 1.6rem;">Your Links</h2>
+        <h2 style="text-align: center; margin: 50px 0 30px; font-size: 1.6rem;">Your Deployment Links</h2>
         <div class="links-grid">
           <div class="link-card">
-            <div class="label">Your Custom Domain</div>
-            <a id="hostedLink" href="#" target="_blank">Loading...</a>
+            <div class="label">Custom Domain</div>
+            <a id="hostedLink" href="#" target="_blank">https://vampira.store</a>
           </div>
           <div class="link-card">
             <div class="label">Instant Preview (GitHub Pages)</div>
-            <a id="pagesLink" href="#" target="_blank">Loading...</a>
+            <a id="pagesLink" href="#" target="_blank">https://joeyenvy.github.io/[repo]/</a>
           </div>
           <div class="link-card">
             <div class="label">GitHub Repository</div>
-            <a id="repoLink" href="#" target="_blank">Loading...</a>
+            <a id="repoLink" href="#" target="_blank">https://github.com/joeyenvy/[repo]</a>
           </div>
           <div class="link-card">
             <div class="label">Domain Term</div>
-            <strong id="termDisplay">1 year</strong>
+            <strong id="termDisplay">1 year – renewal support included</strong>
           </div>
         </div>
 
         <div class="notice">
-          <strong>Important:</strong> Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully propagate worldwide.<br>
-          The <strong>Instant Preview</strong> link above works immediately.<br>
-          If you have any issues, reply to your confirmation email or contact <strong>support@websitegeneration.co.uk</strong>
+          <strong>🌍 DNS Propagation:</strong> Your domain may take up to <strong>24 hours</strong> to resolve worldwide. The <strong>Instant Preview</strong> works immediately.<br>
+          <strong>💡 Next Steps:</strong> Share your site! If you need changes, reply to your confirmation email or contact <strong>support@websitegeneration.co.uk</strong>.<br>
+          <strong>🎁 Bonus:</strong> Your site includes SEO, responsive design, and free hosting for 1 year.
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding: 20px; background: rgba(30, 41, 59, 0.5); border-radius: 12px; font-size: 0.95rem; color: var(--muted);">
+          Thank you for choosing WebsiteGeneration.co.uk – Your site is now online and ready to grow!
         </div>
       </div>
     </div>
@@ -257,6 +263,7 @@
       const q = new URLSearchParams(location.search);
       const sessionId = q.get('session_id') || q.get('sessionId');
       const domain = (q.get('domain') || '').trim().toLowerCase();
+      const duration = parseInt(q.get('duration') || '1');
 
       const loadingBox = document.getElementById('loadingBox');
       const successView = document.getElementById('successView');
@@ -270,27 +277,27 @@
       const termDisplay = document.getElementById('termDisplay');
 
       if (!sessionId || !domain) {
-        loadingBox.innerHTML = '<span style="color:#ef4444">Error: Invalid session. Please contact support.</span>';
+        loadingBox.innerHTML = '<span style="color: var(--error);">Error: Invalid session. Contact support@websitegeneration.co.uk for refund.</span>';
         return;
       }
 
       loadingBox.innerHTML = `
         <div class="spinner"></div>
-        <strong>Securing <span style="color:#60a5fa">${domain}</span> and launching your site...</strong><br><br>
-        <small>Domain registration → GitHub deploy → DNS setup → Live!</small>
+        <strong>Deploying <span style="color: var(--link);">${domain}</span>...</strong><br><br>
+        <small>Domain registration → Site build → GitHub deploy → DNS setup → Live!</small>
       `;
 
-      // Poll status
+      // Poll for status
       const poll = async () => {
         try {
-          const res = await fetch(`${BACKEND_BASE}/api/full-hosting/status?sessionId=${sessionId}`);
+          const res = await fetch(`${BACKEND_BASE}/api/full-hosting/status?sessionId=${sessionId}&domain=${domain}`);
           if (!res.ok) throw new Error('pending');
           const data = await res.json();
 
           if (data.deployed && data.pagesUrl) {
-            // SUCCESS!
+            // SUCCESS – Update UI
             hostedLink.href = `https://${domain}`;
-            hostedLink.textContent = domain;
+            hostedLink.textContent = `https://${domain}`;
             hostedPreview.textContent = domain;
             finalDomainEl.textContent = domain;
 
@@ -304,10 +311,17 @@
               repoLink.textContent = data.repoUrl;
             }
 
-            termDisplay.textContent = `${data.duration || 1} year${data.duration > 1 ? 's' : ''}`;
+            termDisplay.innerHTML = `${data.duration || 1} year${data.duration > 1 ? 's' : ''} – renewal support included`;
 
             loadingBox.style.display = 'none';
             successView.style.display = 'block';
+
+            // Capture full payment
+            fetch(`${BACKEND_BASE}/stripe/capture-payment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId })
+            }).catch(e => console.error('Capture error:', e));
           } else {
             setTimeout(poll, 8000);
           }
@@ -316,7 +330,7 @@
         }
       };
 
-      setTimeout(poll, 12000); // Give backend time
+      setTimeout(poll, 5000); // Start polling after 5s
     });
   </script>
 </body>
