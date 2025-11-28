@@ -1,250 +1,323 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Full Hosting – Deployment Status</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Hosting – Your Site Is Live!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
+      --bg: #0a0e17;
       --card: #111827;
-      --text: #f1f5f9;
-      --muted: #9ca3af;
-      --accent: #22c55e;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #10b981;
+      --accent-light: #34 ca77;
       --warning: #facc15;
-      --border: #1f2937;
+      --border: #1e293b;
       --link: #60a5fa;
+      --success: #22c55e;
+      --error: #ef4444;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: radial-gradient(1200px 600px at 10% -10%, #1e293b 0%, #0b1220 40%, #070b14 100%), var(--bg);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
       color: var(--text);
-      line-height: 1.5;
-      padding: 20px;
       min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
     }
     .container {
-      max-width: 880px;
+      max-width: 1100px;
       margin: 40px auto;
-      padding: 32px;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-      animation: fadeIn 0.5s ease;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    h1 { font-size: 2rem; margin-bottom: 8px; font-weight: 700; letter-spacing: -0.01em; }
-    p { color: var(--muted); margin-bottom: 16px; }
-    .status-box {
-      background: rgba(34,197,94,0.1);
-      border: 1px solid rgba(34,197,94,0.4);
-      border-radius: 12px;
-      padding: 16px;
+    .header {
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      padding: 40px 32px;
+      text-align: center;
+      color: white;
+    }
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.95;
+    }
+    .content {
+      padding: 40px 32px;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: 32px 0;
+    }
+    @media (max-width: 768px) {
+      .status-grid { grid-template-columns: 1fr; }
+    }
+    .status-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .status-card.success {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.15);
+    }
+    .status-card .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+    .status-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
       font-weight: 600;
-      margin-bottom: 24px;
     }
-    .info-line {
-      margin-top: 16px;
-      padding: 14px 16px;
-      background: rgba(255,255,255,0.03);
+    .status-card p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .preview-container {
+      margin: 40px 0;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
-    .info-line a {
+    .preview-header {
+      background: #1f2937;
+      padding: 12px 20px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      background: white;
+    }
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 40px 0;
+    }
+    .link-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      transition: transform 0.2s ease;
+    }
+    .link-card:hover {
+      transform: translateY(-4px);
+    }
+    .link-card .label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .link-card a {
       color: var(--link);
       font-weight: 600;
       word-break: break-all;
       text-decoration: none;
+      font-size: 1.05rem;
     }
-    .info-line a:hover { text-decoration: underline; }
+    .link-card a:hover {
+      text-decoration: underline;
+    }
     .notice {
-      background: #fff3cd;
-      border-left: 4px solid var(--warning);
-      padding: 16px;
-      border-radius: 12px;
-      margin-top: 28px;
+      background: rgba(251, 191, 36, 0.15);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      border-radius: 14px;
+      padding: 20px;
+      margin: 32px 0;
       font-size: 0.95rem;
-      color: #1f2937;
-    }
-    .small-text {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-top: 40px;
-      text-align: center;
+      color: #fbbf24;
     }
     #loadingBox {
-      font-size: 1rem;
-      margin-top: 24px;
-      color: var(--text);
-      opacity: 0.9;
+      text-align: center;
+      padding: 40px;
+      font-size: 1.2rem;
+      color: var(--accent);
     }
-    @media (max-width: 600px) {
-      .container { padding: 20px; margin: 20px; }
-      h1 { font-size: 1.5rem; }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(16, 185, 129, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .success-message {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--success);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      font-size: 1.3rem;
+      margin: 32px 0;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Full Hosting Activated!</h1>
-    <p>Your payment is confirmed. We’re registering your domain, setting up DNS, and deploying your site right now.</p>
-
-    <div class="status-box">
-      Please wait while everything is automatically configured.
+    <div class="header">
+      <h1>Full Hosting Activated!</h1>
+      <p>Your custom domain is being registered and your site is going live right now.</p>
     </div>
 
-    <div id="hostingDetails" style="display: none;">
-      <div class="info-line">
-        Custom Domain: <a id="hostedLink" href="#" target="_blank">Loading…</a>
-      </div>
-      <div class="info-line">
-        Instant Preview (.github.io): <a id="pagesLink" href="#" target="_blank">Loading…</a>
-      </div>
-      <div class="info-line" id="repoSection">
-        GitHub Repository: <a id="repoLink" href="#" target="_blank">Loading…</a>
-      </div>
-      <div class="info-line" id="termDisplay">
-        Domain registered for <strong>1 year</strong>. Renewal support available.
+    <div class="content">
+      <div id="loadingBox">
+        <div class="spinner"></div>
+        <strong>Registering your domain and deploying your site...</strong><br><br>
+        This usually takes 30–90 seconds. Hang tight!
       </div>
 
-      <div class="notice">
-        Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully resolve.<br>
-        In the meantime, use the GitHub Pages preview link above.<br>
-        If issues persist, email <strong>support@websitegeneration.co.uk</strong>.
-      </div>
-    </div>
+      <div id="successView" style="display: none;">
+        <div class="success-message">
+          <strong style="color: var(--success); font-size: 1.8rem;">Congratulations! Your site is LIVE!</strong>
+        </div>
 
-    <div id="loadingBox">Creating your site and configuring DNS. Please wait…</div>
+        <div class="status-grid">
+          <div class="status-card success">
+            <div class="icon">Domain</div>
+            <h3>Domain Registered</h3>
+            <p><span id="finalDomain">example.com</span></p>
+          </div>
+          <div class="status-card success">
+            <div class="icon">Deploy</div>
+            <h3>Site Deployed</h3>
+            <p>GitHub Pages + Custom DNS</p>
+          </div>
+        </div>
 
-    <div class="small-text">
-      Need help? Contact us: <strong>support@websitegeneration.co.uk</strong>
-    </div>
-  </div>
+        <h2 style="text-align: center; margin: 40px 0; font-size: 1.8rem;">Live Preview of Your Website</h2>
+        <div class="preview-container">
+          <div class="preview-header">Your live site – <span id="previewUrl">Loading...</span></div>
+          <iframe id="sitePreview" src="" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+        </div>
 
- <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Full Hosting – Success!</title>
-  <style>
-    :root { --bg: #0f172a; --card: #111827; --text: #f1f5f9; --muted: #9ca3af; --accent: #22c55e; --warning: #facc15; --border: #1f2937; --link: #60a5fa; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background: radial-gradient(1200px 600px at 10% -10%, #1e293b 0%, #0b1220 40%, #070b14 100%), var(--bg); color: var(--text); line-height: 1.5; padding: 20px; min-height: 100vh; }
-    .container { max-width: 880px; margin: 40px auto; padding: 32px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.5s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    h1 { font-size: 2rem; margin-bottom: 8px; font-weight: 700; }
-    p { color: var(--muted); margin-bottom: 16px; }
-    .status-box { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.4); border-radius: 12px; padding: 16px; font-weight: 600; margin-bottom: 24px; }
-    .info-line { margin-top: 16px; padding: 14px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; }
-    .info-line a { color: var(--link); font-weight: 600; word-break: break-all; text-decoration: none; }
-    .info-line a:hover { text-decoration: underline; }
-    .notice { background: #fff3cd; border-left: 4px solid var(--warning); padding: 16px; border-radius: 12px; margin-top: 28px; font-size: 0.95rem; color: #1f2937; }
-    .small-text { font-size: 0.85rem; color: var(--muted); margin-top: 40px; text-align: center; }
-    #loadingBox { font-size: 1.1rem; margin-top: 24px; color: var(--accent); }
-    @media (max-width: 600px) { .container { padding: 20px; margin: 20px; } h1 { font-size: 1.5rem; } }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Full Hosting Activated!</h1>
-    <p>Your payment is confirmed – we’re now automatically registering your domain and deploying your site.</p>
-    <div class="status-box">Everything is being set up in the background. This usually takes 15–45 seconds.</div>
+        <h2 style="text-align: center; margin: 50px 0 30px; font-size: 1.6rem;">Your Links</h2>
+        <div class="links-grid">
+          <div class="link-card">
+            <div class="label">Your Custom Domain</div>
+            <a id="hostedLink" href="#" target="_blank">Loading...</a>
+          </div>
+          <div class="link-card">
+            <div class="label">Instant Preview (GitHub Pages)</div>
+            <a id="pagesLink" href="#" target="_blank">Loading...</a>
+          </div>
+          <div class="link-card">
+            <div class="label">GitHub Repository</div>
+            <a id="repoLink" href="#" target="_blank">Loading...</a>
+          </div>
+          <div class="link-card">
+            <div class="label">Domain Term</div>
+            <strong id="termDisplay">1 year</strong>
+          </div>
+        </div>
 
-    <div id="hostingDetails" style="display: none;">
-      <div class="info-line">Custom Domain: <a id="hostedLink" href="#" target="_blank">Loading…</a></div>
-      <div class="info-line">Instant Preview: <a id="pagesLink" href="#" target="_blank">Loading…</a></div>
-      <div class="info-line" id="repoSection">GitHub Repository: <a id="repoLink" href="#" target="_blank">Loading…</a></div>
-      <div class="info-line" id="termDisplay"></div>
-      <div class="notice">
-        Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully propagate worldwide.<br>
-        Use the Instant Preview link above in the meantime.
+        <div class="notice">
+          <strong>Important:</strong> Your domain (<span id="hostedLinkPreview">example.com</span>) may take up to <strong>24 hours</strong> to fully propagate worldwide.<br>
+          The <strong>Instant Preview</strong> link above works immediately.<br>
+          If you have any issues, reply to your confirmation email or contact <strong>support@websitegeneration.co.uk</strong>
+        </div>
       </div>
     </div>
-
-    <div id="loadingBox">Registering domain and deploying site… Please wait</div>
-
-    <div class="small-text">Need help? Email <strong>support@websitegeneration.co.uk</strong></div>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const BACKEND_BASE = 'https://websitegeneration.onrender.com';
       const q = new URLSearchParams(location.search);
-      const sessionId = q.get('sessionId') || localStorage.getItem('sessionId') || '';
-      const domain = (q.get('domain') || localStorage.getItem('customDomain') || '').trim().toLowerCase();
-      const durationYears = parseInt(q.get('duration') || localStorage.getItem('domainDuration') || '1', 10) || 1;
+      const sessionId = q.get('session_id') || q.get('sessionId');
+      const domain = (q.get('domain') || '').trim().toLowerCase();
 
       const loadingBox = document.getElementById('loadingBox');
-      const hostingDetails = document.getElementById('hostingDetails');
+      const successView = document.getElementById('successView');
       const hostedLink = document.getElementById('hostedLink');
       const hostedPreview = document.getElementById('hostedLinkPreview');
       const pagesLink = document.getElementById('pagesLink');
       const repoLink = document.getElementById('repoLink');
-      const repoSection = document.getElementById('repoSection');
+      const finalDomainEl = document.getElementById('finalDomain');
+      const previewUrl = document.getElementById('previewUrl');
+      const sitePreview = document.getElementById('sitePreview');
       const termDisplay = document.getElementById('termDisplay');
 
-      if (termDisplay) {
-        termDisplay.innerHTML = `Domain registered for <strong>${durationYears} year${durationYears > 1 ? 's' : ''}</strong>. Renewal support available.`;
-      }
-
-      if (!sessionId || !domain || !domain.includes('.')) {
-        loadingBox.textContent = 'Invalid session or domain. Please restart your purchase.';
-        loadingBox.style.color = '#ff4444';
+      if (!sessionId || !domain) {
+        loadingBox.innerHTML = '<span style="color:#ef4444">Error: Invalid session. Please contact support.</span>';
         return;
       }
 
-      // SUCCESS MESSAGE – webhook is doing everything
       loadingBox.innerHTML = `
-        <strong style="color:#22c55e;">Payment confirmed!</strong><br><br>
-        We are registering <strong>${domain}</strong> and deploying your site right now.<br><br>
-        <small>This page will update automatically when ready (usually under 45 seconds)...</small>
+        <div class="spinner"></div>
+        <strong>Securing <span style="color:#60a5fa">${domain}</span> and launching your site...</strong><br><br>
+        <small>Domain registration → GitHub deploy → DNS setup → Live!</small>
       `;
 
-      // Poll status every 8 seconds
+      // Poll status
       const poll = async () => {
         try {
-          const r = await fetch(`${BACKEND_BASE}/api/full-hosting/status?sessionId=${sessionId}&domain=${domain}`);
-          if (!r.ok) throw new Error('not ready');
-          const data = await r.json();
-          if (data.deployed) {
-            // SUCCESS – show all links
-            const finalDomain = data.domain || domain;
-            hostedLink.href = `https://${finalDomain}`;
-            hostedLink.textContent = finalDomain;
-            if (hostedPreview) hostedPreview.textContent = finalDomain;
+          const res = await fetch(`${BACKEND_BASE}/api/full-hosting/status?sessionId=${sessionId}`);
+          if (!res.ok) throw new Error('pending');
+          const data = await res.json();
 
-            if (data.pagesUrl) {
-              pagesLink.href = data.pagesUrl;
-              pagesLink.textContent = data.pagesUrl;
-            } else {
-              pagesLink.parentElement.style.display = 'none';
-            }
+          if (data.deployed && data.pagesUrl) {
+            // SUCCESS!
+            hostedLink.href = `https://${domain}`;
+            hostedLink.textContent = domain;
+            hostedPreview.textContent = domain;
+            finalDomainEl.textContent = domain;
+
+            pagesLink.href = data.pagesUrl;
+            pagesLink.textContent = data.pagesUrl;
+            previewUrl.textContent = data.pagesUrl;
+            sitePreview.src = data.pagesUrl;
 
             if (data.repoUrl) {
               repoLink.href = data.repoUrl;
               repoLink.textContent = data.repoUrl;
-            } else {
-              repoSection.style.display = 'none';
             }
 
+            termDisplay.textContent = `${data.duration || 1} year${data.duration > 1 ? 's' : ''}`;
+
             loadingBox.style.display = 'none';
-            hostingDetails.style.display = 'block';
+            successView.style.display = 'block';
           } else {
             setTimeout(poll, 8000);
           }
         } catch (e) {
-          setTimeout(poll, 8000); // keep trying
+          setTimeout(poll, 8000);
         }
       };
 
-      // Start polling after 10 seconds (give webhook time to run)
-      setTimeout(poll, 10000);
+      setTimeout(poll, 12000); // Give backend time
     });
   </script>
-</body>
-</html>
 </body>
 </html>
