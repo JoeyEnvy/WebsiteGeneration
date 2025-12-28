@@ -1,4 +1,5 @@
-// Backend/routes/utilityRoutes.js – FIXED FOR RENDER
+// Backend/routes/utilityRoutes.js – FINAL FIXED VERSION (SERVER-SIDE STATE SAFE)
+
 import express from "express";
 import fetch from "node-fetch";
 import sgMail from "@sendgrid/mail";
@@ -8,30 +9,36 @@ import { tempSessions } from "../index.js";
 const router = express.Router();
 
 // ========================================================================
-// Setup: API Keys
+// API KEYS
 // ========================================================================
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY?.trim();
 const SENDGRID_KEY = process.env.SENDGRID_API_KEY?.trim();
 
 if (!OPENAI_API_KEY) {
-  console.warn("Warning: Missing OPENAI_API_KEY – generation disabled");
+  console.warn("⚠️ Missing OPENAI_API_KEY – generation disabled");
 }
 if (SENDGRID_KEY) {
   sgMail.setApiKey(SENDGRID_KEY);
 } else {
-  console.warn("Warning: Missing SENDGRID_API_KEY – email disabled");
+  console.warn("⚠️ Missing SENDGRID_API_KEY – email disabled");
 }
 
 // ========================================================================
-// POST /api/generate – Generate HTML pages with GPT-4o
+// POST /api/generate — GENERATE + STORE HTML (CRITICAL FIX)
 // ========================================================================
 router.post("/generate", async (req, res) => {
-  const { query: prompt, pageCount = "1" } = req.body ?? {};
+  const {
+    query: prompt,
+    pageCount = "1",
+    sessionId
+  } = req.body ?? {};
+
   const expectedPageCount = Math.max(1, parseInt(pageCount, 10) || 1);
 
   if (!prompt?.trim()) {
     return res.status(400).json({ success: false, error: "Prompt is required." });
   }
+
   if (!OPENAI_API_KEY) {
     return res.status(503).json({ success: false, error: "Generation unavailable." });
   }
@@ -51,9 +58,9 @@ Rules:
 - No placeholder text
 - Never wrap output in markdown fences or backticks
 - Never use \`\`\`html or \`\`\`
-      `.trim(),
+      `.trim()
     },
-    { role: "user", content: prompt },
+    { role: "user", content: prompt }
   ];
 
   let fullContent = "";
@@ -65,17 +72,20 @@ Rules:
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
           model: "gpt-4o",
           messages,
           max_tokens: 4000,
-          temperature: 0.72,
-        }),
+          temperature: 0.72
+        })
       });
 
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content ?? "";
       fullContent += "\n\n" + content.trim();
@@ -87,45 +97,79 @@ Rules:
       messages.push({ role: "user", content: "Continue the remaining pages." });
     }
 
+    // ------------------------------------------------------------
+    // CLEAN + SPLIT HTML
+    // ------------------------------------------------------------
     const cleanedPages = fullContent
       .replace(/```html|```/gi, "")
       .split(/(?=<!DOCTYPE html>)/i)
       .map(p => p.trim())
       .filter(p => p.includes("<html") && p.includes("</html>"));
 
-    if (cleanedPages.length === 0) {
+    if (!cleanedPages.length) {
       return res.status(500).json({ success: false, error: "No HTML generated." });
     }
 
-    res.json({ success: true, pageCount: cleanedPages.length, pages: cleanedPages });
+    // ------------------------------------------------------------
+    // 🔥 CRITICAL FIX: STORE PAGES SERVER-SIDE
+    // ------------------------------------------------------------
+    if (sessionId) {
+      const saved = tempSessions.get(sessionId) || {};
+
+      saved.pages = cleanedPages;
+      saved.structure = cleanedPages.map((_, i) => ({
+        file: i === 0 ? "index.html" : `page${i + 1}.html`
+      }));
+
+      tempSessions.set(sessionId, saved);
+
+      console.log(
+        `🧠 Stored ${cleanedPages.length} HTML pages for session ${sessionId}`
+      );
+    }
+
+    res.json({
+      success: true,
+      pageCount: cleanedPages.length,
+      pages: cleanedPages
+    });
+
   } catch (error) {
-    console.error("Generation failed:", error);
+    console.error("❌ Generation failed:", error);
     res.status(500).json({ success: false, error: "Generation failed." });
   }
 });
 
 // ========================================================================
-// POST /api/email-zip – Send ZIP via SendGrid
+// POST /api/email-zip — SEND ZIP
 // ========================================================================
 router.post("/email-zip", async (req, res) => {
   const { email, pages, extraNote = "" } = req.body ?? {};
 
-  if (!SENDGRID_KEY) return res.status(503).json({ success: false, error: "Email disabled." });
+  if (!SENDGRID_KEY) {
+    return res.status(503).json({ success: false, error: "Email disabled." });
+  }
+
   if (!email || !Array.isArray(pages) || pages.length === 0) {
     return res.status(400).json({ success: false, error: "Invalid request." });
   }
 
   try {
     const zip = new JSZip();
+
     pages.forEach((html, i) => {
       const name = i === 0 ? "index.html" : `page-${i + 1}.html`;
       zip.file(name, html);
     });
+
     const zipBase64 = await zip.generateAsync({ type: "base64" });
 
     await sgMail.send({
       to: email,
-      from: { email: "support@websitegenerator.co.uk", name: "AI Website Generator" },
+      from: {
+        email: "support@websitegenerator.co.uk",
+        name: "AI Website Generator"
+      },
       subject: "Your AI-Generated Website",
       text: extraNote || "Your website is attached!",
       attachments: [
@@ -133,20 +177,21 @@ router.post("/email-zip", async (req, res) => {
           content: zipBase64,
           filename: "my-new-website.zip",
           type: "application/zip",
-          disposition: "attachment",
-        },
-      ],
+          disposition: "attachment"
+        }
+      ]
     });
 
     res.json({ success: true, message: "Sent!" });
+
   } catch (error) {
-    console.error("Email failed:", error);
+    console.error("❌ Email failed:", error);
     res.status(500).json({ success: false, error: "Email failed." });
   }
 });
 
 // ========================================================================
-// POST /api/log-download – Analytics
+// POST /api/log-download — ANALYTICS
 // ========================================================================
 router.post("/log-download", (req, res) => {
   const { sessionId, type, timestamp } = req.body ?? {};
