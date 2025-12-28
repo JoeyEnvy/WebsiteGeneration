@@ -1,4 +1,4 @@
-// Backend/index.js – FINAL FIXED VERSION (DO DOMAIN BUYER WIRED)
+// Backend/index.js – FINAL FIXED VERSION (DOMAIN CHECK + DO BUYER BOTH WORK)
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -88,7 +88,6 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), (req, res
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Respond immediately (important)
   res.json({ received: true });
 
   if (event.type !== "checkout.session.completed") return;
@@ -108,9 +107,7 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), (req, res
     try {
       console.log(`STARTING FULL HOSTING → ${saved.domain}`);
 
-      // ---------------------------------------------------------------------
-      // DOMAIN PURCHASE → DIGITALOCEAN STATIC-IP SERVICE
-      // ---------------------------------------------------------------------
+      // DOMAIN PURCHASE → DIGITALOCEAN
       const DOMAIN_BUYER_URL = process.env.DOMAIN_BUYER_URL;
       const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
@@ -120,9 +117,7 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), (req, res
 
       const purchase = await fetch(`${DOMAIN_BUYER_URL}/purchase-domain`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           domain: saved.domain,
           years: Number(saved.durationYears || 1),
@@ -131,31 +126,21 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), (req, res
       });
 
       const pResult = await purchase.json();
-      if (!pResult.success) {
-        throw new Error(pResult.error || "Domain purchase failed");
-      }
+      if (!pResult.success) throw new Error(pResult.error || "Domain purchase failed");
 
       console.log(`DOMAIN PURCHASED → ${saved.domain}`);
       saved.domainPurchased = true;
       tempSessions.set(sessionId, saved);
 
-      // ---------------------------------------------------------------------
-      // DEPLOY SITE (INTERNAL)
-      // ---------------------------------------------------------------------
-      const deploy = await fetch(
-        "http://localhost:10000/api/full-hosting/deploy",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-internal-request": "yes"
-          },
-          body: JSON.stringify({ sessionId })
-        }
-      );
-
-      const dResult = await deploy.json();
-      console.log(`FULL SUCCESS → ${saved.domain} LIVE → ${dResult.pagesUrl || "??"}`);
+      // DEPLOY
+      await fetch("http://localhost:10000/api/full-hosting/deploy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-request": "yes"
+        },
+        body: JSON.stringify({ sessionId })
+      });
 
     } catch (err) {
       console.error("WEBHOOK BACKGROUND FAILED:", err.message);
@@ -164,7 +149,7 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), (req, res
 });
 
 // -----------------------------------------------------------------------------
-// 5. JSON + SECURITY (AFTER WEBHOOK)
+// 5. JSON + SECURITY
 // -----------------------------------------------------------------------------
 app.use(express.json({ limit: "5mb" }));
 app.use(compression());
@@ -186,9 +171,10 @@ if (process.env.SENDGRID_API_KEY) {
 export const tempSessions = new Map();
 
 // -----------------------------------------------------------------------------
-// 8. ROUTES (DOMAIN ROUTES REMOVED)
+// 8. ROUTES (THIS IS THE FIX)
 // -----------------------------------------------------------------------------
 import sessionRoutes from "./routes/sessionRoutes.js";
+import domainRoutes from "./routes/domainRoutes.js"; // ← REQUIRED
 import stripeRoutes from "./routes/stripeRoutes.js";
 import utilityRoutes from "./routes/utilityRoutes.js";
 import deployLiveRoutes from "./routes/deployLiveRoutes.js";
@@ -199,6 +185,7 @@ import proxyRoutes from "./routes/proxyRoutes.js";
 
 app.use("/stripe", stripeRoutes);
 app.use("/api", sessionRoutes);
+app.use("/api", domainRoutes);            // ← REQUIRED
 app.use("/api", utilityRoutes);
 app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
@@ -227,18 +214,9 @@ app.get("*", (req, res, next) => {
 });
 
 // -----------------------------------------------------------------------------
-// 10. ERROR HANDLER
-// -----------------------------------------------------------------------------
-app.use((err, req, res, next) => {
-  console.error("SERVER ERROR:", err);
-  res.status(500).json({ success: false, error: "Server error" });
-});
-
-// -----------------------------------------------------------------------------
-// 11. START SERVER
+// 10. START SERVER
 // -----------------------------------------------------------------------------
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`SERVER LIVE ON PORT ${PORT}`);
-  console.log(`WEBHOOK URL → https://websitegeneration.onrender.com/webhook/stripe`);
 });
