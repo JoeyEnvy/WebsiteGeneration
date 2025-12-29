@@ -1,88 +1,88 @@
-// utils/githubUtils.js – FINAL PROFESSIONAL VERSION (25 Nov 2025)
-// Uses EXACT business name typed by user → no random numbers, no date junk
-// Only adds -2, -3 etc. if taken. Customer gets what they type.
-
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 /**
  * Sanitize business name into valid GitHub repo name
- * Keeps it human-readable and exactly what user expects
  */
-export const sanitizeRepoName = (name = '') => {
-  if (!name) return 'site';
-  
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, '-')    // only allowed chars
-    .replace(/-+/g, '-')              // collapse dashes
-    .replace(/^-+|-+$/g, '')          // trim edges
-    .replace(/\./g, '-')              // dots → dashes (safer)
-    .slice(0, 100)                    // GitHub limit
-    || 'site';
+export const sanitizeRepoName = (name = "") => {
+  if (!name) return "site";
+
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/\./g, "-")
+      .slice(0, 100) || "site"
+  );
 };
 
 /**
- * Get EXACT repo name user wants.
- * If taken → try vampira-2, vampira-3 etc. (never random crap)
+ * Get exact repo name user expects
+ * Falls back to -2, -3 etc if taken
  */
 export const getUniqueRepoName = async (rawName, owner) => {
   const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error('Missing GITHUB_TOKEN');
+  if (!token) throw new Error("Missing GITHUB_TOKEN");
 
   const base = sanitizeRepoName(rawName);
-  if (!base) return 'site';
+  if (!base) return "site";
 
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github.v3+json',
-    'User-Agent': 'website-generator'
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "website-generator"
   };
 
-  // 1. Try exact name first
-  const exactRes = await fetch(`https://api.github.com/repos/${owner}/${base}`, { headers });
-  if (exactRes.status === 404) {
-    return base; // FREE → use exactly what user typed!
+  const exact = await fetch(
+    `https://api.github.com/repos/${owner}/${base}`,
+    { headers }
+  );
+
+  if (exact.status === 404) {
+    return base;
   }
 
-  // 2. If taken → try -2, -3, -4... up to -99
-  for (let i = 2; i < 100; i++) {
+  for (let i = 2; i <= 100; i++) {
     const candidate = `${base}-${i}`;
-    const res = await fetch(`https://api.github.com/repos/${owner}/${candidate}`, { headers });
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${candidate}`,
+      { headers }
+    );
     if (res.status === 404) {
       return candidate;
     }
   }
 
-  // Final fallback (should never happen)
   return `${base}-${Date.now()}`;
 };
 
 /**
- * Enable GitHub Pages from main branch (most reliable)
+ * Enable GitHub Pages (WORKFLOW MODE ONLY)
+ * Must be called AFTER push and AFTER static.yml exists
  */
-export const enableGitHubPagesFromBranch = async (owner, repo, token = process.env.GITHUB_TOKEN) => {
-  const url = `https://api.github.com/repos/${owner}/${repo}/pages`;
-  
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/vnd.github+json'
-    },
-    body: JSON.stringify({
-      source: {
-        branch: 'main',
-        path: '/'
-      }
-    })
-  });
+export const enableGitHubPagesWorkflow = async (owner, repo) => {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) throw new Error("Missing GITHUB_TOKEN");
 
-  if (![200, 201, 202].includes(response.status)) {
-    const err = await response.text();
-    console.warn(`GitHub Pages enable failed: ${response.status} ${err}`);
-    // Don't throw — site still works
+  const res = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/pages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ build_type: "workflow" })
+    }
+  );
+
+  // 201 = created, 409 = already exists
+  if (![201, 409].includes(res.status)) {
+    const text = await res.text();
+    throw new Error(`GitHub Pages enable failed: ${res.status} ${text}`);
   }
 
   return `https://${owner}.github.io/${repo}/`;

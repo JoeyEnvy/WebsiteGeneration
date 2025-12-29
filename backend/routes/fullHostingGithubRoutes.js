@@ -1,5 +1,5 @@
-// routes/fullHostingGithubRoutes.js – FINAL, ACTUALLY WORKING
-// GitHub Pages via workflow (static.yml) – no API enable calls
+// routes/fullHostingGithubRoutes.js
+// FINAL – MODE B (Workflow-based GitHub Pages, static.yml + API enable)
 
 import express from 'express';
 import fetch from 'node-fetch';
@@ -13,7 +13,9 @@ const router = express.Router();
 
 router.post('/deploy', async (req, res) => {
   const { sessionId, bypass } = req.body || {};
-  if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Missing sessionId' });
+  }
 
   const saved = tempSessions.get(sessionId);
   if (!saved || saved.type !== 'full-hosting') {
@@ -27,11 +29,13 @@ router.post('/deploy', async (req, res) => {
   try {
     const owner = process.env.GITHUB_USERNAME;
     const token = process.env.GITHUB_TOKEN;
-    if (!owner || !token) throw new Error('GitHub credentials missing');
+    if (!owner || !token) {
+      throw new Error('GitHub credentials missing');
+    }
 
-    // 🔒 HARD FAIL IF NO HTML
+    // HARD FAIL IF NO HTML
     if (!Array.isArray(saved.pages) || saved.pages.length === 0) {
-      throw new Error('❌ No HTML pages found in session (saved.pages empty)');
+      throw new Error('No HTML pages found in session');
     }
 
     const rawName = saved.businessName || saved.domain.split('.')[0];
@@ -39,7 +43,9 @@ router.post('/deploy', async (req, res) => {
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    // CREATE REPO
+    // ----------------------------------------------------
+    // 1. CREATE GITHUB REPO
+    // ----------------------------------------------------
     const createResp = await fetch('https://api.github.com/user/repos', {
       method: 'POST',
       headers: {
@@ -56,15 +62,20 @@ router.post('/deploy', async (req, res) => {
     });
 
     if (![201, 422].includes(createResp.status)) {
-      throw new Error(`Repo create failed: ${createResp.status}`);
+      const txt = await createResp.text();
+      throw new Error(`Repo create failed: ${createResp.status} ${txt}`);
     }
 
-    // TEMP DIR
+    // ----------------------------------------------------
+    // 2. PREP LOCAL WORKDIR
+    // ----------------------------------------------------
     const localDir = path.join('/tmp', repoName);
     await fs.remove(localDir);
     await fs.ensureDir(localDir);
 
-    // WRITE HTML FILES
+    // ----------------------------------------------------
+    // 3. WRITE HTML FILES
+    // ----------------------------------------------------
     for (let i = 0; i < saved.pages.length; i++) {
       const file =
         saved.structure?.[i]?.file ||
@@ -72,21 +83,21 @@ router.post('/deploy', async (req, res) => {
       await fs.writeFile(path.join(localDir, file), saved.pages[i]);
     }
 
-    // REQUIRED FILES
     await fs.writeFile(path.join(localDir, '.nojekyll'), '');
     await fs.writeFile(
       path.join(localDir, 'README.md'),
       `# ${saved.domain}\n\nDeployed by WebsiteGeneration.co.uk`
     );
 
-    // 🔥 GITHUB PAGES WORKFLOW (THIS WAS MISSING)
+    // ----------------------------------------------------
+    // 4. WRITE GITHUB PAGES WORKFLOW (STATIC.YML)
+    // ----------------------------------------------------
     const workflowDir = path.join(localDir, '.github', 'workflows');
     await fs.ensureDir(workflowDir);
 
     await fs.writeFile(
       path.join(workflowDir, 'static.yml'),
-      `
-name: Deploy static site to GitHub Pages
+`name: Deploy static site to GitHub Pages
 
 on:
   push:
@@ -105,18 +116,22 @@ jobs:
   deploy:
     environment:
       name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v4
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
-      - uses: actions/deploy-pages@v4
-`.trim()
+      - id: deployment
+        uses: actions/deploy-pages@v4
+`
     );
 
-    // PUSH TO GITHUB
+    // ----------------------------------------------------
+    // 5. PUSH TO GITHUB
+    // ----------------------------------------------------
     const git = simpleGit(localDir);
     await git.init(['--initial-branch=main']);
     await git.addConfig('user.name', 'Website Generator');
@@ -129,21 +144,31 @@ jobs:
     );
     await git.push('origin', 'main', ['--force']);
 
-    // DNS (NON-BLOCKING)
-    if (saved.domainPurchased && process.env.GODADDY_KEY) {
-      await fetch(`https://api.godaddy.com/v1/domains/${saved.domain}/records`, {
-        method: 'PUT',
+    // ----------------------------------------------------
+    // 6. ENABLE GITHUB PAGES (WORKFLOW MODE) — CRITICAL
+    // ----------------------------------------------------
+    const pagesResp = await fetch(
+      `https://api.github.com/repos/${owner}/${repoName}/pages`,
+      {
+        method: 'POST',
         headers: {
-          Authorization: `sso-key ${process.env.GODADDY_KEY}:${process.env.GODADDY_SECRET}`,
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github+json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify([
-          { type: 'CNAME', name: '@', data: `${owner}.github.io`, ttl: 600 },
-          { type: 'CNAME', name: 'www', data: `${owner}.github.io`, ttl: 600 }
-        ])
-      }).catch(() => {});
+        body: JSON.stringify({ build_type: 'workflow' })
+      }
+    );
+
+    // 201 = created, 409 = already exists
+    if (![201, 409].includes(pagesResp.status)) {
+      const txt = await pagesResp.text();
+      throw new Error(`Pages enable failed: ${pagesResp.status} ${txt}`);
     }
 
+    // ----------------------------------------------------
+    // 7. SAVE SESSION + RESPOND
+    // ----------------------------------------------------
     saved.deployed = true;
     saved.pagesUrl = pagesUrl;
     saved.repoUrl = repoUrl;
