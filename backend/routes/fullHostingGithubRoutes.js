@@ -30,7 +30,7 @@ router.post('/deploy', async (req, res) => {
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing');
 
-    const rawName = saved.businessName || saved.domain.split('.')[0];
+    const rawName = saved.businessName || saved.domain?.split('.')[0] || 'site';
     const repoName = await getUniqueRepoName(sanitizeRepoName(rawName), owner);
 
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
@@ -54,9 +54,24 @@ router.post('/deploy', async (req, res) => {
     await fs.remove(dir);
     await fs.ensureDir(dir);
 
+    // Write pages (supports BOTH legacy string pages and {slug, html})
     for (let i = 0; i < saved.pages.length; i++) {
-      const file = i === 0 ? 'index.html' : `page${i + 1}.html`;
-      await fs.writeFile(path.join(dir, file), saved.pages[i]);
+      const page = saved.pages[i];
+
+      let filename;
+      let html;
+
+      if (typeof page === 'string') {
+        filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
+        html = page;
+      } else {
+        filename = page.slug === 'home'
+          ? 'index.html'
+          : `${page.slug}.html`;
+        html = page.html;
+      }
+
+      await fs.writeFile(path.join(dir, filename), html);
     }
 
     await fs.writeFile(path.join(dir, '.nojekyll'), '');
@@ -92,6 +107,11 @@ jobs:
     );
 
     const git = simpleGit(dir);
+
+    // REQUIRED FOR RENDER
+    await git.addConfig('user.name', 'WebsiteGeneration Bot');
+    await git.addConfig('user.email', 'bot@websitegeneration.co.uk');
+
     await git.init(['--initial-branch=main']);
     await git.add('.');
     await git.commit('Full hosting deploy');
