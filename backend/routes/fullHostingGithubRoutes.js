@@ -36,7 +36,6 @@ router.post('/deploy', async (req, res) => {
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    // Create repo
     await fetch('https://api.github.com/user/repos', {
       method: 'POST',
       headers: {
@@ -54,7 +53,6 @@ router.post('/deploy', async (req, res) => {
     await fs.remove(dir);
     await fs.ensureDir(dir);
 
-    // Write pages (supports BOTH legacy string pages and {slug, html})
     for (let i = 0; i < saved.pages.length; i++) {
       const page = saved.pages[i];
 
@@ -65,9 +63,7 @@ router.post('/deploy', async (req, res) => {
         filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
         html = page;
       } else {
-        filename = page.slug === 'home'
-          ? 'index.html'
-          : `${page.slug}.html`;
+        filename = page.slug === 'home' ? 'index.html' : `${page.slug}.html`;
         html = page.html;
       }
 
@@ -76,7 +72,6 @@ router.post('/deploy', async (req, res) => {
 
     await fs.writeFile(path.join(dir, '.nojekyll'), '');
 
-    // Workflow
     const wfDir = path.join(dir, '.github', 'workflows');
     await fs.ensureDir(wfDir);
 
@@ -108,11 +103,10 @@ jobs:
 
     const git = simpleGit(dir);
 
-    // REQUIRED FOR RENDER
+    await git.init(['--initial-branch=main']);
     await git.addConfig('user.name', 'WebsiteGeneration Bot');
     await git.addConfig('user.email', 'bot@websitegeneration.co.uk');
 
-    await git.init(['--initial-branch=main']);
     await git.add('.');
     await git.commit('Full hosting deploy');
     await git.addRemote('origin', `https://${owner}:${token}@github.com/${owner}/${repoName}.git`);
