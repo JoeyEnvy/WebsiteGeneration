@@ -1,6 +1,6 @@
 // routes/deployGithubRoutes.js
 // GitHub Pages deploy (non–full-hosting)
-// Uses static.yml workflow ONLY
+// Uses GitHub Pages via Actions (static.yml)
 
 import express from 'express';
 import fetch from 'node-fetch';
@@ -27,11 +27,17 @@ router.post('/github', async (req, res) => {
     if (!owner || !token) throw new Error('GitHub credentials missing');
 
     const rawName = saved.businessName || 'site';
-    const repoName = await getUniqueRepoName(sanitizeRepoName(rawName), owner);
+    const repoName = await getUniqueRepoName(
+      sanitizeRepoName(rawName),
+      owner
+    );
 
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
+    // ------------------------------------------------------------
+    // CREATE REPO
+    // ------------------------------------------------------------
     await fetch('https://api.github.com/user/repos', {
       method: 'POST',
       headers: {
@@ -45,10 +51,18 @@ router.post('/github', async (req, res) => {
       })
     });
 
+    // ------------------------------------------------------------
+    // PREPARE FILE SYSTEM
+    // ------------------------------------------------------------
     const dir = path.join('/tmp', repoName);
-    await fs.remove(dir);
-    await fs.ensureDir(dir);
+    const siteDir = path.join(dir, 'site');
 
+    await fs.remove(dir);
+    await fs.ensureDir(siteDir);
+
+    // ------------------------------------------------------------
+    // WRITE HTML FILES (LEGACY + SLUG SUPPORT)
+    // ------------------------------------------------------------
     for (let i = 0; i < saved.pages.length; i++) {
       const page = saved.pages[i];
 
@@ -59,15 +73,20 @@ router.post('/github', async (req, res) => {
         filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
         html = page;
       } else {
-        filename = page.slug === 'home' ? 'index.html' : `${page.slug}.html`;
+        filename = page.slug === 'home'
+          ? 'index.html'
+          : `${page.slug}.html`;
         html = page.html;
       }
 
-      await fs.writeFile(path.join(dir, filename), html);
+      await fs.writeFile(path.join(siteDir, filename), html);
     }
 
-    await fs.writeFile(path.join(dir, '.nojekyll'), '');
+    await fs.writeFile(path.join(siteDir, '.nojekyll'), '');
 
+    // ------------------------------------------------------------
+    // GITHUB PAGES WORKFLOW (STATIC)
+    // ------------------------------------------------------------
     const wfDir = path.join(dir, '.github', 'workflows');
     await fs.ensureDir(wfDir);
 
@@ -77,7 +96,8 @@ router.post('/github', async (req, res) => {
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -92,11 +112,14 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: site
       - uses: actions/deploy-pages@v4
 `
     );
 
+    // ------------------------------------------------------------
+    // GIT COMMIT + PUSH
+    // ------------------------------------------------------------
     const git = simpleGit(dir);
 
     await git.init(['--initial-branch=main']);
@@ -105,9 +128,15 @@ jobs:
 
     await git.add('.');
     await git.commit('Deploy site');
-    await git.addRemote('origin', `https://${owner}:${token}@github.com/${owner}/${repoName}.git`);
+    await git.addRemote(
+      'origin',
+      `https://${owner}:${token}@github.com/${owner}/${repoName}.git`
+    );
     await git.push('origin', 'main', ['--force']);
 
+    // ------------------------------------------------------------
+    // SAVE SESSION
+    // ------------------------------------------------------------
     saved.pagesUrl = pagesUrl;
     saved.repoUrl = repoUrl;
     tempSessions.set(sessionId, saved);
