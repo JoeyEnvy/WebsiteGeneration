@@ -1,7 +1,7 @@
 // routes/deployGithubRoutes.js
 // GitHub Pages deploy (non–full-hosting)
-// Repo root contains HTML (normal repo)
-// GitHub Pages deploy uses Actions workflow that builds /dist and publishes that
+// HTML in repo root
+// GitHub Pages via Actions (NO BUILD STEP)
 
 import express from 'express';
 import fetch from 'node-fetch';
@@ -27,54 +27,45 @@ router.post('/github', async (req, res) => {
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing');
 
-    const rawName = saved.businessName || 'site';
-    const repoName = await getUniqueRepoName(sanitizeRepoName(rawName), owner);
+    const repoName = await getUniqueRepoName(
+      sanitizeRepoName(saved.businessName || 'site'),
+      owner
+    );
 
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    const createResp = await fetch('https://api.github.com/user/repos', {
+    // Create repo
+    const r = await fetch('https://api.github.com/user/repos', {
       method: 'POST',
       headers: {
         Authorization: `token ${token}`,
         Accept: 'application/vnd.github.v3+json'
       },
-      body: JSON.stringify({
-        name: repoName,
-        private: false,
-        auto_init: false
-      })
+      body: JSON.stringify({ name: repoName, private: false, auto_init: false })
     });
 
-    if (!createResp.ok) {
-      const t = await createResp.text();
-      throw new Error(`GitHub repo create failed: ${createResp.status} ${t}`);
-    }
+    if (!r.ok) throw new Error(await r.text());
 
     const dir = path.join('/tmp', repoName);
     await fs.remove(dir);
     await fs.ensureDir(dir);
 
-    // WRITE HTML FILES TO REPO ROOT
+    // Write HTML files to ROOT
     for (let i = 0; i < saved.pages.length; i++) {
-      const page = saved.pages[i];
+      const p = saved.pages[i];
+      const file =
+        typeof p === 'string'
+          ? i === 0 ? 'index.html' : `page${i + 1}.html`
+          : p.slug === 'home' ? 'index.html' : `${p.slug}.html`;
 
-      let filename;
-      let html;
-
-      if (typeof page === 'string') {
-        filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
-        html = page;
-      } else {
-        filename = page.slug === 'home' ? 'index.html' : `${page.slug}.html`;
-        html = page.html;
-      }
-
-      await fs.writeFile(path.join(dir, filename), html);
+      const html = typeof p === 'string' ? p : p.html;
+      await fs.writeFile(path.join(dir, file), html);
     }
 
     await fs.writeFile(path.join(dir, '.nojekyll'), '');
 
+    // GitHub Pages workflow (NO BUILD)
     const wfDir = path.join(dir, '.github', 'workflows');
     await fs.ensureDir(wfDir);
 
@@ -84,8 +75,7 @@ router.post('/github', async (req, res) => {
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -97,22 +87,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/configure-pages@v5
-
-      - name: Build publish folder
-        run: |
-          mkdir -p dist
-          rsync -av --delete \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude="dist" \
-            ./ dist/
-
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
-
+          path: .
       - uses: actions/deploy-pages@v4
 `
     );
@@ -121,7 +99,6 @@ jobs:
     await git.init(['--initial-branch=main']);
     await git.addConfig('user.name', 'WebsiteGeneration Bot');
     await git.addConfig('user.email', 'bot@websitegeneration.co.uk');
-
     await git.add('.');
     await git.commit('Deploy site');
     await git.addRemote('origin', `https://${owner}:${token}@github.com/${owner}/${repoName}.git`);
@@ -131,11 +108,11 @@ jobs:
     saved.repoUrl = repoUrl;
     tempSessions.set(sessionId, saved);
 
-    return res.json({ success: true, pagesUrl, repoUrl });
+    res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error('GitHub deploy failed:', err);
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
