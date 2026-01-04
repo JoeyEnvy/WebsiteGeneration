@@ -1,7 +1,8 @@
 // routes/fullHostingGithubRoutes.js
 // FULL HOSTING GitHub deploy
-// Uses GitHub Pages via Actions (static.yml)
-// NO API enable, NO Jekyll
+// Repo root contains HTML (normal repo)
+// GitHub Pages deploy uses Actions workflow that builds /dist and publishes that
+// NO Pages API enable
 
 import express from 'express';
 import fetch from 'node-fetch';
@@ -31,19 +32,14 @@ router.post('/deploy', async (req, res) => {
     const token = process.env.GITHUB_TOKEN;
     if (!owner || !token) throw new Error('GitHub credentials missing');
 
-    const rawName = saved.businessName || saved.domain?.split('.')[0] || 'site';
-    const repoName = await getUniqueRepoName(
-      sanitizeRepoName(rawName),
-      owner
-    );
+    const rawName = saved.businessName || saved.domain?.split('.')?.[0] || 'site';
+    const repoName = await getUniqueRepoName(sanitizeRepoName(rawName), owner);
 
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    // ------------------------------------------------------------------
     // CREATE REPO
-    // ------------------------------------------------------------------
-    await fetch('https://api.github.com/user/repos', {
+    const createResp = await fetch('https://api.github.com/user/repos', {
       method: 'POST',
       headers: {
         Authorization: `token ${token}`,
@@ -56,18 +52,16 @@ router.post('/deploy', async (req, res) => {
       })
     });
 
-    // ------------------------------------------------------------------
-    // PREPARE FILE SYSTEM
-    // ------------------------------------------------------------------
+    if (!createResp.ok) {
+      const t = await createResp.text();
+      throw new Error(`GitHub repo create failed: ${createResp.status} ${t}`);
+    }
+
     const dir = path.join('/tmp', repoName);
-    const siteDir = path.join(dir, 'site');
-
     await fs.remove(dir);
-    await fs.ensureDir(siteDir);
+    await fs.ensureDir(dir);
 
-    // ------------------------------------------------------------------
-    // WRITE HTML FILES (LEGACY + SLUG SUPPORT)
-    // ------------------------------------------------------------------
+    // WRITE HTML FILES TO REPO ROOT (normal layout)
     for (let i = 0; i < saved.pages.length; i++) {
       const page = saved.pages[i];
 
@@ -75,23 +69,21 @@ router.post('/deploy', async (req, res) => {
       let html;
 
       if (typeof page === 'string') {
+        // legacy
         filename = i === 0 ? 'index.html' : `page${i + 1}.html`;
         html = page;
       } else {
-        filename = page.slug === 'home'
-          ? 'index.html'
-          : `${page.slug}.html`;
+        filename = page.slug === 'home' ? 'index.html' : `${page.slug}.html`;
         html = page.html;
       }
 
-      await fs.writeFile(path.join(siteDir, filename), html);
+      await fs.writeFile(path.join(dir, filename), html);
     }
 
-    await fs.writeFile(path.join(siteDir, '.nojekyll'), '');
+    // optional but fine
+    await fs.writeFile(path.join(dir, '.nojekyll'), '');
 
-    // ------------------------------------------------------------------
-    // GITHUB PAGES WORKFLOW (STATIC)
-    // ------------------------------------------------------------------
+    // Workflow: publish /dist (built in workflow) so artifact excludes .github
     const wfDir = path.join(dir, '.github', 'workflows');
     await fs.ensureDir(wfDir);
 
@@ -114,45 +106,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/configure-pages@v5
+
+      - name: Build publish folder
+        run: |
+          mkdir -p dist
+          rsync -av --delete \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="dist" \
+            ./ dist/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: dist
+
       - uses: actions/deploy-pages@v4
 `
     );
 
-    // ------------------------------------------------------------------
-    // GIT COMMIT + PUSH
-    // ------------------------------------------------------------------
+    // GIT PUSH
     const git = simpleGit(dir);
-
     await git.init(['--initial-branch=main']);
     await git.addConfig('user.name', 'WebsiteGeneration Bot');
     await git.addConfig('user.email', 'bot@websitegeneration.co.uk');
 
     await git.add('.');
     await git.commit('Full hosting deploy');
-    await git.addRemote(
-      'origin',
-      `https://${owner}:${token}@github.com/${owner}/${repoName}.git`
-    );
+    await git.addRemote('origin', `https://${owner}:${token}@github.com/${owner}/${repoName}.git`);
     await git.push('origin', 'main', ['--force']);
 
-    // ------------------------------------------------------------------
-    // SAVE SESSION
-    // ------------------------------------------------------------------
     saved.deployed = true;
     saved.pagesUrl = pagesUrl;
     saved.repoUrl = repoUrl;
     saved.repoName = repoName;
     tempSessions.set(sessionId, saved);
 
-    res.json({ success: true, pagesUrl, repoUrl });
+    return res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
     console.error('Full hosting deploy failed:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
