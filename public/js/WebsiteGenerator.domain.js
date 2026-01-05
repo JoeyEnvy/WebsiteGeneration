@@ -32,7 +32,9 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
     if (!res.ok) throw new Error("HTTP " + res.status);
 
     const data = await res.json();
-    if (data.success !== true) throw new Error(data.error || "Check failed");
+    if (data.success !== true) {
+      throw new Error(data.error || "Check failed");
+    }
 
     if (data.available === false) {
       if (statusEl) {
@@ -68,12 +70,14 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
     if (!priceRes.ok) throw new Error("Price lookup failed");
 
     const priceData = await priceRes.json();
-    if (priceData.success !== true)
+    if (priceData.success !== true) {
       throw new Error(priceData.error || "Bad price response");
+    }
 
     const price = Number(priceData.domainPrice);
-    if (!Number.isFinite(price) || price <= 0)
+    if (!Number.isFinite(price) || price <= 0) {
       throw new Error("Invalid price");
+    }
 
     localStorage.setItem("domainPrice", String(price));
 
@@ -90,7 +94,12 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
         "</small>";
     }
 
-    document.getElementById("deployFullHosting")?.style.display = "block";
+    // ✅ FIXED — no optional chaining on assignment
+    const deployBtn = document.getElementById("deployFullHosting");
+    if (deployBtn) {
+      deployBtn.style.display = "block";
+    }
+
     return true;
   } catch (err) {
     console.error("Domain check error:", err);
@@ -118,20 +127,20 @@ WebsiteGenerator.prototype.initializeDomainChecker = function () {
     }
   });
 
-  document
-    .getElementById("domainDuration")
-    ?.addEventListener("change", (e) => {
+  const durationSelect = document.getElementById("domainDuration");
+  if (durationSelect) {
+    durationSelect.addEventListener("change", (e) => {
       const duration = e.target.value;
       localStorage.setItem("domainDuration", duration);
       const domain = localStorage.getItem("customDomain");
-      if (domain) this.fetchFreshPrice(domain, parseInt(duration, 10));
+      if (domain) {
+        this.fetchFreshPrice(domain, parseInt(duration, 10));
+      }
     });
+  }
 };
 
-WebsiteGenerator.prototype.fetchFreshPrice = async function (
-  domain,
-  duration
-) {
+WebsiteGenerator.prototype.fetchFreshPrice = async function (domain, duration) {
   try {
     const res = await fetch(window.API_BASE + "/api/domain/price", {
       method: "POST",
@@ -147,4 +156,3 @@ WebsiteGenerator.prototype.fetchFreshPrice = async function (
     alert("Price update failed");
   }
 };
-S
