@@ -1,4 +1,3 @@
-// routes/fullHostingStatusRoutes.js
 import express from "express";
 import { tempSessions } from "../index.js";
 
@@ -17,7 +16,7 @@ router.get("/status", (req, res) => {
 
     const saved = tempSessions.get(sessionId);
 
-    // Session not ready yet
+    // Session not created yet
     if (!saved) {
       return res.json({
         success: true,
@@ -25,7 +24,7 @@ router.get("/status", (req, res) => {
       });
     }
 
-    // If domain was supplied, validate it safely
+    // Domain mismatch safety check (optional, non-fatal)
     if (
       domain &&
       saved.domain &&
@@ -37,6 +36,18 @@ router.get("/status", (req, res) => {
       });
     }
 
+    // 🚨 HARD FAILURE — THIS IS THE IMPORTANT FIX
+    if (saved.failed) {
+      return res.json({
+        success: false,
+        deployed: false,
+        failed: true,
+        error: saved.error || "Deployment failed",
+        domain: saved.domain || null
+      });
+    }
+
+    // ✅ SUCCESS OR IN-PROGRESS
     return res.json({
       success: true,
       deployed: Boolean(saved.deployed),

@@ -241,17 +241,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const sitePreview = document.getElementById("sitePreview");
 
   if (!sessionId) {
-    loadingBox.innerHTML = "<span style='color:var(--error)'>Invalid session.</span>";
+    loadingBox.innerHTML =
+      "<span style='color:var(--error)'>Invalid session.</span>";
     return;
   }
 
+  const START_TIME = Date.now();
+  const MAX_WAIT = 5 * 60 * 1000; // 5 minutes
+
+  const showError = (msg) => {
+    loadingBox.innerHTML =
+      `<span style="color:var(--error);font-weight:600;">${msg}</span>`;
+  };
+
   const poll = async () => {
+    // ⏱ timeout protection
+    if (Date.now() - START_TIME > MAX_WAIT) {
+      showError("Deployment is taking too long. Please check back shortly.");
+      return;
+    }
+
     try {
-      const res = await fetch(`${API}/api/full-hosting/status?sessionId=${sessionId}`);
-      if (!res.ok) throw new Error("pending");
+      const res = await fetch(
+        `${API}/api/full-hosting/status?sessionId=${sessionId}`
+      );
+
+      if (!res.ok) {
+        throw new Error("pending");
+      }
 
       const data = await res.json();
 
+      // ❌ explicit failure from backend (future-proof)
+      if (data.failed || data.error) {
+        showError(data.error || "Deployment failed.");
+        return;
+      }
+
+      // ✅ success
       if (data.deployed && data.pagesUrl) {
         const domain = data.domain || "—";
 
@@ -287,6 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
   poll();
 });
 </script>
+
 
 </body>
 </html>
