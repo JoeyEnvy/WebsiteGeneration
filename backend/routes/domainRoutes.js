@@ -1,18 +1,13 @@
 // routes/domainRoutes.js
-// FINAL — PUBLIC DOMAIN CHECKER (WhoisXML)
-// HARD TLD BLOCK + STRIPE SAFE
+// FINAL — SINGLE SOURCE OF TRUTH FOR DOMAIN AVAILABILITY (WhoisXML)
+// - Supports BOTH GET + POST so frontend method mismatch can't break it
+// - Hard TLD allow-list
+// - NEVER returns "taken" on upstream failure (returns success:false + error)
 
 import express from "express";
 import fetch from "node-fetch";
 
 const router = express.Router();
-
-// --------------------------------------------------
-// VALIDATION
-// --------------------------------------------------
-
-const isValidDomain = (domain) =>
-  /^([a-z0-9-]{1,63}\.)+[a-z]{2,}$/i.test(domain?.trim());
 
 const ALLOWED_TLDS = [
   "com",
@@ -27,98 +22,133 @@ const ALLOWED_TLDS = [
   "dev"
 ];
 
-// --------------------------------------------------
-// DOMAIN CHECK (PUBLIC)
-// --------------------------------------------------
-router.post("/domain/check", async (req, res) => {
-  const { domain, duration = 1 } = req.body || {};
+const cleanDomain = (d) => String(d || "").trim().toLowerCase();
+
+// Basic structure check (allows co.uk, etc.)
+const isValidDomain = (domain) =>
+  /^([a-z0-9-]{1,63}\.)+[a-z]{2,}$/i.test(domain);
+
+// Extract TLD and support co.uk style
+const getTld = (domain) => {
+  const parts = domain.split(".");
+  if (parts.length >= 3) {
+    const last2 = parts.slice(-2).join(".");
+    if (ALLOWED_TLDS.includes(last2)) return last2;
+  }
+  return parts.length >= 2 ? parts[parts.length - 1] : "";
+};
+
+// Shared handler (GET/POST)
+const handleCheck = async (req, res) => {
+  const domainRaw = req.method === "GET" ? req.query.domain : req.body?.domain;
+  const durationRaw = req.method === "GET" ? req.query.duration : req.body?.duration;
+
+  const domain = cleanDomain(domainRaw);
+  const period = parseInt(durationRaw, 10) || 1;
+
+  console.log("[DOMAIN CHECK HIT] method=", req.method, "domain=", domain);
 
   if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({
+      success: false,
       available: false,
       error: "Invalid domain format"
     });
   }
 
-  const cleaned = domain.trim().toLowerCase();
-  const years = parseInt(duration, 10) || 1;
-
-  // Extract TLD (supports co.uk)
-  const parts = cleaned.split(".");
-  const tld = parts.length > 2
-    ? parts.slice(-2).join(".")
-    : parts[1];
+  const tld = getTld(domain);
 
   if (!ALLOWED_TLDS.includes(tld)) {
     return res.json({
+      success: true,
       available: false,
+      domain,
       error: "Unsupported domain extension"
     });
   }
 
-  try {
-    const apiKey = process.env.WHOISXML_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({
-        available: false,
-        error: "Domain service unavailable"
-      });
-    }
+  const apiKey = process.env.WHOISXML_API_KEY?.trim();
+  if (!apiKey) {
+    // CRITICAL: do not lie and say "taken"
+    return res.status(500).json({
+      success: false,
+      error: "WHOISXML_API_KEY missing on server"
+    });
+  }
 
-    const resp = await fetch(
+  try {
+    const url =
       `https://domain-availability.whoisxmlapi.com/api/v1` +
       `?apiKey=${apiKey}` +
-      `&domainName=${encodeURIComponent(cleaned)}` +
-      `&outputFormat=JSON`
-    );
+      `&domainName=${encodeURIComponent(domain)}` +
+      `&outputFormat=JSON`;
+
+    const resp = await fetch(url, { timeout: 15000 });
 
     if (!resp.ok) {
-      return res.json({
-        available: false,
-        error: "Domain lookup failed"
+      const txt = await resp.text().catch(() => "");
+      console.error("[WHOISXML HTTP FAIL]", resp.status, txt.slice(0, 300));
+      // CRITICAL: do not lie and say "taken"
+      return res.status(502).json({
+        success: false,
+        error: "WhoisXML service error",
+        status: resp.status
       });
     }
 
     const data = await resp.json();
 
-    const available =
-      data?.DomainInfo?.domainAvailability === "AVAILABLE";
+    const availability = data?.DomainInfo?.domainAvailability;
+    const available = availability === "AVAILABLE";
 
-    const price = available ? 11.99 * years : null;
+    console.log("[WHOISXML RESULT]", domain, "availability=", availability);
+
+    const estimatedWholesale = 11.99 * period;
 
     return res.json({
+      success: true,
       available,
-      domain: cleaned,
-      price: available ? `£${price.toFixed(2)}` : null,
-      currency: "GBP",
-      period: years
+      domain,
+      tld,
+      period,
+      price: available ? `£${estimatedWholesale.toFixed(2)}` : null,
+      currency: "GBP"
     });
-
   } catch (err) {
-    console.error("DOMAIN CHECK ERROR:", err);
-    return res.status(500).json({
-      available: false,
-      error: "Domain check failed"
+    console.error("[WHOISXML EXCEPTION]", err);
+    // CRITICAL: do not lie and say "taken"
+    return res.status(502).json({
+      success: false,
+      error: "Domain check failed (upstream)"
     });
   }
-});
+};
 
-// --------------------------------------------------
-// PRICE (COMPAT)
-// --------------------------------------------------
+// BOTH METHODS SUPPORTED
+router.post("/domain/check", handleCheck);
+router.get("/domain/check", handleCheck);
+
+// Compat pricing endpoint (simple estimate)
 router.post("/get-domain-price", (req, res) => {
-  const { domain, duration = 1 } = req.body || {};
+  const domain = cleanDomain(req.body?.domain);
+  const duration = parseInt(req.body?.duration, 10) || 1;
+
   if (!domain || !isValidDomain(domain)) {
-    return res.status(400).json({ error: "Invalid domain" });
+    return res.status(400).json({ success: false, error: "Invalid domain" });
   }
 
-  const years = parseInt(duration, 10) || 1;
-  const price = 11.99 * years;
+  const tld = getTld(domain);
+  if (!ALLOWED_TLDS.includes(tld)) {
+    return res.status(400).json({ success: false, error: "Unsupported domain extension" });
+  }
 
-  res.json({
+  const price = 11.99 * duration;
+
+  return res.json({
+    success: true,
     domainPrice: price.toFixed(2),
     currency: "GBP",
-    period: years
+    period: duration
   });
 });
 

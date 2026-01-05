@@ -1,4 +1,7 @@
-// Backend/index.js – FINAL FIXED VERSION (STABLE)
+// backend/index.js — FINAL STABLE VERSION
+// WhoisXML = domain availability
+// Namecheap = buyer only (via internal service)
+// No duplicate routes, no collisions, no silent failures
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -25,23 +28,22 @@ const PUBLIC = path.join(__dirname, "public");
 const app = express();
 
 // -----------------------------------------------------------------------------
-// 1. RATE LIMIT
+// RATE LIMIT
 // -----------------------------------------------------------------------------
 app.use(
   rateLimit({
     windowMs: 60_000,
     max: 60,
-    message: "Too many requests",
   })
 );
 
 // -----------------------------------------------------------------------------
-// 2. TRUST PROXY (RENDER / CLOUDFLARE)
+// TRUST PROXY (Render)
 // -----------------------------------------------------------------------------
 app.set("trust proxy", 1);
 
 // -----------------------------------------------------------------------------
-// 3. CORS — FIXED
+// CORS (LOCKED + SAFE)
 // -----------------------------------------------------------------------------
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -54,15 +56,14 @@ app.use((req, res, next) => {
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://localhost:3000",
-    "null",
   ];
 
   if (!origin || allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
   }
 
-  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.header(
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader(
     "Access-Control-Allow-Headers",
     "Content-Type,Authorization,x-internal-request"
   );
@@ -72,11 +73,13 @@ app.use((req, res, next) => {
 });
 
 // -----------------------------------------------------------------------------
-// 4. STRIPE WEBHOOK (RAW BODY — DO NOT MOVE)
+// STRIPE WEBHOOK (RAW BODY — MUST BE BEFORE express.json)
 // -----------------------------------------------------------------------------
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
+
+export const tempSessions = new Map();
 
 app.post(
   "/webhook/stripe",
@@ -93,7 +96,7 @@ app.post(
       );
     } catch (err) {
       console.error("WEBHOOK SIGNATURE ERROR:", err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+      return res.status(400).send("Webhook Error");
     }
 
     res.json({ received: true });
@@ -107,15 +110,11 @@ app.post(
       session.id;
 
     const saved = tempSessions.get(sessionId);
-    console.log(
-      `WEBHOOK SUCCESS → ${sessionId} | Domain: ${saved?.domain || "??"}`
-    );
-
     if (!saved || saved.type !== "full-hosting") return;
 
     (async () => {
       try {
-        console.log(`STARTING FULL HOSTING → ${saved.domain}`);
+        console.log("FULL HOSTING WEBHOOK START →", saved.domain);
 
         const DOMAIN_BUYER_URL = process.env.DOMAIN_BUYER_URL;
         const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
@@ -124,33 +123,26 @@ app.post(
           "https://websitegeneration.onrender.com";
 
         if (!DOMAIN_BUYER_URL || !INTERNAL_SECRET) {
-          throw new Error("DOMAIN_BUYER_URL or INTERNAL_SECRET missing");
+          throw new Error("Buyer service not configured");
         }
 
-        // DOMAIN PURCHASE
-        const purchase = await fetch(
-          `${DOMAIN_BUYER_URL}/purchase-domain`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              domain: saved.domain,
-              years: Number(saved.durationYears || 1),
-              secret: INTERNAL_SECRET,
-            }),
-          }
-        );
+        // BUY DOMAIN (Namecheap service)
+        const buy = await fetch(`${DOMAIN_BUYER_URL}/purchase-domain`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            domain: saved.domain,
+            years: Number(saved.durationYears || 1),
+            secret: INTERNAL_SECRET,
+          }),
+        });
 
-        const pResult = await purchase.json();
-        if (!pResult.success) {
-          throw new Error(pResult.error || "Domain purchase failed");
+        const buyResult = await buy.json();
+        if (!buyResult.success) {
+          throw new Error(buyResult.error || "Domain purchase failed");
         }
 
-        console.log(`DOMAIN PURCHASED → ${saved.domain}`);
-        saved.domainPurchased = true;
-        tempSessions.set(sessionId, saved);
-
-        // DEPLOY (USE SERVICE URL — NOT LOCALHOST)
+        // DEPLOY SITE
         await fetch(`${SELF_URL}/api/full-hosting/deploy`, {
           method: "POST",
           headers: {
@@ -159,21 +151,19 @@ app.post(
           },
           body: JSON.stringify({ sessionId }),
         });
-      } catch (err) {
-        console.error("WEBHOOK BACKGROUND FAILED:", err.message);
 
-        if (saved) {
-          saved.failed = true;
-          saved.error = err.message || "Deployment failed";
-          tempSessions.set(sessionId, saved);
-        }
+      } catch (err) {
+        console.error("FULL HOSTING FAILED:", err.message);
+        saved.failed = true;
+        saved.error = err.message;
+        tempSessions.set(sessionId, saved);
       }
     })();
   }
 );
 
 // -----------------------------------------------------------------------------
-// 5. JSON + SECURITY
+// JSON / SECURITY
 // -----------------------------------------------------------------------------
 app.use(express.json({ limit: "5mb" }));
 app.use(compression());
@@ -185,22 +175,17 @@ app.use(
 );
 
 // -----------------------------------------------------------------------------
-// 6. SERVICES
+// SERVICES
 // -----------------------------------------------------------------------------
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
 // -----------------------------------------------------------------------------
-// 7. SESSION STORE
-// -----------------------------------------------------------------------------
-export const tempSessions = new Map();
-
-// -----------------------------------------------------------------------------
-// 8. ROUTES
+// ROUTES (ORDER MATTERS)
 // -----------------------------------------------------------------------------
 import sessionRoutes from "./routes/sessionRoutes.js";
-import domainRoutes from "./routes/domainRoutes.js";
+import domainRoutes from "./routes/domainRoutes.js"; // WHOISXML ONLY
 import stripeRoutes from "./routes/stripeRoutes.js";
 import utilityRoutes from "./routes/utilityRoutes.js";
 import deployLiveRoutes from "./routes/deployLiveRoutes.js";
@@ -209,27 +194,33 @@ import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 import fullHostingStatusRoutes from "./routes/fullHostingStatusRoutes.js";
 import proxyRoutes from "./routes/proxyRoutes.js";
 
+// Payments
 app.use("/stripe", stripeRoutes);
+
+// Core API
 app.use("/api", sessionRoutes);
-app.use("/api", domainRoutes);
+app.use("/api", domainRoutes); // <-- DOMAIN CHECK LIVES HERE
 app.use("/api", utilityRoutes);
+
+// Deploy
 app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
+
+// Full hosting
 app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/full-hosting", fullHostingStatusRoutes);
+
+// Proxy
 app.use("/api/proxy", proxyRoutes);
 
 // -----------------------------------------------------------------------------
-// 9. STATIC FILES
+// STATIC
 // -----------------------------------------------------------------------------
 app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
 app.get("*", (req, res, next) => {
-  if (
-    req.originalUrl.startsWith("/api/") ||
-    req.originalUrl.startsWith("/webhook")
-  ) {
+  if (req.originalUrl.startsWith("/api") || req.originalUrl.startsWith("/webhook")) {
     return next();
   }
 
@@ -243,9 +234,9 @@ app.get("*", (req, res, next) => {
 });
 
 // -----------------------------------------------------------------------------
-// 10. START SERVER
+// START
 // -----------------------------------------------------------------------------
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`SERVER LIVE ON PORT ${PORT}`);
+  console.log(`SERVER LIVE → ${PORT}`);
 });
