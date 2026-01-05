@@ -705,52 +705,44 @@
 <!-- ui: wires buttons → submit / preview / validation -->
 <script src="public/js/WebsiteGenerator.ui.js"></script>
 
-<!-- (optional but recommended if present) -->
+<!-- domain / deploy / stripe / download -->
 <script src="public/js/WebsiteGenerator.domain.js"></script>
 <script src="public/js/WebsiteGenerator.deploy.js"></script>
 <script src="public/js/WebsiteGenerator.stripe.js"></script>
 <script src="public/js/WebsiteGenerator.download.js"></script>
 
-
 <!-- ===================================================== -->
 <!-- SINGLE SOURCE OF TRUTH: WebsiteGenerator ONLY -->
-<!-- NO INLINE DOMAIN CHECKER -->
 <!-- ===================================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Destroy any previous instance (safe guard)
   if (window.websiteGenerator && typeof window.websiteGenerator.destroy === 'function') {
     window.websiteGenerator.destroy();
   }
 
-  // Create generator
   window.websiteGenerator = new WebsiteGenerator();
   const gen = window.websiteGenerator;
 
-  // Standard init hooks
   gen.initializeEventListeners?.();
   gen.initializeCustomizationPanel?.();
   gen.initializeDeployModal?.();
   gen.showPostGenerationOptions?.();
 
-  // ✅ DOMAIN CHECKER IS INITIALISED INSIDE WebsiteGenerator.js
-  // ❌ NO CLICK HANDLERS HERE
-  // ❌ NO FETCH CALLS HERE
-  // ❌ NO DOMAIN LOGIC HERE
+  // ✅ FIX — THIS WAS MISSING (DEAD CLICK)
+  gen.initializeDomainChecker?.();
 
   console.log(
-    '%cWEBSITE GENERATOR READY – DOMAIN LOGIC SINGLE-SOURCE',
+    '%cWEBSITE GENERATOR READY – DOMAIN CHECK ARMED',
     'color:#00ff00;font-size:16px;font-weight:bold'
   );
 });
 </script>
 
 <!-- ====================================================================== -->
-<!-- PURE UI EXTRAS (hamburger menu, scroll bar, etc.) – untouched & safe -->
+<!-- PURE UI EXTRAS (hamburger menu, scroll bar, etc.) -->
 <!-- ====================================================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Scroll progress bar
   const bar = document.getElementById('scrollProgressBar');
   if (bar) {
     window.addEventListener('scroll', () => {
@@ -759,7 +751,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Navbar scroll effect
   const navbar = document.querySelector('.navbar');
   window.addEventListener('scroll', () => {
     if (!navbar) return;
@@ -771,13 +762,11 @@ document.addEventListener('DOMContentLoaded', () => {
       : "var(--shadow)";
   });
 
-  // Hamburger menu toggle
   document.getElementById('hamburger')?.addEventListener('click', () => {
     document.querySelector('.nav-links')?.classList.toggle('show');
     document.getElementById('hamburger')?.classList.toggle('active');
   });
 
-  // Auto-open branding panel when generation finishes
   const step5 = document.getElementById('step5');
   if (!step5) return;
 
@@ -797,6 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
 
 
 
