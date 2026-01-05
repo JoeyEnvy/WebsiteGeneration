@@ -1,7 +1,7 @@
 // routes/deployGithubRoutes.js
 // GitHub Pages deploy (non–full-hosting)
 // HTML in repo root
-// GitHub Pages via Actions (NO BUILD STEP)
+// GitHub Pages via Actions (workflow mode ENABLED)
 
 import express from 'express';
 import fetch from 'node-fetch';
@@ -35,37 +35,43 @@ router.post('/github', async (req, res) => {
     const pagesUrl = `https://${owner}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
 
-    // Create repo
-    const r = await fetch('https://api.github.com/user/repos', {
+    // CREATE REPO
+    const create = await fetch('https://api.github.com/user/repos', {
       method: 'POST',
       headers: {
         Authorization: `token ${token}`,
         Accept: 'application/vnd.github.v3+json'
       },
-      body: JSON.stringify({ name: repoName, private: false, auto_init: false })
+      body: JSON.stringify({
+        name: repoName,
+        private: false,
+        auto_init: false
+      })
     });
 
-    if (!r.ok) throw new Error(await r.text());
+    if (!create.ok) {
+      throw new Error(await create.text());
+    }
 
     const dir = path.join('/tmp', repoName);
     await fs.remove(dir);
     await fs.ensureDir(dir);
 
-    // Write HTML files to ROOT
+    // WRITE HTML FILES TO ROOT
     for (let i = 0; i < saved.pages.length; i++) {
       const p = saved.pages[i];
-      const file =
+      const filename =
         typeof p === 'string'
           ? i === 0 ? 'index.html' : `page${i + 1}.html`
           : p.slug === 'home' ? 'index.html' : `${p.slug}.html`;
 
       const html = typeof p === 'string' ? p : p.html;
-      await fs.writeFile(path.join(dir, file), html);
+      await fs.writeFile(path.join(dir, filename), html);
     }
 
     await fs.writeFile(path.join(dir, '.nojekyll'), '');
 
-    // GitHub Pages workflow (NO BUILD)
+    // WORKFLOW
     const wfDir = path.join(dir, '.github', 'workflows');
     await fs.ensureDir(wfDir);
 
@@ -95,14 +101,32 @@ jobs:
 `
     );
 
+    // GIT PUSH
     const git = simpleGit(dir);
     await git.init(['--initial-branch=main']);
     await git.addConfig('user.name', 'WebsiteGeneration Bot');
     await git.addConfig('user.email', 'bot@websitegeneration.co.uk');
     await git.add('.');
     await git.commit('Deploy site');
-    await git.addRemote('origin', `https://${owner}:${token}@github.com/${owner}/${repoName}.git`);
+    await git.addRemote(
+      'origin',
+      `https://${owner}:${token}@github.com/${owner}/${repoName}.git`
+    );
     await git.push('origin', 'main', ['--force']);
+
+    // 🔑 ENABLE GITHUB PAGES (THIS WAS MISSING)
+    await fetch(
+      `https://api.github.com/repos/${owner}/${repoName}/pages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ build_type: 'workflow' })
+      }
+    );
 
     saved.pagesUrl = pagesUrl;
     saved.repoUrl = repoUrl;
@@ -111,7 +135,7 @@ jobs:
     res.json({ success: true, pagesUrl, repoUrl });
 
   } catch (err) {
-    console.error(err);
+    console.error('GitHub deploy failed:', err);
     res.status(500).json({ error: err.message });
   }
 });
