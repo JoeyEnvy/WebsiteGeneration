@@ -49,7 +49,7 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
     if (statusEl) {
       statusEl.innerHTML = `
         <strong style="color:green">✓ ${domain} is available!</strong><br>
-        <small>Fetching price…</small>
+        <small>Fetching price...</small>
       `;
     }
 
