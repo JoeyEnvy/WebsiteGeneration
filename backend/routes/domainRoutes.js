@@ -1,9 +1,8 @@
 // routes/domainRoutes.js
-// FINAL — WHOISXML DOMAIN CHECK (HARD FAIL SAFE)
+// FINAL — WHOISXML DOMAIN CHECK (AXIOS, HARD TIMEOUT, NO HANGS)
 
 import express from "express";
-import fetch from "node-fetch";
-import AbortController from "abort-controller";
+import axios from "axios";
 
 const router = express.Router();
 
@@ -23,10 +22,15 @@ const getTld = (domain) => {
   return parts.at(-1);
 };
 
-router.post("/domain/check", async (req, res) => {
-  const domain = String(req.body?.domain || "").trim().toLowerCase();
+// SUPPORT BOTH GET + POST SO FRONTEND CANNOT BREAK IT
+router.all("/domain/check", async (req, res) => {
+  const domain =
+    (req.method === "GET" ? req.query.domain : req.body?.domain)
+      ?.toString()
+      .trim()
+      .toLowerCase();
 
-  console.log("[DOMAIN CHECK HIT] domain=", domain);
+  console.log("[DOMAIN CHECK HIT]", req.method, domain);
 
   if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({
@@ -52,37 +56,25 @@ router.post("/domain/check", async (req, res) => {
     });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-
   try {
-    const url =
-      `https://domain-availability.whoisxmlapi.com/api/v1` +
-      `?apiKey=${apiKey}` +
-      `&domainName=${encodeURIComponent(domain)}` +
-      `&outputFormat=JSON`;
+    const response = await axios.get(
+      "https://domain-availability.whoisxmlapi.com/api/v1",
+      {
+        timeout: 7000,
+        params: {
+          apiKey,
+          domainName: domain,
+          outputFormat: "JSON"
+        }
+      }
+    );
 
-    const response = await fetch(url, {
-      signal: controller.signal
-    });
+    const availability =
+      response.data?.DomainInfo?.domainAvailability;
 
-    clearTimeout(timeout);
+    const available = availability === "AVAILABLE";
 
-    if (!response.ok) {
-      const txt = await response.text();
-      console.error("WHOISXML HTTP ERROR:", response.status, txt);
-      return res.status(502).json({
-        success: false,
-        error: "WhoisXML HTTP error"
-      });
-    }
-
-    const data = await response.json();
-
-    const available =
-      data?.DomainInfo?.domainAvailability === "AVAILABLE";
-
-    console.log("WHOISXML RESULT:", domain, available);
+    console.log("[WHOISXML RESULT]", domain, availability);
 
     return res.json({
       success: true,
@@ -91,13 +83,14 @@ router.post("/domain/check", async (req, res) => {
     });
 
   } catch (err) {
-    clearTimeout(timeout);
+    console.error(
+      "[WHOISXML FAILED]",
+      err.code || err.message
+    );
 
-    console.error("WHOISXML FETCH FAILED:", err.name || err);
-
-    return res.status(504).json({
+    return res.status(502).json({
       success: false,
-      error: "Domain lookup timed out"
+      error: "Domain lookup failed"
     });
   }
 });
