@@ -7,9 +7,9 @@ window.addEventListener('beforeunload', () => {
   localStorage.removeItem('generatedPages');
 });
 
-// ✅ Global backend base (Vercel)
-const API_BASE = "https://website-generation.vercel.app/api";
+const API_BASE = "https://websitegeneration.onrender.com/api";
 window.API_BASE = API_BASE;
+
 
 // Debounce utility
 function debounce(func, wait) {
@@ -598,7 +598,7 @@ Do not explain or comment anything.
 }
 
 // ===========================
-// Domain Checker Frontend (Porkbun-compatible endpoints on Vercel)
+// Domain Checker Frontend (WhoisXML availability + Namecheap pricing)
 // ===========================
 function setupDomainChecker() {
   const domainInput = document.getElementById('customDomain');
@@ -611,35 +611,49 @@ function setupDomainChecker() {
 
   if (!domainInput || !checkBtn || !resultDisplay || !buyButton) return;
 
+  // Default state
+  buyButton.disabled = true;
+  if (confirmBtn) confirmBtn.disabled = true;
+
   domainInput.addEventListener('input', () => {
     const domain = domainInput.value.trim().toLowerCase();
+
+    // reset UI
+    if (priceDisplay) priceDisplay.textContent = '';
+    buyButton.disabled = true;
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Confirm Domain';
+    }
+
     if (!domain) {
       resultDisplay.textContent = '';
-      buyButton.disabled = true;
-      confirmBtn && (confirmBtn.disabled = true);
+      resultDisplay.style.color = 'black';
       return;
     }
 
     if (!isValidDomain(domain)) {
       resultDisplay.textContent = '❌ Invalid domain format';
       resultDisplay.style.color = 'red';
-      buyButton.disabled = true;
-      confirmBtn && (confirmBtn.disabled = true);
-    } else {
-      resultDisplay.textContent = '✅ Valid format. Click "Check Availability"';
-      resultDisplay.style.color = 'blue';
-      buyButton.disabled = true;
-      confirmBtn && (confirmBtn.disabled = true);
+      return;
     }
+
+    resultDisplay.textContent = '✅ Valid format. Click "Check Availability"';
+    resultDisplay.style.color = 'blue';
   });
 
   // Check availability + price
   checkBtn.addEventListener('click', async () => {
     const domain = domainInput.value.trim().toLowerCase();
+
+    // reset UI
     resultDisplay.textContent = '';
     resultDisplay.style.color = 'black';
     buyButton.disabled = true;
-    if (confirmBtn) confirmBtn.disabled = true;
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Confirm Domain';
+    }
     if (priceDisplay) priceDisplay.textContent = '';
 
     if (!isValidDomain(domain)) {
@@ -651,85 +665,140 @@ function setupDomainChecker() {
     resultDisplay.textContent = '🔍 Checking availability...';
 
     try {
-      const checkRes = await fetch(`${API_BASE}/full-hosting/domain/check?domain=${encodeURIComponent(domain)}`);
-      if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
-      const { available } = await checkRes.json();
+      // WHOISXML: availability check
+      const checkRes = await fetch(
+        `${API_BASE}/domain/check?domain=${encodeURIComponent(domain)}`,
+        { method: 'GET' }
+      );
 
-      if (!available) {
+      if (!checkRes.ok) throw new Error(`Server responded with ${checkRes.status}`);
+
+      const data = await checkRes.json();
+
+      if (data?.success !== true) {
+        throw new Error(data?.error || 'Domain check failed');
+      }
+
+      if (data.available === false) {
         resultDisplay.textContent = `❌ "${domain}" is not available.`;
         resultDisplay.style.color = 'red';
         return;
       }
 
+      if (data.available !== true) {
+        throw new Error('Unexpected domain check response');
+      }
+
+      // Available
       resultDisplay.textContent = `✅ "${domain}" is available!`;
       resultDisplay.style.color = 'green';
-      if (confirmBtn) confirmBtn.disabled = false;
 
+      // Store domain + duration
       localStorage.setItem('customDomain', domain);
 
-      const duration = durationSelect?.value || '1';
+      const duration = String(parseInt(durationSelect?.value || '1', 10) || 1);
       localStorage.setItem('domainDuration', duration);
 
-      const priceRes = await fetch(`${API_BASE}/full-hosting/domain/price`, {
+      if (confirmBtn) confirmBtn.disabled = false;
+
+      // NAMECHEAP: pricing estimate (your backend should calculate for duration)
+      const priceRes = await fetch(`${API_BASE}/domain/price`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, duration })
+        body: JSON.stringify({ domain, duration: Number(duration) })
       });
 
       if (!priceRes.ok) throw new Error('Price fetch failed');
+
       const priceData = await priceRes.json();
-      const base = parseFloat(priceData.domainPrice || 0);
+
+      if (priceData?.success !== true) {
+        throw new Error(priceData?.error || 'Price estimate failed');
+      }
+
+      const base = Number(priceData.domainPrice || 0);
+      if (!Number.isFinite(base) || base <= 0) {
+        throw new Error('Invalid price returned from server');
+      }
+
       localStorage.setItem('domainPrice', String(base));
-      const final = (base + 150).toFixed(2);
+
+      // Display (keep your service add-on)
+      const serviceFee = 150;
+      const final = base + serviceFee;
 
       if (priceDisplay) {
-        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
+        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £${serviceFee} service = £${final.toFixed(2)}`;
         priceDisplay.style.color = 'black';
       }
     } catch (err) {
       console.error('❌ Domain check error:', err);
-      resultDisplay.textContent = '⚠️ Error checking domain. Please try again.';
+      resultDisplay.textContent = `⚠️ ${err.message || 'Error checking domain. Please try again.'}`;
       resultDisplay.style.color = 'orange';
       buyButton.disabled = true;
       if (confirmBtn) confirmBtn.disabled = true;
     }
   });
 
-  // Recalculate price on duration change
+  // Recalculate price on duration change (ONLY if domain is already confirmed available)
   durationSelect?.addEventListener('change', async () => {
     const domain = domainInput.value.trim().toLowerCase();
     if (!isValidDomain(domain)) return;
-    localStorage.setItem('domainDuration', durationSelect.value);
 
-    if (!resultDisplay.textContent.includes('available')) return;
+    const duration = String(parseInt(durationSelect.value || '1', 10) || 1);
+    localStorage.setItem('domainDuration', duration);
+
+    // Only re-price if currently showing AVAILABLE
+    if (!String(resultDisplay.textContent || '').includes('available')) return;
 
     try {
-      const res = await fetch(`${API_BASE}/full-hosting/domain/price`, {
+      const res = await fetch(`${API_BASE}/domain/price`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, duration: durationSelect.value })
+        body: JSON.stringify({ domain, duration: Number(duration) })
       });
 
       if (!res.ok) throw new Error('Estimate failed');
+
       const data = await res.json();
-      const base = parseFloat(data.domainPrice || 0);
+
+      if (data?.success !== true) {
+        throw new Error(data?.error || 'Price estimate failed');
+      }
+
+      const base = Number(data.domainPrice || 0);
+      if (!Number.isFinite(base) || base <= 0) {
+        throw new Error('Invalid price returned from server');
+      }
+
       localStorage.setItem('domainPrice', String(base));
-      const final = (base + 150).toFixed(2);
+
+      const serviceFee = 150;
+      const final = base + serviceFee;
 
       if (priceDisplay) {
-        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £150 service = £${final}`;
+        priceDisplay.textContent = `💷 Estimated Price: £${base.toFixed(2)} + £${serviceFee} service = £${final.toFixed(2)}`;
         priceDisplay.style.color = 'black';
+      }
+
+      // duration changed -> require reconfirm before enabling buy
+      buyButton.disabled = true;
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Domain';
       }
     } catch (err) {
       console.error('⚠️ Price recheck error:', err);
       if (priceDisplay) {
-        priceDisplay.textContent = '⚠️ Could not re-estimate price.';
+        priceDisplay.textContent = `⚠️ ${err.message || 'Could not re-estimate price.'}`;
         priceDisplay.style.color = 'orange';
       }
+      buyButton.disabled = true;
+      if (confirmBtn) confirmBtn.disabled = true;
     }
   });
 
-  // Confirm domain
+  // Confirm domain (enables buy)
   confirmBtn?.addEventListener('click', () => {
     confirmBtn.textContent = '✅ Domain Confirmed';
     confirmBtn.disabled = true;

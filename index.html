@@ -676,144 +676,74 @@
   </div>
 </footer>
 
-<!-- ALL SCRIPTS – FINAL WORKING ORDER (November 23, 2025) – CLEAN, SILENT, USER-FRIENDLY DOMAIN CHECKER -->
+<!-- ALL SCRIPTS – FINAL WORKING ORDER (FIXED) -->
 <script>
-// CRITICAL: Tell your JS where the backend lives
-window.API_BASE = 'https://websitegeneration.onrender.com';
+  // CRITICAL: Tell your JS where the backend lives
+  window.API_BASE = 'https://websitegeneration.onrender.com';
 </script>
 
-<!-- 1. Core utilities -->
+<!-- 1. Core utilities & globals -->
 <script src="public/js/core.js"></script>
-<!-- 2. Main class -->
+
+<!-- 2. Main class definition (constructor only) -->
 <script src="public/js/WebsiteGenerator.js"></script>
-<!-- 3. All the modular parts -->
+
+<!-- 3. Prototype extensions (order matters) -->
+
+<!-- helpers: loading, alerts, misc -->
 <script src="public/js/WebsiteGenerator.helpers.js"></script>
-<script src="public/js/WebsiteGenerator.preview.js"></script>
-<script src="public/js/WebsiteGenerator.submit.js"></script>
-<script src="public/js/WebsiteGenerator.ui.js"></script>
+
+<!-- validation: used by UI + submit -->
 <script src="public/js/WebsiteGenerator.validation.js"></script>
 
-<!-- FINAL DOMAIN CHECKER – LOCKED IN, WORKING 100% WITH WHOISXML + GODADDY (22 Nov 2025) -->
-<!-- FINAL DOMAIN CHECKER – NO CONFIRM BUTTON NEEDED, WORKS 100% (23 Nov 2025) -->
+<!-- preview: used by submit + UI -->
+<script src="public/js/WebsiteGenerator.preview.js"></script>
+
+<!-- submit: depends on preview + helpers -->
+<script src="public/js/WebsiteGenerator.submit.js"></script>
+
+<!-- ui: wires buttons → submit / preview / validation -->
+<script src="public/js/WebsiteGenerator.ui.js"></script>
+
+<!-- (optional but recommended if present) -->
+<script src="public/js/WebsiteGenerator.domain.js"></script>
+<script src="public/js/WebsiteGenerator.deploy.js"></script>
+<script src="public/js/WebsiteGenerator.stripe.js"></script>
+<script src="public/js/WebsiteGenerator.download.js"></script>
+
+
+<!-- ===================================================== -->
+<!-- SINGLE SOURCE OF TRUTH: WebsiteGenerator ONLY -->
+<!-- NO INLINE DOMAIN CHECKER -->
+<!-- ===================================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Destroy any previous instance (safe guard)
   if (window.websiteGenerator && typeof window.websiteGenerator.destroy === 'function') {
     window.websiteGenerator.destroy();
   }
+
+  // Create generator
   window.websiteGenerator = new WebsiteGenerator();
   const gen = window.websiteGenerator;
+
+  // Standard init hooks
   gen.initializeEventListeners?.();
   gen.initializeCustomizationPanel?.();
   gen.initializeDeployModal?.();
   gen.showPostGenerationOptions?.();
 
-  const checkBtn     = document.getElementById('checkDomainBtn');
-  const domainInput  = document.getElementById('customDomainInput');
-  const statusEl     = document.getElementById('domainStatus');
-  const priceEl      = document.getElementById('domainPriceDisplay');
-  const buyBtn       = document.getElementById('deployFullHosting');
+  // ✅ DOMAIN CHECKER IS INITIALISED INSIDE WebsiteGenerator.js
+  // ❌ NO CLICK HANDLERS HERE
+  // ❌ NO FETCH CALLS HERE
+  // ❌ NO DOMAIN LOGIC HERE
 
-  if (!checkBtn || !domainInput || !statusEl || !buyBtn) return;
-
-  let confirmedDomain = "";  // This locks in the domain once available
-
-  checkBtn.addEventListener('click', async () => {
-    let domain = domainInput.value.trim().toLowerCase();
-    if (!domain || !domain.includes('.')) {
-      statusEl.innerHTML = 'Please enter a valid domain';
-      statusEl.style.color = '#ff9800';
-      priceEl.textContent = '';
-      buyBtn.style.display = 'none';
-      return;
-    }
-
-    statusEl.innerHTML = 'Checking availability...';
-    statusEl.style.color = '#888';
-    priceEl.textContent = '';
-    buyBtn.style.display = 'none';
-    checkBtn.disabled = true;
-
-    try {
-      const response = await fetch(`${window.API_BASE}/api/domain/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, duration: 1 })
-      });
-
-      if (!response.ok) throw new Error("Check failed");
-
-      const data = await response.json();
-
-      if (data.available === true) {
-        confirmedDomain = domain;  // LOCK IT IN
-        localStorage.setItem("customDomain", domain);  // Double-save
-        statusEl.innerHTML = `AVAILABLE & READY!`;
-        statusEl.style.color = '#00ff00';
-        priceEl.textContent = data.price || '£11.99 first year';
-        buyBtn.style.display = 'block';
-        buyBtn.textContent = 'Buy Full Hosting + Domain Now';
-        buyBtn.disabled = false;
-
-        // FINAL PURCHASE – uses confirmedDomain
-        buyBtn.onclick = async () => {
-          if (!confirmedDomain) {
-            alert("Please check availability first");
-            return;
-          }
-
-          buyBtn.textContent = 'Taking you to secure checkout...';
-          buyBtn.disabled = true;
-
-          try {
-           const res = await fetch(`${window.API_BASE}/stripe/create-checkout-session`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: "full-hosting",
-                sessionId: window.websiteGenerator?.sessionId || "temp_" + Date.now(),
-                domain: confirmedDomain,
-                durationYears: 1
-              })
-            });
-
-            const session = await res.json();
-            if (session.url) {
-              window.location = session.url;  // Go to Stripe
-            } else {
-              throw new Error(session.error || "Checkout failed");
-            }
-          } catch (e) {
-            console.error(e);
-            alert("Checkout failed: " + e.message);
-            buyBtn.textContent = 'Buy Full Hosting + Domain Now';
-            buyBtn.disabled = false;
-          }
-        };
-
-      } else {
-        confirmedDomain = "";
-        statusEl.innerHTML = `Sorry, ${domain} is taken`;
-        statusEl.style.color = '#ff4444';
-        buyBtn.style.display = 'none';
-      }
-    } catch (err) {
-      statusEl.innerHTML = 'Error – try again';
-      statusEl.style.color = '#ff9800';
-    } finally {
-      checkBtn.disabled = false;
-    }
-  });
-
-  console.log('%cDOMAIN FLOW FINAL – NO CONFIRM BUTTON – 100% LIVE', 'color:#00ff00;font-size:22px;background:#000;padding:10px;');
+  console.log(
+    '%cWEBSITE GENERATOR READY – DOMAIN LOGIC SINGLE-SOURCE',
+    'color:#00ff00;font-size:16px;font-weight:bold'
+  );
 });
 </script>
-
-
-
-
-
-
-
 
 <!-- ====================================================================== -->
 <!-- PURE UI EXTRAS (hamburger menu, scroll bar, etc.) – untouched & safe -->
@@ -833,19 +763,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const navbar = document.querySelector('.navbar');
   window.addEventListener('scroll', () => {
     if (!navbar) return;
-    navbar.style.background = window.scrollY > 60 ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.6)";
-    navbar.style.boxShadow = window.scrollY > 60 ? "0 4px 20px rgba(0,0,0,0.4)" : "var(--shadow)";
+    navbar.style.background = window.scrollY > 60
+      ? "rgba(0,0,0,0.9)"
+      : "rgba(0,0,0,0.6)";
+    navbar.style.boxShadow = window.scrollY > 60
+      ? "0 4px 20px rgba(0,0,0,0.4)"
+      : "var(--shadow)";
   });
 
   // Hamburger menu toggle
   document.getElementById('hamburger')?.addEventListener('click', () => {
-    document.querySelector('.nav-links').classList.toggle('show');
-    document.getElementById('hamburger').classList.toggle('active');
+    document.querySelector('.nav-links')?.classList.toggle('show');
+    document.getElementById('hamburger')?.classList.toggle('active');
   });
 
   // Auto-open branding panel when generation finishes
+  const step5 = document.getElementById('step5');
+  if (!step5) return;
+
   const observer = new MutationObserver(() => {
-    if (getComputedStyle(document.getElementById('step5')).display !== 'none') {
+    if (getComputedStyle(step5).display !== 'none') {
       document.getElementById('previewContainer')?.classList.add('fullscreen');
       document.querySelector('.preview-controls')?.classList.add('post-gen-ui');
       document.getElementById('brandingPanel').style.display = 'block';
@@ -853,7 +790,11 @@ document.addEventListener('DOMContentLoaded', () => {
       observer.disconnect();
     }
   });
-  observer.observe(document.getElementById('step5'), { attributes: true, attributeFilter: ['style'] });
+
+  observer.observe(step5, {
+    attributes: true,
+    attributeFilter: ['style']
+  });
 });
 </script>
 

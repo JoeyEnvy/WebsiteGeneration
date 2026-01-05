@@ -11,13 +11,12 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     // Save business name for Stripe later
     localStorage.setItem('businessName', formData.get('businessName') || '');
 
-    // Make sure we have a session ID
+    // Ensure session ID
     if (!localStorage.getItem('sessionId')) {
       localStorage.setItem('sessionId', crypto.randomUUID());
     }
 
-    // USE RENDER URL — THIS IS THE ONLY CHANGE YOU NEED
-    const API = "https://websitegeneration.onrender.com/api";
+    const API = 'https://websitegeneration.onrender.com/api';
 
     const response = await fetch(`${API}/generate`, {
       method: 'POST',
@@ -35,28 +34,28 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
 
     const data = await response.json();
 
-    if (data.success) {
-      this.generatedPages = data.pages;
-      localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
-      this.currentPage = 0;
-
-      // Store pages in session (optional)
-      const sessionId = localStorage.getItem('sessionId');
-      await fetch(`${API}/store-step`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          step: 'pages',
-          content: data.pages
-        })
-      }).catch(() => {}); // ignore if fails
-
-      this.updatePreview();
-      this.showSuccess('Website generated successfully!');
-    } else {
+    if (!data.success) {
       throw new Error(data.error || 'Unknown server error');
     }
+
+    this.generatedPages = data.pages;
+    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+    this.currentPage = 0;
+
+    // Optional session persistence
+    const sessionId = localStorage.getItem('sessionId');
+    fetch(`${API}/store-step`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        step: 'pages',
+        content: data.pages
+      })
+    }).catch(() => {});
+
+    this.updatePreview();
+    this.showSuccess('Website generated successfully!');
   } catch (error) {
     console.error(error);
     this.showError('Failed to generate: ' + error.message);
@@ -65,7 +64,7 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
   }
 };
 
-// buildFinalPrompt – unchanged, just kept here for full file
+// buildFinalPrompt
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
   const websiteType = formData.get('websiteType');
   const pageCount = formData.get('pageCount');
@@ -84,35 +83,26 @@ You are a professional website developer.
 Generate exactly ${pageCount} fully standalone HTML pages: ${pages}.
 Each page must be a complete, self-contained HTML5 document with internal <style> and <script> tags only.
 Do not include explanations or comments.
-Design & Structure:
-- Use semantic HTML5
-- Layout with Flexbox or CSS Grid
+
+Design:
+- Semantic HTML5
+- Flexbox or Grid
 - Fully responsive (1024px, 768px, 480px, 360px)
-- Modern, professional style
-Project Details:
+
+Details:
 - Type: ${websiteType}
 - Business: "${businessName}" (${businessType})
-- Pages: ${pages}
 - Features: ${features}
-- Design: ${colorScheme} theme, ${fontStyle} fonts, ${layoutPreference} layout
+- Design: ${colorScheme}, ${fontStyle}, ${layoutPreference}
+- Enhancements: ${enhancements}
+
 Business Description:
 "${businessDescription}"
-Visuals:
-- At least 3 real images per page (Unsplash/Pexels/Pixabay)
-- At least 3 FontAwesome icons per page
-- Styled images with shadows/rounded corners
-Mandatory Sections (6–8):
-1. Hero / Intro
-2. About / Overview
-3. Features / Services Grid
-4. Testimonials
-5. Gallery / Showcase
-6. Contact / CTA
-7. Footer
-Content Rules:
+
+Content:
+- 6–8 sections per page
 - No Lorem Ipsum
-- Clear CTAs, styled quotes, engaging headlines
-- Randomize layout, fonts, or accent colors per page for variety
-Goal: high-quality, production-ready HTML pages.
+- Real images + FontAwesome icons
+- Clear CTAs
 `.trim();
 };
