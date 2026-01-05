@@ -1,161 +1,124 @@
-// routes/domainRoutes.js – FINAL UNBREAKABLE VERSION
-// FIXED: hard TLD validation BEFORE Stripe
-// TRUSTS WhoisXML availability but blocks invalid TLDs permanently
+// routes/domainRoutes.js
+// FINAL — PUBLIC DOMAIN CHECKER (WhoisXML)
+// HARD TLD BLOCK + STRIPE SAFE
 
-import express from 'express';
-import fetch from 'node-fetch';
+import express from "express";
+import fetch from "node-fetch";
 
 const router = express.Router();
 
-// -----------------------------------------------------------------------------
+// --------------------------------------------------
 // VALIDATION
-// -----------------------------------------------------------------------------
+// --------------------------------------------------
 
-// Basic domain structure check
 const isValidDomain = (domain) =>
-  /^([a-z0-9-]{1,63}\.)+[a-z]{2,}$/i.test(domain.trim());
+  /^([a-z0-9-]{1,63}\.)+[a-z]{2,}$/i.test(domain?.trim());
 
-// HARD allow-list of supported TLDs (prevents Namecheap failures)
 const ALLOWED_TLDS = [
-  'com',
-  'net',
-  'org',
-  'co.uk',
-  'site',
-  'store',
-  'online',
-  'io',
-  'ai',
-  'dev'
+  "com",
+  "net",
+  "org",
+  "co.uk",
+  "site",
+  "store",
+  "online",
+  "io",
+  "ai",
+  "dev"
 ];
 
-// -----------------------------------------------------------------------------
-// MAIN DOMAIN CHECK ROUTE
-// -----------------------------------------------------------------------------
-router.post('/domain/check', async (req, res) => {
+// --------------------------------------------------
+// DOMAIN CHECK (PUBLIC)
+// --------------------------------------------------
+router.post("/domain/check", async (req, res) => {
   const { domain, duration = 1 } = req.body || {};
 
-  if (!domain || typeof domain !== 'string') {
+  if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({
       available: false,
-      error: 'Invalid domain format'
+      error: "Invalid domain format"
     });
   }
 
-  const cleanedDomain = domain.trim().toLowerCase();
-  const period = parseInt(duration, 10) || 1;
+  const cleaned = domain.trim().toLowerCase();
+  const years = parseInt(duration, 10) || 1;
 
-  if (!isValidDomain(cleanedDomain)) {
-    return res.status(400).json({
-      available: false,
-      error: 'Invalid domain structure'
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // TLD BLOCK (CRITICAL FIX)
-  // ---------------------------------------------------------------------------
-  const parts = cleanedDomain.split('.');
+  // Extract TLD (supports co.uk)
+  const parts = cleaned.split(".");
   const tld = parts.length > 2
-    ? parts.slice(-2).join('.')   // handles co.uk
+    ? parts.slice(-2).join(".")
     : parts[1];
 
   if (!ALLOWED_TLDS.includes(tld)) {
-    console.log(`BLOCKED INVALID TLD → ${cleanedDomain}`);
     return res.json({
       available: false,
-      error: 'Unsupported domain extension'
+      error: "Unsupported domain extension"
     });
   }
 
   try {
     const apiKey = process.env.WHOISXML_API_KEY;
     if (!apiKey) {
-      console.error('WHOISXML_API_KEY missing');
       return res.status(500).json({
         available: false,
-        error: 'Domain check unavailable'
+        error: "Domain service unavailable"
       });
     }
 
-    const response = await fetch(
+    const resp = await fetch(
       `https://domain-availability.whoisxmlapi.com/api/v1` +
       `?apiKey=${apiKey}` +
-      `&domainName=${encodeURIComponent(cleanedDomain)}` +
-      `&outputFormat=JSON&credits=Y`
+      `&domainName=${encodeURIComponent(cleaned)}` +
+      `&outputFormat=JSON`
     );
 
-    if (!response.ok) {
-      console.error('WhoisXML HTTP error:', response.status);
+    if (!resp.ok) {
       return res.json({
         available: false,
-        error: 'Domain service unavailable'
+        error: "Domain lookup failed"
       });
     }
 
-    const data = await response.json();
-    console.log('Full WhoisXML raw response:', JSON.stringify(data, null, 2));
+    const data = await resp.json();
 
-    // TRUST ACTUAL DATA ONLY
-    const isAvailable =
-      data?.DomainInfo?.domainAvailability === 'AVAILABLE';
+    const available =
+      data?.DomainInfo?.domainAvailability === "AVAILABLE";
 
-    console.log(
-      `FINAL RESULT → ${cleanedDomain} is ${isAvailable ? 'AVAILABLE' : 'TAKEN'}`
-    );
-
-    const domainPrice = isAvailable ? 11.99 * period : null;
+    const price = available ? 11.99 * years : null;
 
     return res.json({
-      available: isAvailable,
-      price: isAvailable ? `£${domainPrice.toFixed(2)}` : null,
-      currency: 'GBP',
-      period,
-      creditsLeft: data?.CreditsAvailable ?? 'N/A',
-      rawDomainInfo: data?.DomainInfo ?? null
+      available,
+      domain: cleaned,
+      price: available ? `£${price.toFixed(2)}` : null,
+      currency: "GBP",
+      period: years
     });
 
   } catch (err) {
-    console.error('Domain check crashed:', err);
+    console.error("DOMAIN CHECK ERROR:", err);
     return res.status(500).json({
       available: false,
-      error: 'Domain check failed'
+      error: "Domain check failed"
     });
   }
 });
 
-// -----------------------------------------------------------------------------
-// PRICE ENDPOINT (COMPATIBILITY)
-// -----------------------------------------------------------------------------
-router.post('/get-domain-price', (req, res) => {
+// --------------------------------------------------
+// PRICE (COMPAT)
+// --------------------------------------------------
+router.post("/get-domain-price", (req, res) => {
   const { domain, duration = 1 } = req.body || {};
-  const cleanedDomain = domain?.trim().toLowerCase();
-  const period = parseInt(duration, 10) || 1;
-
-  if (!cleanedDomain || !isValidDomain(cleanedDomain)) {
-    return res.status(400).json({ error: 'Invalid domain' });
+  if (!domain || !isValidDomain(domain)) {
+    return res.status(400).json({ error: "Invalid domain" });
   }
 
-  const tld = cleanedDomain.split('.').pop();
-  if (!ALLOWED_TLDS.includes(tld)) {
-    return res.status(400).json({ error: 'Unsupported domain extension' });
-  }
+  const years = parseInt(duration, 10) || 1;
+  const price = 11.99 * years;
 
-  const domainPrice = 11.99 * period;
   res.json({
-    domainPrice: domainPrice.toFixed(2),
-    currency: 'GBP',
-    period
-  });
-});
-
-// -----------------------------------------------------------------------------
-// HEALTH CHECK
-// -----------------------------------------------------------------------------
-router.get('/ping-domain-routes', (req, res) => {
-  res.json({
-    ok: true,
-    message: 'Domain checker LIVE – TLD hardened, Stripe-safe'
+    domainPrice: price.toFixed(2),
+    currency: "GBP",
+    period: years
   });
 });
 
