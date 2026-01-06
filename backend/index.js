@@ -1,6 +1,6 @@
-// backend/index.js — FINAL STABLE VERSION
+// backend/index.js — FINAL STABLE VERSION (FIXED)
 // WhoisXML = domain availability
-// Namecheap = buyer only (via internal service)
+// Namecheap = pricing + buyer
 // No duplicate routes, no collisions, no silent failures
 
 import dotenv from "dotenv";
@@ -185,7 +185,8 @@ if (process.env.SENDGRID_API_KEY) {
 // ROUTES (ORDER MATTERS)
 // -----------------------------------------------------------------------------
 import sessionRoutes from "./routes/sessionRoutes.js";
-import domainRoutes from "./routes/domainRoutes.js"; // WHOISXML ONLY
+import domainRoutes from "./routes/domainRoutes.js";          // WHOISXML CHECK
+import domainPriceRoutes from "./routes/domainPriceRoutes.js"; // NAMECHEAP PRICING ✅
 import stripeRoutes from "./routes/stripeRoutes.js";
 import utilityRoutes from "./routes/utilityRoutes.js";
 import deployLiveRoutes from "./routes/deployLiveRoutes.js";
@@ -199,7 +200,8 @@ app.use("/stripe", stripeRoutes);
 
 // Core API
 app.use("/api", sessionRoutes);
-app.use("/api", domainRoutes); // <-- DOMAIN CHECK LIVES HERE
+app.use("/api", domainRoutes);        // /api/domain/check
+app.use("/api", domainPriceRoutes);   // /api/domain/price  ✅
 app.use("/api", utilityRoutes);
 
 // Deploy
@@ -220,7 +222,10 @@ app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
 app.get("*", (req, res, next) => {
-  if (req.originalUrl.startsWith("/api") || req.originalUrl.startsWith("/webhook")) {
+  if (
+    req.originalUrl.startsWith("/api") ||
+    req.originalUrl.startsWith("/webhook")
+  ) {
     return next();
   }
 
