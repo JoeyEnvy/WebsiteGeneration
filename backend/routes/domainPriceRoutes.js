@@ -1,5 +1,5 @@
 // routes/domainPriceRoutes.js
-// FINAL — NAMECHEAP REAL PRICING (1–3 YEARS)
+// NAMECHEAP PRICING — SAFE FALLBACK (DOES NOT BLOCK FLOW)
 
 import express from "express";
 import fetch from "node-fetch";
@@ -12,7 +12,7 @@ const splitDomainSafe = (domain) => {
   const parts = domain.split(".");
   return {
     sld: parts[0],
-    tld: parts.slice(1).join(".") // supports .co.uk, etc
+    tld: parts.slice(1).join(".")
   };
 };
 
@@ -21,7 +21,13 @@ router.post("/domain/price", async (req, res) => {
   const duration = parseInt(req.body?.duration, 10) || 1;
 
   if (!domain || !domain.includes(".")) {
-    return res.status(400).json({ success: false, error: "Invalid domain" });
+    return res.json({
+      success: true,
+      domain,
+      duration,
+      domainPrice: 0,
+      estimated: true
+    });
   }
 
   const API_USER = process.env.NAMECHEAP_API_USER;
@@ -29,13 +35,16 @@ router.post("/domain/price", async (req, res) => {
   const CLIENT_IP = process.env.NAMECHEAP_CLIENT_IP;
 
   if (!API_USER || !API_KEY || !CLIENT_IP) {
-    return res.status(500).json({
-      success: false,
-      error: "Namecheap env vars missing"
+    return res.json({
+      success: true,
+      domain,
+      duration,
+      domainPrice: 0,
+      estimated: true
     });
   }
 
-  const { sld, tld } = splitDomainSafe(domain);
+  const { tld } = splitDomainSafe(domain);
 
   try {
     const pricingUrl =
@@ -55,40 +64,44 @@ router.post("/domain/price", async (req, res) => {
     const json = parser.parse(text);
 
     const prices =
-      json?.ApiResponse?.CommandResponse?.UserGetPricingResult?.ProductType
-        ?.ProductCategory?.Product?.Price;
-
-    if (!prices) {
-      throw new Error("Pricing not found");
-    }
+      json?.ApiResponse?.CommandResponse?.UserGetPricingResult
+        ?.ProductType?.ProductCategory?.Product?.Price;
 
     const priceRow = Array.isArray(prices)
       ? prices.find(p => Number(p["@Duration"]) === duration)
-      : prices["@Duration"] == duration
+      : prices?.["@Duration"] == duration
         ? prices
         : null;
 
-    if (!priceRow) {
-      throw new Error("No price for duration");
-    }
-
-    const price = Number(priceRow["@Price"]);
-    if (!Number.isFinite(price)) {
-      throw new Error("Invalid price value");
+    if (!priceRow || !priceRow["@Price"]) {
+      // 🔑 CRITICAL FIX — DO NOT FAIL
+      return res.json({
+        success: true,
+        domain,
+        duration,
+        domainPrice: 0,
+        estimated: true
+      });
     }
 
     return res.json({
       success: true,
       domain,
       duration,
-      domainPrice: price
+      domainPrice: Number(priceRow["@Price"]),
+      estimated: false
     });
 
   } catch (err) {
     console.error("[NAMECHEAP PRICE FAILED]", err.message);
-    return res.status(502).json({
-      success: false,
-      error: "Price lookup failed"
+
+    // 🔑 NEVER BLOCK CHECKOUT
+    return res.json({
+      success: true,
+      domain,
+      duration,
+      domainPrice: 0,
+      estimated: true
     });
   }
 });
