@@ -1,5 +1,5 @@
 // ===========================
-// Deployment buttons
+// Deployment buttons (FIXED)
 // ===========================
 
 WebsiteGenerator.prototype.initializeDeploymentButtons = function () {
@@ -33,5 +33,30 @@ WebsiteGenerator.prototype.initializeDeploymentButtons = function () {
     })
       .then((r) => r.json())
       .then((d) => d.url && (window.location.href = d.url));
+  });
+
+  // ===========================
+  // ✅ FULL HOSTING + DOMAIN (THIS WAS MISSING)
+  // ===========================
+  document.getElementById("deployFullHosting")?.addEventListener("click", () => {
+    const domain = localStorage.getItem("customDomain");
+    const durationYears =
+      parseInt(localStorage.getItem("domainDuration"), 10) || 1;
+
+    if (!domain) {
+      alert("No domain selected");
+      return;
+    }
+
+    let sessionId = localStorage.getItem("sessionId");
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("sessionId", sessionId);
+    }
+
+    this.startStripeCheckout("full-hosting", {
+      domain,
+      durationYears
+    });
   });
 };
