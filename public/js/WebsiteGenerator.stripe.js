@@ -1,5 +1,5 @@
 // ===========================
-// Stripe checkout
+// Stripe checkout (FIXED + HARDENED)
 // ===========================
 
 WebsiteGenerator.prototype.startStripeCheckout = function (type, extra = {}) {
@@ -12,17 +12,34 @@ WebsiteGenerator.prototype.startStripeCheckout = function (type, extra = {}) {
     localStorage.setItem("sessionId", sessionId);
   }
 
-  fetch(`${API}/api/stripe/create-checkout-session`, {
+  fetch(`${API}/stripe/create-checkout-session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, sessionId, businessName, ...extra })
+    body: JSON.stringify({
+      type,
+      sessionId,
+      businessName,
+      ...extra
+    })
   })
-    .then((res) => res.json())
+    .then(async (res) => {
+      // Handle non-JSON (e.g. 404 HTML)
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(`Stripe endpoint error (${res.status})`);
+      }
+    })
     .then((data) => {
-      if (data.url) window.location.href = data.url;
-      else alert("Checkout session failed");
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data?.error || "Checkout session failed");
+      }
     })
     .catch((err) => {
-      alert(`Stripe error: ${err.message}`);
+      console.error("STRIPE CHECKOUT ERROR:", err);
+      alert("Stripe error: " + err.message);
     });
 };
