@@ -1,5 +1,5 @@
 // ===========================
-// Stripe checkout (FIXED + HARDENED)
+// Stripe checkout (FINAL FIX)
 // ===========================
 
 WebsiteGenerator.prototype.startStripeCheckout = function (type, extra = {}) {
@@ -23,23 +23,20 @@ WebsiteGenerator.prototype.startStripeCheckout = function (type, extra = {}) {
     })
   })
     .then(async (res) => {
-      // Handle non-JSON (e.g. 404 HTML)
       const text = await res.text();
       try {
         return JSON.parse(text);
       } catch {
-        throw new Error(`Stripe endpoint error (${res.status})`);
+        throw new Error(`Stripe route error (${res.status})`);
       }
     })
     .then((data) => {
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error(data?.error || "Checkout session failed");
-      }
+      if (!data?.url) throw new Error("No checkout URL returned");
+      window.location.href = data.url;
     })
     .catch((err) => {
       console.error("STRIPE CHECKOUT ERROR:", err);
       alert("Stripe error: " + err.message);
     });
 };
+s

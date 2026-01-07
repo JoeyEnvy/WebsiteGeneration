@@ -22,7 +22,8 @@ WebsiteGenerator.prototype.initializeDeploymentButtons = function () {
     let sessionId = localStorage.getItem("sessionId") || crypto.randomUUID();
     localStorage.setItem("sessionId", sessionId);
 
-    fetch(`${API}/api/stripe/create-checkout-session`, {
+    fetch(`${API}/stripe/create-checkout-session`, {
+
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
