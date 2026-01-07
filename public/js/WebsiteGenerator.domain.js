@@ -1,6 +1,6 @@
 // ===========================
-// Domain Availability + Pricing (FINAL, BACKEND-ALIGNED)
-// WHOISXML check + Namecheap pricing
+// Domain Availability + Pricing (FIXED – NON-BLOCKING PRICING)
+// WHOISXML check + Namecheap pricing (price MAY be 0)
 // ===========================
 
 WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
@@ -23,7 +23,9 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
   if (statusEl) statusEl.textContent = "Checking domain availability…";
 
   try {
-    // ✅ BACKEND SUPPORTS POST (preferred)
+    // ===========================
+    // AVAILABILITY (WHOISXML)
+    // ===========================
     const res = await fetch(window.API_BASE + "/api/domain/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,15 +45,14 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
     if (data.available !== true) {
       if (statusEl) {
         statusEl.innerHTML =
-          "<strong style='color:red'>✗ " +
-          domain +
-          " is not available</strong>";
+          "<strong style='color:red'>✗ " + domain + " is not available</strong>";
       }
-      alert(domain + " is not available");
       return false;
     }
 
-    // ✅ DOMAIN AVAILABLE
+    // ===========================
+    // DOMAIN AVAILABLE
+    // ===========================
     const duration =
       parseInt(document.getElementById("domainDuration")?.value || "1", 10) || 1;
 
@@ -66,7 +67,7 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
     }
 
     // ===========================
-    // PRICE LOOKUP (NAMECHEAP PRICING ROUTE)
+    // PRICE LOOKUP (NON-BLOCKING)
     // ===========================
     const priceRes = await fetch(window.API_BASE + "/api/domain/price", {
       method: "POST",
@@ -88,19 +89,26 @@ WebsiteGenerator.prototype.checkDomainAvailability = async function (domain) {
     }
 
     const price = Number(priceData.domainPrice);
-    if (!Number.isFinite(price) || price <= 0) {
+
+    // 🔑 FIX: allow 0 = price confirmed later
+    if (!Number.isFinite(price) || price < 0) {
       throw new Error("Invalid domain price");
     }
 
     localStorage.setItem("domainPrice", String(price));
+
+    const priceText =
+      price === 0
+        ? "Price confirmed at checkout"
+        : "£" + price.toFixed(2);
 
     if (statusEl) {
       statusEl.innerHTML =
         "<strong style='color:green'>✓ " +
         domain +
         " is available</strong><br>" +
-        "<small>Price: £" +
-        price.toFixed(2) +
+        "<small>Price: " +
+        priceText +
         " for " +
         duration +
         " year" +
@@ -166,7 +174,7 @@ WebsiteGenerator.prototype.initializeDomainChecker = function () {
 };
 
 // ===========================
-// Refresh price when duration changes
+// Refresh price when duration changes (NON-BLOCKING)
 // ===========================
 WebsiteGenerator.prototype.fetchFreshPrice = async function (domain, duration) {
   try {
@@ -182,20 +190,25 @@ WebsiteGenerator.prototype.fetchFreshPrice = async function (domain, duration) {
     if (data.success !== true) throw new Error("Bad price response");
 
     const price = Number(data.domainPrice);
-    if (!Number.isFinite(price) || price <= 0) {
+    if (!Number.isFinite(price) || price < 0) {
       throw new Error("Invalid price");
     }
 
     localStorage.setItem("domainPrice", String(price));
 
     const statusEl = document.getElementById("domainStatus");
+    const priceText =
+      price === 0
+        ? "Price confirmed at checkout"
+        : "£" + price.toFixed(2);
+
     if (statusEl) {
       statusEl.innerHTML =
         "<strong style='color:green'>✓ " +
         domain +
         " is available</strong><br>" +
-        "<small>Price: £" +
-        price.toFixed(2) +
+        "<small>Price: " +
+        priceText +
         " for " +
         duration +
         " year" +
