@@ -3,6 +3,10 @@ import { tempSessions } from "../index.js";
 
 const router = express.Router();
 
+/**
+ * GET /api/full-hosting/status
+ * Used by fullhosting.html to poll deployment + domain state
+ */
 router.get("/status", (req, res) => {
   try {
     const { sessionId, domain } = req.query;
@@ -20,11 +24,13 @@ router.get("/status", (req, res) => {
     if (!saved) {
       return res.json({
         success: true,
-        deployed: false
+        deployed: false,
+        domainPurchased: false,
+        dnsConfigured: false
       });
     }
 
-    // Domain mismatch safety check (optional, non-fatal)
+    // Optional safety check (do NOT hard-fail)
     if (
       domain &&
       saved.domain &&
@@ -32,31 +38,40 @@ router.get("/status", (req, res) => {
     ) {
       return res.json({
         success: true,
-        deployed: false
+        deployed: false,
+        domainPurchased: Boolean(saved.domainPurchased),
+        dnsConfigured: Boolean(saved.dnsConfigured)
       });
     }
 
-    // 🚨 HARD FAILURE — THIS IS THE IMPORTANT FIX
+    // 🚨 HARD FAILURE — bubble up real errors
     if (saved.failed) {
       return res.json({
         success: false,
-        deployed: false,
         failed: true,
         error: saved.error || "Deployment failed",
         domain: saved.domain || null
       });
     }
 
-    // ✅ SUCCESS OR IN-PROGRESS
+    // ✅ SUCCESS / IN-PROGRESS (single source of truth)
     return res.json({
       success: true,
       deployed: Boolean(saved.deployed),
       domain: saved.domain || null,
+
+      // GitHub
       pagesUrl: saved.pagesUrl || null,
       repoUrl: saved.repoUrl || null,
       repoName: saved.repoName || null,
       githubUser: saved.githubUser || null,
-      duration: saved.durationYears || null
+
+      // Domain + DNS (now exposed cleanly)
+      domainPurchased: Boolean(saved.domainPurchased),
+      dnsConfigured: Boolean(saved.dnsConfigured),
+
+      // Billing
+      durationYears: saved.durationYears || null
     });
 
   } catch (err) {

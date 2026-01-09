@@ -1,7 +1,7 @@
-// backend/index.js — FINAL STABLE VERSION (FIXED)
-// WhoisXML = domain availability
-// Namecheap = pricing + buyer
-// No duplicate routes, no collisions, no silent failures
+// backend/index.js — FINAL STABLE VERSION (WIRED)
+// WhoisXML = availability
+// Namecheap = purchase + DNS
+// GitHub Pages = hosting
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -17,6 +17,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 
+// 🔑 DNS util (already exists)
+import { setGitHubPagesDNS_Namecheap } from "./utils/setGitHubPagesDNS_Namecheap.js";
+
 // -----------------------------------------------------------------------------
 // PATHS
 // -----------------------------------------------------------------------------
@@ -30,12 +33,7 @@ const app = express();
 // -----------------------------------------------------------------------------
 // RATE LIMIT
 // -----------------------------------------------------------------------------
-app.use(
-  rateLimit({
-    windowMs: 60_000,
-    max: 60,
-  })
-);
+app.use(rateLimit({ windowMs: 60_000, max: 60 }));
 
 // -----------------------------------------------------------------------------
 // TRUST PROXY (Render)
@@ -43,12 +41,11 @@ app.use(
 app.set("trust proxy", 1);
 
 // -----------------------------------------------------------------------------
-// CORS (LOCKED + SAFE)
+// CORS
 // -----------------------------------------------------------------------------
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-
-  const allowedOrigins = [
+  const allowed = [
     "https://joeyenvy.github.io",
     "https://websitegeneration.onrender.com",
     "https://website-generation.vercel.app",
@@ -58,7 +55,7 @@ app.use((req, res, next) => {
     "http://localhost:3000",
   ];
 
-  if (!origin || allowedOrigins.includes(origin)) {
+  if (!origin || allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin || "*");
   }
 
@@ -73,7 +70,7 @@ app.use((req, res, next) => {
 });
 
 // -----------------------------------------------------------------------------
-// STRIPE WEBHOOK (RAW BODY — MUST BE BEFORE express.json)
+// STRIPE WEBHOOK (RAW BODY FIRST)
 // -----------------------------------------------------------------------------
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -85,22 +82,19 @@ app.post(
   "/webhook/stripe",
   express.raw({ type: "application/json" }),
   (req, res) => {
-    const sig = req.headers["stripe-signature"];
     let event;
-
     try {
       event = stripe.webhooks.constructEvent(
         req.body,
-        sig,
+        req.headers["stripe-signature"],
         process.env.STRIPE_WEBHOOK_SECRET
       );
     } catch (err) {
-      console.error("WEBHOOK SIGNATURE ERROR:", err.message);
+      console.error("STRIPE WEBHOOK ERROR:", err.message);
       return res.status(400).send("Webhook Error");
     }
 
     res.json({ received: true });
-
     if (event.type !== "checkout.session.completed") return;
 
     const session = event.data.object;
@@ -114,26 +108,21 @@ app.post(
 
     (async () => {
       try {
-        console.log("FULL HOSTING WEBHOOK START →", saved.domain);
+        console.log("FULL HOSTING START →", saved.domain);
 
-        const DOMAIN_BUYER_URL = process.env.DOMAIN_BUYER_URL;
-        const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
         const SELF_URL =
-          process.env.SELF_URL ||
-          "https://websitegeneration.onrender.com";
+          process.env.SELF_URL || "https://websitegeneration.onrender.com";
 
-        if (!DOMAIN_BUYER_URL || !INTERNAL_SECRET) {
-          throw new Error("Buyer service not configured");
-        }
-
-        // BUY DOMAIN (Namecheap service)
-        const buy = await fetch(`${DOMAIN_BUYER_URL}/purchase-domain`, {
+        // 1️⃣ BUY DOMAIN
+        const buy = await fetch(`${SELF_URL}/api/domain/purchase`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-request": "yes",
+          },
           body: JSON.stringify({
             domain: saved.domain,
             years: Number(saved.durationYears || 1),
-            secret: INTERNAL_SECRET,
           }),
         });
 
@@ -142,7 +131,7 @@ app.post(
           throw new Error(buyResult.error || "Domain purchase failed");
         }
 
-        // DEPLOY SITE
+        // 2️⃣ DEPLOY GITHUB PAGES
         await fetch(`${SELF_URL}/api/full-hosting/deploy`, {
           method: "POST",
           headers: {
@@ -151,6 +140,14 @@ app.post(
           },
           body: JSON.stringify({ sessionId }),
         });
+
+        // 3️⃣ SET DNS → GITHUB PAGES
+        await setGitHubPagesDNS_Namecheap(saved.domain);
+
+        saved.deployed = true;
+        tempSessions.set(sessionId, saved);
+
+        console.log("✅ FULL HOSTING COMPLETE →", saved.domain);
 
       } catch (err) {
         console.error("FULL HOSTING FAILED:", err.message);
@@ -182,11 +179,12 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 // -----------------------------------------------------------------------------
-// ROUTES (ORDER MATTERS)
+// ROUTES
 // -----------------------------------------------------------------------------
 import sessionRoutes from "./routes/sessionRoutes.js";
-import domainRoutes from "./routes/domainRoutes.js";          // WHOISXML CHECK
-import domainPriceRoutes from "./routes/domainPriceRoutes.js"; // NAMECHEAP PRICING ✅
+import domainRoutes from "./routes/domainRoutes.js";
+import domainPriceRoutes from "./routes/domainPriceRoutes.js";
+import domainPurchaseRoutes from "./routes/domainPurchaseRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";
 import utilityRoutes from "./routes/utilityRoutes.js";
 import deployLiveRoutes from "./routes/deployLiveRoutes.js";
@@ -195,24 +193,20 @@ import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 import fullHostingStatusRoutes from "./routes/fullHostingStatusRoutes.js";
 import proxyRoutes from "./routes/proxyRoutes.js";
 
-// Payments
 app.use("/stripe", stripeRoutes);
 
-// Core API
 app.use("/api", sessionRoutes);
-app.use("/api", domainRoutes);        // /api/domain/check
-app.use("/api", domainPriceRoutes);   // /api/domain/price  ✅
+app.use("/api", domainRoutes);
+app.use("/api", domainPriceRoutes);
+app.use("/api", domainPurchaseRoutes); // ✅ REAL PURCHASE
 app.use("/api", utilityRoutes);
 
-// Deploy
 app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
 
-// Full hosting
 app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/full-hosting", fullHostingStatusRoutes);
 
-// Proxy
 app.use("/api/proxy", proxyRoutes);
 
 // -----------------------------------------------------------------------------
@@ -222,10 +216,7 @@ app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
 app.get("*", (req, res, next) => {
-  if (
-    req.originalUrl.startsWith("/api") ||
-    req.originalUrl.startsWith("/webhook")
-  ) {
+  if (req.originalUrl.startsWith("/api") || req.originalUrl.startsWith("/webhook")) {
     return next();
   }
 
