@@ -1,4 +1,4 @@
-// backend/index.js — FINAL STABLE VERSION (WIRED)
+// backend/index.js — FINAL STABLE VERSION (WIRED + FIXED)
 // WhoisXML = availability
 // Namecheap = purchase + DNS
 // GitHub Pages = hosting
@@ -17,8 +17,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 
-// 🔑 DNS util (already exists)
-import { setGitHubPagesDNS_Namecheap } from "./utils/setGitHubPagesDNS_Namecheap.js";
+// ✅ FIX: import the util from the file you actually have
+// (you said your file is backend/utils/namecheapDns.js)
+import { setGitHubPagesDNS_Namecheap } from "./utils/namecheapDns.js";
 
 // -----------------------------------------------------------------------------
 // PATHS
@@ -94,7 +95,9 @@ app.post(
       return res.status(400).send("Webhook Error");
     }
 
+    // respond immediately (Stripe requirement)
     res.json({ received: true });
+
     if (event.type !== "checkout.session.completed") return;
 
     const session = event.data.object;
@@ -113,7 +116,7 @@ app.post(
         const SELF_URL =
           process.env.SELF_URL || "https://websitegeneration.onrender.com";
 
-        // 1️⃣ BUY DOMAIN
+        // 1️⃣ BUY DOMAIN (Namecheap route in THIS backend)
         const buy = await fetch(`${SELF_URL}/api/domain/purchase`, {
           method: "POST",
           headers: {
@@ -122,17 +125,17 @@ app.post(
           },
           body: JSON.stringify({
             domain: saved.domain,
-            years: Number(saved.durationYears || 1),
+            duration: Number(saved.durationYears || 1), // ✅ matches your purchase route param naming
           }),
         });
 
-        const buyResult = await buy.json();
-        if (!buyResult.success) {
+        const buyResult = await buy.json().catch(() => ({}));
+        if (!buy.ok || buyResult.success !== true) {
           throw new Error(buyResult.error || "Domain purchase failed");
         }
 
         // 2️⃣ DEPLOY GITHUB PAGES
-        await fetch(`${SELF_URL}/api/full-hosting/deploy`, {
+        const deploy = await fetch(`${SELF_URL}/api/full-hosting/deploy`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -141,14 +144,21 @@ app.post(
           body: JSON.stringify({ sessionId }),
         });
 
+        const deployResult = await deploy.json().catch(() => ({}));
+        if (!deploy.ok || deployResult.success !== true) {
+          throw new Error(deployResult.error || "GitHub deploy failed");
+        }
+
         // 3️⃣ SET DNS → GITHUB PAGES
         await setGitHubPagesDNS_Namecheap(saved.domain);
 
+        // ✅ mark success (deploy route already sets pagesUrl/repoUrl etc; keep those)
         saved.deployed = true;
+        saved.domainPurchased = true;
+        saved.dnsConfigured = true;
         tempSessions.set(sessionId, saved);
 
         console.log("✅ FULL HOSTING COMPLETE →", saved.domain);
-
       } catch (err) {
         console.error("FULL HOSTING FAILED:", err.message);
         saved.failed = true;
@@ -182,9 +192,9 @@ if (process.env.SENDGRID_API_KEY) {
 // ROUTES
 // -----------------------------------------------------------------------------
 import sessionRoutes from "./routes/sessionRoutes.js";
-import domainRoutes from "./routes/domainRoutes.js";
-import domainPriceRoutes from "./routes/domainPriceRoutes.js";
-import domainPurchaseRoutes from "./routes/domainPurchaseRoutes.js";
+import domainRoutes from "./routes/domainRoutes.js"; // /api/domain/check (WhoisXML)
+import domainPriceRoutes from "./routes/domainPriceRoutes.js"; // /api/domain/price
+import domainPurchaseRoutes from "./routes/domainPurchaseRoutes.js"; // /api/domain/purchase ✅
 import stripeRoutes from "./routes/stripeRoutes.js";
 import utilityRoutes from "./routes/utilityRoutes.js";
 import deployLiveRoutes from "./routes/deployLiveRoutes.js";
@@ -193,20 +203,25 @@ import fullHostingGithubRoutes from "./routes/fullHostingGithubRoutes.js";
 import fullHostingStatusRoutes from "./routes/fullHostingStatusRoutes.js";
 import proxyRoutes from "./routes/proxyRoutes.js";
 
+// Payments
 app.use("/stripe", stripeRoutes);
 
+// Core API
 app.use("/api", sessionRoutes);
 app.use("/api", domainRoutes);
 app.use("/api", domainPriceRoutes);
-app.use("/api", domainPurchaseRoutes); // ✅ REAL PURCHASE
+app.use("/api", domainPurchaseRoutes);
 app.use("/api", utilityRoutes);
 
+// Deploy
 app.use("/api/deploy", deployLiveRoutes);
 app.use("/api/deploy", deployGithubRoutes);
 
+// Full hosting
 app.use("/api/full-hosting", fullHostingGithubRoutes);
 app.use("/api/full-hosting", fullHostingStatusRoutes);
 
+// Proxy
 app.use("/api/proxy", proxyRoutes);
 
 // -----------------------------------------------------------------------------
@@ -216,7 +231,10 @@ app.use(express.static(PUBLIC));
 app.use(express.static(ROOT));
 
 app.get("*", (req, res, next) => {
-  if (req.originalUrl.startsWith("/api") || req.originalUrl.startsWith("/webhook")) {
+  if (
+    req.originalUrl.startsWith("/api") ||
+    req.originalUrl.startsWith("/webhook")
+  ) {
     return next();
   }
 
