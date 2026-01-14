@@ -19,7 +19,8 @@ import { existsSync } from "fs";
 
 // ✅ FIX: import the util from the file you actually have
 // (you said your file is backend/utils/namecheapDns.js)
-import { setGitHubPagesDNS_Namecheap } from "./utils/namecheapDns.js";
+import { setGitHubPagesDNS_Namecheap } from "./utils/setGitHubPagesDNS_Namecheap.js";
+
 
 // -----------------------------------------------------------------------------
 // PATHS
