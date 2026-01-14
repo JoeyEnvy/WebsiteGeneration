@@ -15,16 +15,22 @@ const isValidDomain = (d) =>
   );
 
 router.post("/domain/purchase", async (req, res) => {
-  const internal = req.headers["x-internal-request"] === "yes";
-  if (!internal) {
+  // 🔒 INTERNAL ONLY
+  if (req.headers["x-internal-request"] !== "yes") {
     return res.status(403).json({ success: false, error: "Forbidden" });
   }
 
   const domain = String(req.body?.domain || "").trim().toLowerCase();
-  const years = Number(req.body?.years || 1);
+
+  // ✅ FIX: accept `duration` (what webhook sends)
+  const duration = Number(req.body?.duration || req.body?.years || 1);
 
   if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({ success: false, error: "Invalid domain" });
+  }
+
+  if (![1, 2, 3, 4, 5].includes(duration)) {
+    return res.status(400).json({ success: false, error: "Invalid duration" });
   }
 
   const {
@@ -41,7 +47,7 @@ router.post("/domain/purchase", async (req, res) => {
 
   const parts = domain.split(".");
   const sld = parts.shift();
-  const tld = parts.join(".");
+  const tld = parts.join("."); // supports .shop, .co.uk, etc
 
   try {
     const url =
@@ -52,7 +58,7 @@ router.post("/domain/purchase", async (req, res) => {
       `&ClientIp=${NAMECHEAP_CLIENT_IP}` +
       `&Command=namecheap.domains.create` +
       `&DomainName=${domain}` +
-      `&Years=${years}` +
+      `&Years=${duration}` +
       `&AddFreeWhoisguard=yes` +
       `&WGEnabled=yes`;
 
@@ -60,12 +66,12 @@ router.post("/domain/purchase", async (req, res) => {
     const xml = await r.text();
     const json = parser.parse(xml);
 
-    const ok =
+    const registered =
       json?.ApiResponse?.CommandResponse?.DomainCreateResult?.["@Registered"] ===
       "true";
 
-    if (!ok) {
-      console.error("NAMECHEAP PURCHASE FAILED:", xml);
+    if (!registered) {
+      console.error("❌ NAMECHEAP PURCHASE FAILED:", xml);
       return res.status(400).json({
         success: false,
         error: "Namecheap rejected purchase",
@@ -73,9 +79,13 @@ router.post("/domain/purchase", async (req, res) => {
       });
     }
 
-    console.log("✅ DOMAIN PURCHASED:", domain);
+    console.log("✅ DOMAIN PURCHASED:", domain, `(${duration} year(s))`);
 
-    return res.json({ success: true, domain });
+    return res.json({
+      success: true,
+      domain,
+      duration
+    });
 
   } catch (err) {
     console.error("NAMECHEAP PURCHASE ERROR:", err);
