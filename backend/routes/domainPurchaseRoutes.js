@@ -1,13 +1,12 @@
 // routes/domainPurchaseRoutes.js
-// INTERNAL ONLY — Namecheap domain purchase
+// INTERNAL ONLY — Domain purchase proxy
 // Called from Stripe webhook
+// Render → DigitalOcean → Namecheap
 
 import express from "express";
 import fetch from "node-fetch";
-import { XMLParser } from "fast-xml-parser";
 
 const router = express.Router();
-const parser = new XMLParser();
 
 const isValidDomain = (d) =>
   /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/i.test(
@@ -15,14 +14,12 @@ const isValidDomain = (d) =>
   );
 
 router.post("/domain/purchase", async (req, res) => {
-  // 🔒 INTERNAL ONLY
+  // 🔒 INTERNAL ONLY (Stripe webhook)
   if (req.headers["x-internal-request"] !== "yes") {
     return res.status(403).json({ success: false, error: "Forbidden" });
   }
 
   const domain = String(req.body?.domain || "").trim().toLowerCase();
-
-  // ✅ FIX: accept `duration` (what webhook sends)
   const duration = Number(req.body?.duration || req.body?.years || 1);
 
   if (!domain || !isValidDomain(domain)) {
@@ -33,65 +30,52 @@ router.post("/domain/purchase", async (req, res) => {
     return res.status(400).json({ success: false, error: "Invalid duration" });
   }
 
-const {
-  NAMECHEAP_API_KEY,
-  NAMECHEAP_API_USER,
-  NAMECHEAP_CLIENT_IP
-} = process.env;
+  const { DOMAIN_BUYER_URL, INTERNAL_SECRET } = process.env;
 
-const NAMECHEAP_USERNAME = NAMECHEAP_API_USER;
-
-  if (!NAMECHEAP_API_KEY || !NAMECHEAP_USERNAME || !NAMECHEAP_CLIENT_IP) {
-    return res
-      .status(500)
-      .json({ success: false, error: "Namecheap env vars missing" });
+  if (!DOMAIN_BUYER_URL || !INTERNAL_SECRET) {
+    return res.status(500).json({
+      success: false,
+      error: "Domain buyer service not configured"
+    });
   }
 
-  const parts = domain.split(".");
-  const sld = parts.shift();
-  const tld = parts.join("."); // supports .shop, .co.uk, etc
-
   try {
-    const url =
-      `https://api.namecheap.com/xml.response` +
-      `?ApiUser=${NAMECHEAP_USERNAME}` +
-      `&ApiKey=${NAMECHEAP_API_KEY}` +
-      `&UserName=${NAMECHEAP_USERNAME}` +
-      `&ClientIp=${NAMECHEAP_CLIENT_IP}` +
-      `&Command=namecheap.domains.create` +
-      `&DomainName=${domain}` +
-      `&Years=${duration}` +
-      `&AddFreeWhoisguard=yes` +
-      `&WGEnabled=yes`;
+    // 🚀 PROXY TO DIGITALOCEAN (STATIC IP)
+    const r = await fetch(
+      `${DOMAIN_BUYER_URL}/internal/namecheap/purchase`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-secret": INTERNAL_SECRET
+        },
+        body: JSON.stringify({ domain, duration })
+      }
+    );
 
-    const r = await fetch(url);
-    const xml = await r.text();
-    const json = parser.parse(xml);
+    const text = await r.text();
 
-    const registered =
-      json?.ApiResponse?.CommandResponse?.DomainCreateResult?.["@Registered"] ===
-      "true";
-
-    if (!registered) {
-      console.error("❌ NAMECHEAP PURCHASE FAILED:", xml);
+    if (!r.ok) {
+      console.error("❌ DOMAIN BUYER FAILED:", text);
       return res.status(400).json({
         success: false,
-        error: "Namecheap rejected purchase",
-        raw: xml
+        error: "Domain buyer rejected purchase",
+        raw: text
       });
     }
 
-    console.log("✅ DOMAIN PURCHASED:", domain, `(${duration} year(s))`);
+    const data = JSON.parse(text);
 
-    return res.json({
-      success: true,
-      domain,
-      duration
-    });
+    console.log("✅ DOMAIN PURCHASED VIA DO:", domain, `(${duration} year(s))`);
+
+    return res.json(data);
 
   } catch (err) {
-    console.error("NAMECHEAP PURCHASE ERROR:", err);
-    return res.status(500).json({ success: false, error: "Server error" });
+    console.error("DOMAIN BUYER PROXY ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Domain buyer proxy error"
+    });
   }
 });
 

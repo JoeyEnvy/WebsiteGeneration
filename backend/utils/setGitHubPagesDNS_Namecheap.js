@@ -1,79 +1,53 @@
+// utils/setGitHubPagesDNS_Namecheap.js
+// RENDER VERSION — PROXY ONLY
+// Render → DigitalOcean → Namecheap
+// Render must NEVER call Namecheap directly
+
 import fetch from "node-fetch";
 
 /**
- * Set Namecheap DNS records for GitHub Pages
- * - Apex (@): A records → GitHub Pages IPs
- * - www: CNAME → username.github.io
+ * Proxy DNS setup for GitHub Pages
+ * Calls DigitalOcean domain-buyer service
  *
- * REQUIRES:
- * NAMECHEAP_API_KEY
- * NAMECHEAP_USERNAME
- * NAMECHEAP_CLIENT_IP
+ * REQUIRES (Render):
+ * - DOMAIN_BUYER_URL
+ * - INTERNAL_SECRET
  */
 
 export async function setGitHubPagesDNS_Namecheap(domain) {
-  if (!domain) throw new Error("Domain is required");
-
-const {
-  NAMECHEAP_API_KEY,
-  NAMECHEAP_API_USER,
-  NAMECHEAP_CLIENT_IP,
-  GITHUB_USERNAME
-} = process.env;
-
-const NAMECHEAP_USERNAME = NAMECHEAP_API_USER;
-
-
-  if (!NAMECHEAP_API_KEY || !NAMECHEAP_USERNAME || !NAMECHEAP_CLIENT_IP) {
-    throw new Error("Missing Namecheap API credentials");
+  if (!domain) {
+    throw new Error("Domain is required");
   }
 
-  if (!GITHUB_USERNAME) {
-    throw new Error("GITHUB_USERNAME not set");
+  const { DOMAIN_BUYER_URL, INTERNAL_SECRET } = process.env;
+
+  if (!DOMAIN_BUYER_URL || !INTERNAL_SECRET) {
+    throw new Error("Domain buyer service not configured");
   }
 
-  const githubIPs = [
-    "185.199.108.153",
-    "185.199.109.153",
-    "185.199.110.153",
-    "185.199.111.153"
-  ];
+  try {
+    const res = await fetch(
+      `${DOMAIN_BUYER_URL}/internal/namecheap/set-dns`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-secret": INTERNAL_SECRET
+        },
+        body: JSON.stringify({ domain })
+      }
+    );
 
-  const params = new URLSearchParams({
-    ApiUser: NAMECHEAP_USERNAME,
-    ApiKey: NAMECHEAP_API_KEY,
-    UserName: NAMECHEAP_USERNAME,
-    ClientIp: NAMECHEAP_CLIENT_IP,
-    Command: "namecheap.domains.dns.setHosts",
-    SLD: domain.split(".")[0],
-    TLD: domain.split(".").slice(1).join("."),
-  });
+    const text = await res.text();
 
-  let hostIndex = 1;
+    if (!res.ok) {
+      console.error("❌ DNS PROXY FAILED:", text);
+      throw new Error("Domain buyer DNS setup failed");
+    }
 
-  // A records for apex
-  for (const ip of githubIPs) {
-    params.append(`HostName${hostIndex}`, "@");
-    params.append(`RecordType${hostIndex}`, "A");
-    params.append(`Address${hostIndex}`, ip);
-    params.append(`TTL${hostIndex}`, "600");
-    hostIndex++;
+    console.log(`✅ DNS PROXY SUCCESS → ${domain}`);
+  } catch (err) {
+    console.error("DNS PROXY ERROR:", err);
+    throw err;
   }
-
-  // www CNAME
-  params.append(`HostName${hostIndex}`, "www");
-  params.append(`RecordType${hostIndex}`, "CNAME");
-  params.append(`Address${hostIndex}`, `${GITHUB_USERNAME}.github.io`);
-  params.append(`TTL${hostIndex}`, "600");
-
-  const url = `https://api.namecheap.com/xml.response?${params.toString()}`;
-
-  const res = await fetch(url);
-  const text = await res.text();
-
-  if (!text.includes("<IsSuccess>true</IsSuccess>")) {
-    throw new Error(`Namecheap DNS update failed:\n${text}`);
-  }
-
-  console.log(`✅ Namecheap DNS set for ${domain} → GitHub Pages`);
 }
