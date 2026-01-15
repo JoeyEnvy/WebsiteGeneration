@@ -33,11 +33,13 @@ router.post("/domain/purchase", async (req, res) => {
     return res.status(400).json({ success: false, error: "Invalid duration" });
   }
 
-  const {
-    NAMECHEAP_API_KEY,
-    NAMECHEAP_USERNAME,
-    NAMECHEAP_CLIENT_IP
-  } = process.env;
+const {
+  NAMECHEAP_API_KEY,
+  NAMECHEAP_API_USER,
+  NAMECHEAP_CLIENT_IP
+} = process.env;
+
+const NAMECHEAP_USERNAME = NAMECHEAP_API_USER;
 
   if (!NAMECHEAP_API_KEY || !NAMECHEAP_USERNAME || !NAMECHEAP_CLIENT_IP) {
     return res

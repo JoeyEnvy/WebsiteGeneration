@@ -14,12 +14,15 @@ import fetch from "node-fetch";
 export async function setGitHubPagesDNS_Namecheap(domain) {
   if (!domain) throw new Error("Domain is required");
 
-  const {
-    NAMECHEAP_API_KEY,
-    NAMECHEAP_USERNAME,
-    NAMECHEAP_CLIENT_IP,
-    GITHUB_USERNAME
-  } = process.env;
+const {
+  NAMECHEAP_API_KEY,
+  NAMECHEAP_API_USER,
+  NAMECHEAP_CLIENT_IP,
+  GITHUB_USERNAME
+} = process.env;
+
+const NAMECHEAP_USERNAME = NAMECHEAP_API_USER;
+
 
   if (!NAMECHEAP_API_KEY || !NAMECHEAP_USERNAME || !NAMECHEAP_CLIENT_IP) {
     throw new Error("Missing Namecheap API credentials");
