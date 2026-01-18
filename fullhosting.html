@@ -19,11 +19,10 @@
       --border:#1e293b;
       --link:#60a5fa;
       --success:#22c55e;
+      --warning:#fbbf24;
       --error:#ef4444;
     }
-
     * { box-sizing:border-box; margin:0; padding:0; }
-
     body {
       font-family:Inter,system-ui,sans-serif;
       background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);
@@ -31,7 +30,6 @@
       min-height:100vh;
       padding:20px;
     }
-
     .container {
       max-width:1100px;
       margin:40px auto;
@@ -42,16 +40,13 @@
       box-shadow:0 25px 60px rgba(0,0,0,.6);
       overflow:hidden;
     }
-
     .header {
       background:linear-gradient(135deg,#1e40af,#3b82f6);
       padding:42px 32px;
       text-align:center;
     }
-
     .header h1 { font-size:2.6rem; font-weight:800; }
     .header p { opacity:.95; margin-top:8px; }
-
     .content { padding:40px 32px; }
 
     #loadingBox {
@@ -60,7 +55,6 @@
       font-size:1.1rem;
       color:var(--accent);
     }
-
     .spinner {
       width:26px;height:26px;
       border:3px solid rgba(16,185,129,.3);
@@ -69,7 +63,6 @@
       animation:spin 1s linear infinite;
       margin-bottom:14px;
     }
-
     @keyframes spin { to { transform:rotate(360deg); } }
 
     .success-message {
@@ -95,6 +88,9 @@
       padding:24px;
       text-align:center;
     }
+
+    .status-card.warning { border-color: var(--warning); }
+    .status-card.error { border-color: var(--error); }
 
     .preview-container {
       margin:40px 0;
@@ -156,7 +152,6 @@
     }
   </style>
 </head>
-
 <body>
 <div class="container">
 
@@ -170,7 +165,7 @@
     <div id="loadingBox">
       <div class="spinner"></div><br>
       <strong>Finalising deployment…</strong><br><br>
-      <small>Build → GitHub Pages → DNS</small>
+      <small>Build → GitHub Pages → DNS → HTTPS</small>
     </div>
 
     <div id="successView" style="display:none;">
@@ -178,18 +173,18 @@
       <div class="success-message">
         <strong style="font-size:1.7rem;color:var(--success);">Your Website Is LIVE</strong>
         <p style="margin-top:8px;color:var(--muted);">
-          GitHub Pages may take a minute to propagate. This is normal.
+          DNS and HTTPS may take a few minutes to propagate. Please wait.
         </p>
       </div>
 
       <div class="status-grid">
-        <div class="status-card">
-          <h3 id="finalDomain">—</h3>
-          <p>Custom domain</p>
+        <div class="status-card" id="dnsStatus">
+          <h3>Pending</h3>
+          <p>DNS Setup</p>
         </div>
-        <div class="status-card">
-          <h3>Deployment Complete</h3>
-          <p>GitHub Pages</p>
+        <div class="status-card" id="httpsStatus">
+          <h3>Pending</h3>
+          <p>HTTPS</p>
         </div>
       </div>
 
@@ -216,7 +211,7 @@
       </div>
 
       <div class="notice">
-        DNS propagation can take up to 24 hours. GitHub Pages may take a few minutes.
+        Deployment may take a few minutes. DNS propagation can take up to 24 hours.
       </div>
 
     </div>
@@ -240,6 +235,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const previewUrl = document.getElementById("previewUrl");
   const sitePreview = document.getElementById("sitePreview");
 
+  const dnsStatus = document.getElementById("dnsStatus");
+  const httpsStatus = document.getElementById("httpsStatus");
+
   if (!sessionId) {
     loadingBox.innerHTML =
       "<span style='color:var(--error)'>Invalid session.</span>";
@@ -247,16 +245,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const START_TIME = Date.now();
-  const MAX_WAIT = 5 * 60 * 1000; // 5 minutes
+  const MAX_WAIT = 10 * 60 * 1000; // 10 minutes
 
-  const showError = (msg) => {
-    loadingBox.innerHTML =
-      `<span style="color:var(--error);font-weight:600;">${msg}</span>`;
+  const setStatus = (el, text, type="success") => {
+    el.querySelector("h3").textContent = text;
+    el.className = `status-card${type === "warning" ? " warning" : type==="error"?" error":""}`;
   };
 
   const poll = async () => {
     if (Date.now() - START_TIME > MAX_WAIT) {
-      showError("Deployment is taking too long. Please check back shortly.");
+      loadingBox.innerHTML = "<span style='color:var(--error);font-weight:600;'>Deployment is taking too long. Please check back later.</span>";
       return;
     }
 
@@ -267,45 +265,51 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       if (data.failed || data.error) {
-        showError(data.error || "Deployment failed.");
+        loadingBox.innerHTML = `<span style="color:var(--error);font-weight:600;">${data.error || "Deployment failed."}</span>`;
         return;
       }
 
-      if (data.deployed && data.pagesUrl) {
-        const domain = data.domain || null;
+      if (data.deployed && data.domain && data.pagesUrl) {
 
-        finalDomain.textContent = domain || "—";
+        finalDomain.textContent = data.domain;
 
-        // Preview iframe: use HTTPS and only show custom domain if DNS is ready
-        if (data.dnsConfigured && domain) {
-          hostedLink.href = `https://${domain}`;
-          hostedLink.textContent = `https://${domain}`;
-          sitePreview.src = `https://${domain}`;
-          previewUrl.textContent = `https://${domain}`;
-        } else {
-          // fallback to GitHub Pages preview
-          hostedLink.href = "#";
-          hostedLink.textContent = "DNS not ready";
-          sitePreview.src = data.pagesUrl.startsWith("http:") 
-            ? data.pagesUrl.replace("http:", "https:") 
-            : data.pagesUrl;
-          previewUrl.textContent = data.pagesUrl.startsWith("http:") 
-            ? data.pagesUrl.replace("http:", "https:") 
-            : data.pagesUrl;
-        }
+        hostedLink.href = `https://${data.domain}`;
+        hostedLink.textContent = `https://${data.domain}`;
 
-        pagesLink.href = data.pagesUrl.startsWith("http:") 
-          ? data.pagesUrl.replace("http:", "https:") 
-          : data.pagesUrl;
-        pagesLink.textContent = pagesLink.href;
+        pagesLink.href = data.pagesUrl;
+        pagesLink.textContent = data.pagesUrl;
 
         if (data.repoUrl) {
           repoLink.href = data.repoUrl;
           repoLink.textContent = data.repoUrl;
         }
 
+        // Check DNS + HTTPS status
+        const domainCheck = await fetch(`https://api.github.com/repos/${data.repoOwner}/${data.repoName}/pages`);
+        const domainData = await domainCheck.json();
+
+        if (domainData && domainData.cname === data.domain) {
+          setStatus(dnsStatus, "Configured");
+        } else {
+          setStatus(dnsStatus, "Pending", "warning");
+        }
+
+        if (domainData && domainData.https_enforced) {
+          setStatus(httpsStatus, "Active");
+          sitePreview.src = `https://${data.domain}`;
+        } else {
+          setStatus(httpsStatus, "Pending", "warning");
+          sitePreview.src = data.pagesUrl;
+        }
+
         loadingBox.style.display = "none";
         successView.style.display = "block";
+
+        // Repeat polling if not fully ready
+        if (!domainData || !domainData.https_enforced) {
+          setTimeout(poll, 8000);
+        }
+
         return;
       }
 
