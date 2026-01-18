@@ -1,8 +1,4 @@
-// backend/index.js — FINAL, CLEAN, CORRECT
-// Render = orchestration only
-// DigitalOcean = Namecheap purchase
-// GitHub Pages = hosting
-
+// backend/index.js — FULL HOSTING WITH AUTOMATED DNS RETRIES
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -137,8 +133,9 @@ app.post(
           throw new Error(buyResult.error || "Domain buyer rejected purchase");
         }
 
-        saved.domainPurchased = true;
         console.log("✅ DOMAIN PURCHASED →", saved.domain);
+        saved.domainPurchased = true;
+        tempSessions.set(sessionId, saved);
 
         // ---------------------------------------------------------------------
         // 2️⃣ DEPLOY GITHUB PAGES (RENDER)
@@ -160,24 +157,36 @@ app.post(
           throw new Error(deployResult.error || "GitHub deploy failed");
         }
 
-        saved.deployed = true;
         console.log("✅ GITHUB PAGES DEPLOYED →", saved.domain);
 
         // ---------------------------------------------------------------------
-        // 3️⃣ DNS → GITHUB PAGES (NAMECHEAP)
+        // 3️⃣ AUTOMATED DNS → GITHUB PAGES (NAMECHEAP) WITH RETRIES
         // ---------------------------------------------------------------------
-        const dnsResult = await setGitHubPagesDNS_Namecheap(saved.domain);
+        const MAX_RETRIES = 5;
+        const RETRY_DELAY = 15_000; // 15s
+        let dnsReady = false;
 
-        if (dnsResult?.success === true) {
-          saved.dnsConfigured = true;
-          saved.dnsPending = false;
-          console.log("✅ DNS CONFIGURED →", saved.domain);
-        } else {
-          saved.dnsConfigured = false;
-          saved.dnsPending = true;
-          console.log("⏳ DNS PENDING →", saved.domain);
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            await setGitHubPagesDNS_Namecheap(saved.domain);
+            dnsReady = true;
+            console.log(`✅ DNS CONFIGURED → ${saved.domain}`);
+            break;
+          } catch (err) {
+            console.warn(
+              `⚠️ DNS setup attempt ${attempt} failed, retrying in ${RETRY_DELAY /
+                1000}s…`
+            );
+            await new Promise((r) => setTimeout(r, RETRY_DELAY));
+          }
         }
 
+        if (!dnsReady) {
+          throw new Error("DNS setup failed after multiple attempts");
+        }
+
+        saved.deployed = true;
+        saved.dnsConfigured = true;
         tempSessions.set(sessionId, saved);
 
         console.log("✅ FULL HOSTING FLOW COMPLETE →", saved.domain);

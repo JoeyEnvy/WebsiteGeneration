@@ -255,44 +255,49 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const poll = async () => {
-    // ⏱ timeout protection
     if (Date.now() - START_TIME > MAX_WAIT) {
       showError("Deployment is taking too long. Please check back shortly.");
       return;
     }
 
     try {
-      const res = await fetch(
-        `${API}/api/full-hosting/status?sessionId=${sessionId}`
-      );
-
-      if (!res.ok) {
-        throw new Error("pending");
-      }
+      const res = await fetch(`${API}/api/full-hosting/status?sessionId=${sessionId}`);
+      if (!res.ok) throw new Error("pending");
 
       const data = await res.json();
 
-      // ❌ explicit failure from backend (future-proof)
       if (data.failed || data.error) {
         showError(data.error || "Deployment failed.");
         return;
       }
 
-      // ✅ success
       if (data.deployed && data.pagesUrl) {
-        const domain = data.domain || "—";
+        const domain = data.domain || null;
 
-        finalDomain.textContent = domain;
-        previewUrl.textContent = data.pagesUrl;
-        sitePreview.src = data.pagesUrl;
+        finalDomain.textContent = domain || "—";
 
-        pagesLink.href = data.pagesUrl;
-        pagesLink.textContent = data.pagesUrl;
-
-        if (domain !== "—") {
+        // Preview iframe: use HTTPS and only show custom domain if DNS is ready
+        if (data.dnsConfigured && domain) {
           hostedLink.href = `https://${domain}`;
           hostedLink.textContent = `https://${domain}`;
+          sitePreview.src = `https://${domain}`;
+          previewUrl.textContent = `https://${domain}`;
+        } else {
+          // fallback to GitHub Pages preview
+          hostedLink.href = "#";
+          hostedLink.textContent = "DNS not ready";
+          sitePreview.src = data.pagesUrl.startsWith("http:") 
+            ? data.pagesUrl.replace("http:", "https:") 
+            : data.pagesUrl;
+          previewUrl.textContent = data.pagesUrl.startsWith("http:") 
+            ? data.pagesUrl.replace("http:", "https:") 
+            : data.pagesUrl;
         }
+
+        pagesLink.href = data.pagesUrl.startsWith("http:") 
+          ? data.pagesUrl.replace("http:", "https:") 
+          : data.pagesUrl;
+        pagesLink.textContent = pagesLink.href;
 
         if (data.repoUrl) {
           repoLink.href = data.repoUrl;
@@ -314,7 +319,5 @@ document.addEventListener("DOMContentLoaded", () => {
   poll();
 });
 </script>
-
-
 </body>
 </html>
