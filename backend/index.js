@@ -137,6 +137,7 @@ app.post(
           throw new Error(buyResult.error || "Domain buyer rejected purchase");
         }
 
+        saved.domainPurchased = true;
         console.log("✅ DOMAIN PURCHASED →", saved.domain);
 
         // ---------------------------------------------------------------------
@@ -159,17 +160,27 @@ app.post(
           throw new Error(deployResult.error || "GitHub deploy failed");
         }
 
+        saved.deployed = true;
+        console.log("✅ GITHUB PAGES DEPLOYED →", saved.domain);
+
         // ---------------------------------------------------------------------
         // 3️⃣ DNS → GITHUB PAGES (NAMECHEAP)
         // ---------------------------------------------------------------------
-        await setGitHubPagesDNS_Namecheap(saved.domain);
+        const dnsResult = await setGitHubPagesDNS_Namecheap(saved.domain);
 
-        saved.deployed = true;
-        saved.domainPurchased = true;
-        saved.dnsConfigured = true;
+        if (dnsResult?.success === true) {
+          saved.dnsConfigured = true;
+          saved.dnsPending = false;
+          console.log("✅ DNS CONFIGURED →", saved.domain);
+        } else {
+          saved.dnsConfigured = false;
+          saved.dnsPending = true;
+          console.log("⏳ DNS PENDING →", saved.domain);
+        }
+
         tempSessions.set(sessionId, saved);
 
-        console.log("✅ FULL HOSTING COMPLETE →", saved.domain);
+        console.log("✅ FULL HOSTING FLOW COMPLETE →", saved.domain);
       } catch (err) {
         console.error("FULL HOSTING FAILED:", err.message);
         saved.failed = true;

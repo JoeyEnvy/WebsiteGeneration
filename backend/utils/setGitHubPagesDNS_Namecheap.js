@@ -41,13 +41,27 @@ export async function setGitHubPagesDNS_Namecheap(domain) {
     const text = await res.text();
 
     if (!res.ok) {
-      console.error("❌ DNS PROXY FAILED:", text);
-      throw new Error("Domain buyer DNS setup failed");
+      console.error("⚠️ DNS NOT READY YET:", text);
+
+      return {
+        success: false,
+        pending: true,
+        message: "DNS propagation pending"
+      };
     }
 
     console.log(`✅ DNS PROXY SUCCESS → ${domain}`);
+
+    return {
+      success: true
+    };
   } catch (err) {
-    console.error("DNS PROXY ERROR:", err);
-    throw err;
+    console.error("⚠️ DNS PROXY ERROR (non-fatal):", err.message);
+
+    return {
+      success: false,
+      pending: true,
+      message: err.message
+    };
   }
 }
