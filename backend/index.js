@@ -1,4 +1,4 @@
-// backend/index.js — FULL HOSTING WITH AUTOMATED DNS RETRIES
+// backend/index.js — FULL HOSTING WITH AUTOMATED DNS + HTTPS RETRIES
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 
 import { setGitHubPagesDNS_Namecheap } from "./utils/setGitHubPagesDNS_Namecheap.js";
+import { confirmGitHubPagesDNS } from "./utils/confirmGitHubPagesDNS.js";
 
 // -----------------------------------------------------------------------------
 // PATHS
@@ -160,7 +161,7 @@ app.post(
         console.log("✅ GITHUB PAGES DEPLOYED →", saved.domain);
 
         // ---------------------------------------------------------------------
-        // 3️⃣ AUTOMATED DNS → GITHUB PAGES (NAMECHEAP) WITH RETRIES
+        // 3️⃣ AUTOMATED DNS → GITHUB PAGES (NAMECHEAP) + CONFIRMATION
         // ---------------------------------------------------------------------
         const MAX_RETRIES = 5;
         const RETRY_DELAY = 15_000; // 15s
@@ -168,21 +169,40 @@ app.post(
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
           try {
+            // send DNS setup request to Namecheap via proxy
             await setGitHubPagesDNS_Namecheap(saved.domain);
-            dnsReady = true;
-            console.log(`✅ DNS CONFIGURED → ${saved.domain}`);
-            break;
+            console.log(`✅ Namecheap DNS request sent → ${saved.domain}`);
+
+            // confirm GitHub Pages CNAME + HTTPS
+            const confirm = await confirmGitHubPagesDNS(
+              saved.domain,
+              saved.githubUser,
+              saved.repoName
+            );
+
+            if (confirm.dnsReady && confirm.httpsReady) {
+              dnsReady = true;
+              console.log(`✅ DNS + HTTPS confirmed → ${saved.domain}`);
+              break;
+            } else {
+              console.warn(
+                `⚠️ GitHub Pages not ready yet, retrying… (attempt ${attempt})`
+              );
+            }
           } catch (err) {
             console.warn(
-              `⚠️ DNS setup attempt ${attempt} failed, retrying in ${RETRY_DELAY /
-                1000}s…`
+              `⚠️ DNS setup attempt ${attempt} failed, retrying in ${
+                RETRY_DELAY / 1000
+              }s…`,
+              err.message
             );
-            await new Promise((r) => setTimeout(r, RETRY_DELAY));
           }
+
+          await new Promise((r) => setTimeout(r, RETRY_DELAY));
         }
 
         if (!dnsReady) {
-          throw new Error("DNS setup failed after multiple attempts");
+          throw new Error("DNS + HTTPS setup failed after multiple attempts");
         }
 
         saved.deployed = true;
