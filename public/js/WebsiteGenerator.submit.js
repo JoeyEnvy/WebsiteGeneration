@@ -1,4 +1,4 @@
-// WebsiteGenerator.submit.js — works with Render (and Vercel if you ever go back)
+// WebsiteGenerator.submit.js — FIXED (Render-safe, no race conditions)
 
 WebsiteGenerator.prototype.handleSubmit = async function () {
   this.goToStep(5);
@@ -8,75 +8,98 @@ WebsiteGenerator.prototype.handleSubmit = async function () {
     const formData = new FormData(this.form);
     const finalPrompt = this.buildFinalPrompt(formData);
 
-    // Save business name for Stripe later
-    localStorage.setItem('businessName', formData.get('businessName') || '');
-
-    // Ensure session ID
-    if (!localStorage.getItem('sessionId')) {
-      localStorage.setItem('sessionId', crypto.randomUUID());
+    // ---- HARD REQUIRE sessionId EARLY ----
+    let sessionId = localStorage.getItem("sessionId");
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("sessionId", sessionId);
     }
 
-    const API = 'https://websitegeneration.onrender.com/api';
+    // Save business name for Stripe + backend
+    const businessName = formData.get("businessName") || "";
+    localStorage.setItem("businessName", businessName);
 
+    const API = "https://websitegeneration.onrender.com/api";
+
+    // ---- GENERATE PAGES ----
     const response = await fetch(`${API}/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: finalPrompt,
-        pageCount: formData.get('pageCount') || '1'
-      })
+        pageCount: formData.get("pageCount") || "1",
+      }),
     });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Generate failed: ${response.status} — ${text.slice(0, 200)}`);
+      throw new Error(
+        `Generate failed: ${response.status} — ${text.slice(0, 200)}`
+      );
     }
 
     const data = await response.json();
 
-    if (!data.success) {
-      throw new Error(data.error || 'Unknown server error');
+    if (!data.success || !Array.isArray(data.pages) || !data.pages.length) {
+      throw new Error("Page generation failed or returned empty pages");
     }
 
+    // ---- STORE LOCALLY ----
     this.generatedPages = data.pages;
-    localStorage.setItem('generatedPages', JSON.stringify(this.generatedPages));
+    localStorage.setItem(
+      "generatedPages",
+      JSON.stringify(this.generatedPages)
+    );
     this.currentPage = 0;
 
-    // Optional session persistence
-    const sessionId = localStorage.getItem('sessionId');
-    fetch(`${API}/store-step`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // ---- CRITICAL FIX: AWAIT SERVER PERSISTENCE ----
+    const storeRes = await fetch(`${API}/store-step`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sessionId,
-        step: 'pages',
-        content: data.pages
-      })
-    }).catch(() => {});
+        step: "pages",
+        content: data.pages,
+        businessName,
+      }),
+    });
 
+    if (!storeRes.ok) {
+      const text = await storeRes.text();
+      throw new Error(
+        `Failed to persist pages on server — ${storeRes.status}: ${text.slice(
+          0,
+          200
+        )}`
+      );
+    }
+
+    // ---- UI ----
     this.updatePreview();
-    this.showSuccess('Website generated successfully!');
+    this.showSuccess("Website generated successfully!");
   } catch (error) {
     console.error(error);
-    this.showError('Failed to generate: ' + error.message);
+    this.showError("Failed to generate: " + error.message);
   } finally {
     this.hideLoading();
   }
 };
 
-// buildFinalPrompt
+// =======================================================
+// buildFinalPrompt (UNCHANGED)
+// =======================================================
 WebsiteGenerator.prototype.buildFinalPrompt = function (formData) {
-  const websiteType = formData.get('websiteType');
-  const pageCount = formData.get('pageCount');
-  const pages = Array.from(formData.getAll('pages')).join(', ');
-  const businessName = formData.get('businessName');
-  const businessType = formData.get('businessType');
-  const businessDescription = formData.get('businessDescription');
-  const features = Array.from(formData.getAll('features')).join(', ');
-  const colorScheme = formData.get('colorScheme');
-  const fontStyle = formData.get('fontStyle');
-  const layoutPreference = formData.get('layoutPreference');
-  const enhancements = Array.from(formData.getAll('enhancements')).join(', ');
+  const websiteType = formData.get("websiteType");
+  const pageCount = formData.get("pageCount");
+  const pages = Array.from(formData.getAll("pages")).join(", ");
+  const businessName = formData.get("businessName");
+  const businessType = formData.get("businessType");
+  const businessDescription = formData.get("businessDescription");
+  const features = Array.from(formData.getAll("features")).join(", ");
+  const colorScheme = formData.get("colorScheme");
+  const fontStyle = formData.get("fontStyle");
+  const layoutPreference = formData.get("layoutPreference");
+  const enhancements = Array.from(formData.getAll("enhancements")).join(", ");
 
   return `
 You are a professional website developer.
