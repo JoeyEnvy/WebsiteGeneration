@@ -4,9 +4,10 @@
 // Render must NEVER call Namecheap directly
 
 import fetch from "node-fetch";
+import dns from "dns/promises";
 
 /**
- * Proxy DNS setup for GitHub Pages
+ * Proxy DNS setup for GitHub Pages with automated propagation check
  * Calls DigitalOcean domain-buyer service to create:
  *  - A records for apex/root domain
  *  - CNAME for www subdomain
@@ -18,7 +19,6 @@ import fetch from "node-fetch";
  * Returns:
  *  {
  *    success: boolean,
- *    pending?: boolean,
  *    message?: string
  *  }
  */
@@ -30,7 +30,7 @@ export async function setGitHubPagesDNS_Namecheap(domain) {
     throw new Error("Domain buyer service not configured");
 
   try {
-    // Send request to internal proxy to set both A + CNAME
+    // Step 1 — Send request to internal proxy to set both A + CNAME
     const res = await fetch(`${DOMAIN_BUYER_URL}/internal/namecheap/set-dns`, {
       method: "POST",
       headers: {
@@ -50,24 +50,37 @@ export async function setGitHubPagesDNS_Namecheap(domain) {
     });
 
     const data = await res.json().catch(async () => {
-      // Fallback to text if JSON fails
       const txt = await res.text();
-      return { success: false, pending: true, message: txt };
+      return { success: false, message: txt };
     });
 
     if (!res.ok || data.success !== true) {
-      console.warn("⚠️ DNS NOT READY YET:", data.message || data);
-      return {
-        success: false,
-        pending: true,
-        message: data.message || "DNS propagation pending",
-      };
+      console.warn("⚠️ DNS PROXY NOT READY:", data.message || data);
+      return { success: false, pending: true, message: data.message || "DNS setup pending" };
     }
 
-    console.log(`✅ DNS PROXY SUCCESS → ${domain}`);
-    return { success: true };
+    console.log(`✅ DNS PROXY REQUEST SENT → ${domain}`);
+
+    // Step 2 — Poll DNS until propagation
+    const maxRetries = 20; // ~10 minutes if 30s interval
+    const intervalMs = 30000;
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const result = await dns.lookup(domain);
+        if (result && result.address) {
+          console.log(`✅ DNS PROPAGATED → ${domain} resolves to ${result.address}`);
+          return { success: true, message: "DNS ready" };
+        }
+      } catch {
+        console.log(`⏳ DNS not propagated yet, retry ${i + 1}/${maxRetries}`);
+      }
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+
+    throw new Error("DNS did not propagate within timeout");
   } catch (err) {
-    console.error("⚠️ DNS PROXY ERROR (non-fatal):", err.message);
+    console.error("⚠️ DNS PROXY ERROR:", err.message);
     return { success: false, pending: true, message: err.message };
   }
 }
