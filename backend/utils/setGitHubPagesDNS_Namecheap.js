@@ -8,7 +8,7 @@ import dns from "dns/promises";
 
 /**
  * Proxy DNS setup for GitHub Pages with automated propagation check
- * Calls DigitalOcean domain-buyer service to create:
+ * Calls internal domain-buyer service to create:
  *  - A records for apex/root domain
  *  - CNAME for www subdomain
  *
@@ -45,7 +45,7 @@ export async function setGitHubPagesDNS_Namecheap(domain) {
           "185.199.110.153",
           "185.199.111.153",
         ],
-        githubPagesCNAME: "joeyenvy.github.io",
+        githubPagesCNAME: domain, // FIXED: CNAME must be the custom domain itself
       }),
     });
 
