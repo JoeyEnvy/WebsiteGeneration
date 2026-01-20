@@ -159,18 +159,18 @@ jobs:
       );
     }
 
-    // SESSION UPDATE
+    // SESSION UPDATE — only mark deployed; DNS + HTTPS confirmed later
     saved.deployed = true;
     saved.pagesUrl = pagesUrl;
     saved.repoUrl = repoUrl;
     saved.repoName = repoName;
     saved.githubUser = owner;
-    saved.dnsConfigured = Boolean(saved.domain);
+    saved.dnsConfigured = false;  // will be updated asynchronously
+    saved.httpsReady = false;     // will be updated asynchronously
 
     tempSessions.set(sessionId, saved);
 
     res.json({ success: true, pagesUrl, repoUrl });
-
   } catch (err) {
     console.error("Full hosting deploy failed:", err);
     res.status(500).json({ error: err.message });
