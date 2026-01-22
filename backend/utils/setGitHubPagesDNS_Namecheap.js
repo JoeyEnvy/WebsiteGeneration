@@ -45,7 +45,7 @@ export async function setGitHubPagesDNS_Namecheap(domain) {
           "185.199.110.153",
           "185.199.111.153",
         ],
-        githubPagesCNAME: domain, // FIXED: CNAME must be the custom domain itself
+        githubPagesCNAME: domain, // CNAME must be the custom domain itself
       }),
     });
 
@@ -67,10 +67,16 @@ export async function setGitHubPagesDNS_Namecheap(domain) {
 
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const result = await dns.lookup(domain);
-        if (result && result.address) {
-          console.log(`✅ DNS PROPAGATED → ${domain} resolves to ${result.address}`);
-          return { success: true, message: "DNS ready" };
+        // Check apex/root DNS
+        const apexResult = await dns.lookup(domain);
+        // Check www CNAME
+        const wwwResult = await dns.lookup(`www.${domain}`).catch(() => null);
+
+        if (apexResult?.address && wwwResult?.address) {
+          console.log(`✅ DNS PROPAGATED → ${domain} (apex + www)`);
+          return { success: true, message: "DNS fully propagated" };
+        } else {
+          console.log(`⏳ DNS not fully propagated yet, retry ${i + 1}/${maxRetries}`);
         }
       } catch {
         console.log(`⏳ DNS not propagated yet, retry ${i + 1}/${maxRetries}`);
