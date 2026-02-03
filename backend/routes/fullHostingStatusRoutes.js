@@ -1,4 +1,4 @@
-// routes/fullHostingStatusRoutes.js (latest version with DNS verification + better status handling)
+// routes/fullHostingStatusRoutes.js — Polling endpoint for frontend to track progress
 import express from "express";
 import { tempSessions } from "../index.js";
 import fetch from "node-fetch";
@@ -140,7 +140,7 @@ router.get("/status", async (req, res) => {
       githubUser: saved.githubUser || null,
       domainPurchased: Boolean(saved.domainPurchased),
       dnsConfigured,
-      httpsReady,  // New: true when site should be live on custom domain
+      httpsReady,  // true when site should be live on custom domain
       githubStatus,  // e.g. "built", "building", null, 'initializing'
       durationYears: saved.durationYears || null,
       pendingMessage: (githubStatus === null || githubStatus === 'initializing' || !dnsConfigured)

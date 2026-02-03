@@ -1,8 +1,5 @@
 import fetch from "node-fetch";
 
-/**
- * Sanitize business name into valid GitHub repo name
- */
 export const sanitizeRepoName = (name = "") => {
   if (!name) return "site";
   return (
@@ -17,9 +14,6 @@ export const sanitizeRepoName = (name = "") => {
   );
 };
 
-/**
- * Get exact repo name user expects. Falls back to -2, -3 etc if taken
- */
 export const getUniqueRepoName = async (rawName, owner) => {
   const token = process.env.GITHUB_TOKEN;
   if (!token) throw new Error("Missing GITHUB_TOKEN");
@@ -48,9 +42,6 @@ export const getUniqueRepoName = async (rawName, owner) => {
   return `${base}-${Date.now()}`;
 };
 
-/**
- * Make repo public if private (required for Pages custom domains)
- */
 async function ensureRepoPublic(owner, repo) {
   const token = process.env.GITHUB_TOKEN;
   const headers = {
@@ -76,9 +67,6 @@ async function ensureRepoPublic(owner, repo) {
   }
 }
 
-/**
- * Add CNAME file to repo root for custom domain
- */
 async function addCNAMEFile(owner, repo, customDomain) {
   const token = process.env.GITHUB_TOKEN;
   const headers = {
@@ -113,10 +101,6 @@ async function addCNAMEFile(owner, repo, customDomain) {
   console.log(`CNAME file added/updated: ${customDomain}`);
 }
 
-/**
- * Enable GitHub Pages (workflow mode) + poll status
- * Returns site URL once ready or throws
- */
 export const setupGitHubPagesWithCustomDomain = async (owner, repo, customDomain) => {
   const token = process.env.GITHUB_TOKEN;
   if (!token) throw new Error("Missing GITHUB_TOKEN");
@@ -152,26 +136,36 @@ export const setupGitHubPagesWithCustomDomain = async (owner, repo, customDomain
   // Add CNAME for custom domain
   await addCNAMEFile(owner, repo, customDomain);
 
-  // Poll GET /pages until we get status (not 404/403)
-  const maxRetries = 15; // ~15-30 min
-  for (let i = 0; i < maxRetries; i++) {
-    const statusRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, { headers });
-    if (statusRes.status === 403) {
-      throw new Error("Persistent 403 on Pages status – fix PAT permissions");
-    }
-    if (statusRes.status === 200) {
-      const data = await statusRes.json();
-      console.log("Pages status:", data.status);
-      if (data.status === "built") {
-        return data.html_url || `https://${owner}.github.io/${repo}/`;
+  // Poll GET /pages until we get status (not 404/403/null)
+  const maxRetries = 30; // ↑ Increased to ~1 hour with backoff
+  let retryCount = 0;
+  while (retryCount < maxRetries) {
+    try {
+      const { data } = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, { headers });
+      console.log("Pages status:", data.status || 'null');
+
+      if (data.status === 'built') {
+        console.log(`Pages built: https://${customDomain}`);
+        return data.html_url || `https://${customDomain}`;
+      } else if (data.status === null || data.status === 'null') {
+        console.warn("Status null – initializing, retrying...");
+      } else {
+        console.log(`Status: ${data.status} - retrying...`);
       }
-    } else if (statusRes.status === 404) {
-      console.log(`Pages not ready yet (404), retry ${i + 1}/${maxRetries}`);
+    } catch (err) {
+      if (err.status === 404) {
+        console.warn('Pages not initialized yet (404)');
+      } else if (err.status === 403) {
+        throw new Error('Persistent 403 – fix PAT permissions');
+      } else {
+        console.warn(`Polling error: ${err.message}`);
+      }
     }
-    await new Promise(r => setTimeout(r, 60000 * (i + 1))); // Backoff 1min → longer
+    await new Promise(r => setTimeout(r, (retryCount + 1) * 60000)); // Linear backoff 1min → 30min
+    retryCount++;
   }
 
-  throw new Error("GitHub Pages build timeout after multiple attempts");
+  throw new Error('GitHub Pages build timeout after extended attempts – check Actions run manually');
 };
 
 // Keep original for backward compat if needed

@@ -9,9 +9,11 @@ import path from "path";
 import simpleGit from "simple-git";
 import { tempSessions } from "../index.js";
 import { getUniqueRepoName, sanitizeRepoName, setupGitHubPagesWithCustomDomain } from "../utils/githubUtils.js";
-import { setGitHubPagesDNS_Namecheap } from "../utils/setGitHubPagesDNS_Namecheap.js";  // ← Add this import
+import { setGitHubPagesDNS_Namecheap } from "../utils/setGitHubPagesDNS_Namecheap.js";
 
 const router = express.Router();
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 router.post("/deploy", async (req, res) => {
   const { sessionId } = req.body || {};
@@ -35,8 +37,10 @@ router.post("/deploy", async (req, res) => {
       owner
     );
 
-    const pagesUrl = `https://${owner}.github.io/${repoName}/`;
+    const pagesUrl = `https://${owner.toLowerCase()}.github.io/${repoName}/`;
     const repoUrl = `https://github.com/${owner}/${repoName}`;
+
+    console.log(`Starting full hosting deploy → repo: ${repoName}`);
 
     // CREATE REPO
     const createRes = await fetch("https://api.github.com/user/repos", {
@@ -52,9 +56,13 @@ router.post("/deploy", async (req, res) => {
         auto_init: false,
       }),
     });
+
     if (!createRes.ok) {
-      throw new Error(`Repo create failed: ${await createRes.text()}`);
+      const errText = await createRes.text();
+      throw new Error(`Repo create failed: ${createRes.status} - ${errText}`);
     }
+
+    console.log(`Repo created: ${repoUrl}`);
 
     const dir = path.join("/tmp", repoName);
     await fs.remove(dir);
@@ -71,6 +79,7 @@ router.post("/deploy", async (req, res) => {
       const html = typeof p === "string" ? p : p.html;
       await fs.writeFile(path.join(dir, filename), html);
     }
+
     await fs.writeFile(path.join(dir, ".nojekyll"), "");
 
     // WORKFLOW for Actions deploy
@@ -111,31 +120,68 @@ jobs:
     );
     await git.push("origin", "main", ["--force"]);
 
-    // SETUP PAGES + CUSTOM DOMAIN (enable, poll, handle perms)
-    let customUrl = pagesUrl;
-    if (saved.domain) {
-      console.log(`Setting up Pages with custom domain: ${saved.domain}`);
-      customUrl = await setupGitHubPagesWithCustomDomain(owner, repoName, saved.domain);
+    console.log(`Pushed to main → workflow should trigger soon`);
+    console.log(`Actions URL: https://github.com/${owner}/${repoName}/actions`);
 
-      // DNS setup (proxy to Namecheap)
+    // Wait a bit + poll for first Actions run to appear (helps debug stuck queues)
+    let workflowRunFound = false;
+    for (let i = 0; i < 12; i++) {  // ~60 seconds total
+      await sleep(5000);
+      try {
+        const actionsRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repoName}/actions/runs?event=push`,
+          {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "website-generator-ai",
+            },
+          }
+        );
+        if (actionsRes.ok) {
+          const runs = await actionsRes.json();
+          if (runs.total_count > 0) {
+            const latestRun = runs.workflow_runs[0];
+            console.log(`Actions run detected: ${latestRun.status} - ${latestRun.conclusion || 'in progress'}`);
+            workflowRunFound = true;
+            break;
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not check Actions yet: ${e.message}`);
+      }
+    }
+
+    if (!workflowRunFound) {
+      console.warn(`No Actions run appeared after 60s – check manually: https://github.com/${owner}/${repoName}/actions`);
+    }
+
+    // DNS setup first (independent of Pages – GitHub can verify later)
+    if (saved.domain) {
       const dnsResult = await setGitHubPagesDNS_Namecheap(saved.domain, owner);
       if (!dnsResult.success) {
         console.warn("DNS setup initiated but not confirmed yet:", dnsResult.message);
-        // Don't fail deploy — DNS can take time; frontend can poll status
       } else {
         console.log("DNS propagated successfully");
       }
     }
 
+    // SETUP PAGES + CUSTOM DOMAIN (enable, poll, handle perms)
+    let customUrl = pagesUrl;
+    if (saved.domain) {
+      console.log(`Setting up Pages with custom domain: ${saved.domain}`);
+      customUrl = await setupGitHubPagesWithCustomDomain(owner, repoName, saved.domain);
+    }
+
     // UPDATE SESSION
     saved.deployed = true;
     saved.pagesUrl = pagesUrl;
-    saved.customUrl = customUrl;  // Final expected URL
+    saved.customUrl = customUrl; // Final expected URL
     saved.repoUrl = repoUrl;
     saved.repoName = repoName;
     saved.githubUser = owner;
-    saved.dnsConfigured = !!saved.domain;  // True if attempted
-    saved.httpsReady = false;  // Poller will update later
+    saved.dnsConfigured = !!saved.domain; // True if attempted
+    saved.httpsReady = false; // Poller will update later
     tempSessions.set(sessionId, saved);
 
     res.json({ success: true, pagesUrl, customUrl, repoUrl });
