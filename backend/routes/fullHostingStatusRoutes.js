@@ -1,3 +1,4 @@
+// routes/fullHostingStatusRoutes.js (latest version with DNS verification + better status handling)
 import express from "express";
 import { tempSessions } from "../index.js";
 import fetch from "node-fetch";
@@ -71,7 +72,7 @@ router.get("/status", async (req, res) => {
 
         if (ghRes.ok) {
           const ghData = await ghRes.json();
-          githubStatus = ghData.status;
+          githubStatus = ghData.status || 'unknown';
 
           // Update pagesUrl if custom domain is set and enforced
           if (ghData.cname === saved.domain) {
@@ -90,8 +91,10 @@ router.get("/status", async (req, res) => {
           }
         } else if (ghRes.status === 403) {
           console.warn("GitHub Pages API 403 (auth issue?)", saved.repoName);
+          githubStatus = 'initializing';
         } else if (ghRes.status === 404) {
           console.log("Pages not yet initialized (404)", saved.repoName);
+          githubStatus = 'initializing';
         }
       } catch (apiErr) {
         console.error("GitHub API fetch error:", apiErr.message);
@@ -138,8 +141,11 @@ router.get("/status", async (req, res) => {
       domainPurchased: Boolean(saved.domainPurchased),
       dnsConfigured,
       httpsReady,  // New: true when site should be live on custom domain
-      githubStatus,  // e.g. "built", "building", null
+      githubStatus,  // e.g. "built", "building", null, 'initializing'
       durationYears: saved.durationYears || null,
+      pendingMessage: (githubStatus === null || githubStatus === 'initializing' || !dnsConfigured)
+        ? 'GitHub finalizing build & domain (5-60 min, up to 24h)'
+        : null
     });
   } catch (err) {
     console.error("FULL HOSTING STATUS ERROR:", err);
